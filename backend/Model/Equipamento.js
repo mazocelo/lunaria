@@ -70,10 +70,13 @@ const Equipamento = (prisma) => {
       });
     },
 
-    // Buscar por nome exato
-    async findByNome(nome) {
+    // Buscar por nome exato (chave unica e [nome, sistema]); sistema opcional
+    // para chamadas em sessao (acoesProcessor) que buscam em qualquer sistema.
+    async findByNome(nome, sistema) {
+      const where = { nome: { equals: nome, mode: 'insensitive' } };
+      if (sistema) where.sistema = sistema;
       return await model.findFirst({
-        where: { nome: { equals: nome, mode: 'insensitive' } },
+        where,
         include: includeRels,
       });
     },

@@ -6,10 +6,10 @@ const Raca = (prisma) => {
 
   // Métodos customizados
   const RacaMethods = {
-    // Buscar raça por nome
-    async findByNome(nome) {
-      return await model.findUnique({
-        where: { nome }
+    // Buscar raça por nome (chave unica e [nome, sistema])
+    async findByNome(nome, sistema = 'lunaria') {
+      return await model.findFirst({
+        where: { nome, sistema }
       });
     },
 

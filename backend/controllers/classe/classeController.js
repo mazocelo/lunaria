@@ -36,7 +36,11 @@ class ClasseController {
         return res.status(400).json({ error: 'Custo deve ser maior ou igual a 0' });
       }
 
-      const classeExistente = await db.Classe.findByNome(nome);
+      const sistemaBody = resolveSistemaQuery(req.body.sistema);
+      if (sistemaBody.error) return res.status(400).json({ error: sistemaBody.error });
+      const sistema = sistemaBody.value ?? 'lunaria';
+
+      const classeExistente = await db.Classe.findByNome(nome, sistema);
       if (classeExistente) {
         return res.status(400).json({ error: 'Ja existe uma classe com este nome' });
       }
@@ -49,6 +53,7 @@ class ClasseController {
         custo,
         descricao,
         bonus: bonus.value,
+        sistema,
       });
 
       res.status(201).json({

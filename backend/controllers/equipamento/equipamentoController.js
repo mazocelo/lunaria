@@ -1,6 +1,7 @@
 import db from '../../Model/index.js';
 import { BonusEquipSchema, RequisitosEquipSchema, VinculoSchema, validateJson } from '../../helpers/jsonSchemas.js';
 import { normalizarBonusCombate, normalizarRequisitos } from '../../helpers/catalogJsonHelper.js';
+import { getAvailableSystems } from '../../game-systems/index.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'equipamentoController' });
 
@@ -63,7 +64,12 @@ class EquipamentoController {
       const { nome } = req.body;
       if (!nome || !nome.trim()) return res.status(400).json({ success: false, error: 'Nome e obrigatorio' });
 
-      const existe = await db.Equipamento.findByNome(nome);
+      const sistema = req.body.sistema || 'lunaria';
+      if (!getAvailableSystems().includes(sistema)) {
+        return res.status(400).json({ success: false, error: `sistema invalido. Use um de: ${getAvailableSystems().join(', ')}` });
+      }
+
+      const existe = await db.Equipamento.findByNome(nome, sistema);
       if (existe) return res.status(400).json({ success: false, error: 'Ja existe um equipamento com este nome' });
 
       // Validar campos JSON

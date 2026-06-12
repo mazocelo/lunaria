@@ -364,7 +364,7 @@ function construirInput(etapa, estado, mensagemJogador, { historico, actionMode,
     if (estado.conceito) parts.push(`Conceito: ${estado.conceito}`);
     if (estado.caracteristicas) {
       const c = estado.caracteristicas;
-      parts.push(`Características: F:${c.forca} H:${c.habilidade} R:${c.resistencia} A:${c.armadura} PdF:${c.poder_de_fogo}`);
+      parts.push(`Características: F:${c.F} H:${c.H} R:${c.R} A:${c.A} PdF:${c.PdF}`);
     }
   } else if (isDnd5e) {
     // D&D 5e: race/class/background/ability scores/skills

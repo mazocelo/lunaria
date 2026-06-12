@@ -6,10 +6,10 @@ const Classe = (prisma) => {
 
   // Métodos customizados
   const ClasseMethods = {
-    // Buscar classe por nome
-    async findByNome(nome) {
-      return await model.findUnique({
-        where: { nome }
+    // Buscar classe por nome (chave unica e [nome, sistema])
+    async findByNome(nome, sistema = 'lunaria') {
+      return await model.findFirst({
+        where: { nome, sistema }
       });
     },
 

@@ -36,7 +36,11 @@ class RacaController {
         return res.status(400).json({ error: 'Custo deve ser maior ou igual a 0' });
       }
 
-      const racaExistente = await db.Raca.findByNome(nome);
+      const sistemaBody = resolveSistemaQuery(req.body.sistema);
+      if (sistemaBody.error) return res.status(400).json({ error: sistemaBody.error });
+      const sistema = sistemaBody.value ?? 'lunaria';
+
+      const racaExistente = await db.Raca.findByNome(nome, sistema);
       if (racaExistente) {
         return res.status(400).json({ error: 'Ja existe uma raca com este nome' });
       }
@@ -48,7 +52,8 @@ class RacaController {
         nome,
         custo,
         descricao,
-        bonus: bonus.value
+        bonus: bonus.value,
+        sistema
       });
 
       res.status(201).json({

@@ -11,7 +11,7 @@ import {
   xpParaNivel,
   EVOLUCAO,
 } from '../helpers/evolucaoHelper.js';
-import { validarAtributosCriacao } from '../helpers/criacaoPersonagemHelper.js';
+import { getEngine } from '../game-systems/index.js';
 import { parsearBonusEntidade } from '../helpers/bonusHelper.js';
 import { getAttrNamesForSystem } from '../helpers/atributosHelper.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../helpers/sanitize.js';
@@ -67,7 +67,7 @@ export async function criarPersonagemLunaria(body, userId) {
     forca: forca || 10, inteligencia: inteligencia || 10, carisma: carisma || 10,
     destreza: destreza || 10, constituicao: constituicao || 10, agilidade: agilidade || 10,
   };
-  const validacaoAtributos = validarAtributosCriacao(atributos);
+  const validacaoAtributos = getEngine('lunaria').validarCriacao(atributos);
   if (!validacaoAtributos.valido) {
     throw httpError(400, validacaoAtributos.erros.join('; '));
   }

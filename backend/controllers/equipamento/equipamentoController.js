@@ -2,6 +2,7 @@ import db from '../../Model/index.js';
 import { BonusEquipSchema, RequisitosEquipSchema, VinculoSchema, validateJson } from '../../helpers/jsonSchemas.js';
 import { normalizarBonusCombate, normalizarRequisitos } from '../../helpers/catalogJsonHelper.js';
 import { getAvailableSystems } from '../../game-systems/index.js';
+import { handlePrismaWriteError } from '../../helpers/prismaErrorResponse.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'equipamentoController' });
 
@@ -93,6 +94,7 @@ class EquipamentoController {
       const equipamento = await db.Equipamento.create(dados);
       res.status(201).json({ success: true, message: 'Equipamento criado com sucesso', data: serializeEquipamento(equipamento) });
     } catch (error) {
+      if (handlePrismaWriteError(error, res)) return;
       log.error({ err: error }, 'Erro ao criar equipamento');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }
@@ -125,6 +127,7 @@ class EquipamentoController {
       const atualizado = await db.Equipamento.update(parseInt(id), dados);
       res.json({ success: true, message: 'Equipamento atualizado com sucesso', data: serializeEquipamento(atualizado) });
     } catch (error) {
+      if (handlePrismaWriteError(error, res)) return;
       log.error({ err: error }, 'Erro ao atualizar equipamento');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }

@@ -2,6 +2,8 @@ import db from '../../Model/index.js';
 import { HabilidadeMonstroSchema, ResistenciasSchema, VelocidadeSchema, validateJson } from '../../helpers/jsonSchemas.js';
 import { normalizarElemento, ELEMENTOS } from '../../config/domainConstants.js';
 import { LUNARIA_ATTRS } from '../../helpers/atributosHelper.js';
+import { getAvailableSystems } from '../../game-systems/index.js';
+import { handlePrismaWriteError } from '../../helpers/prismaErrorResponse.js';
 import logger from '../../helpers/logger.js';
 const log = logger.child({ module: 'monstroController' });
 
@@ -164,7 +166,23 @@ class MonstroController {
         });
       }
 
-      const dados = { nome };
+      const sistema = req.body.sistema || 'lunaria';
+      if (!getAvailableSystems().includes(sistema)) {
+        return res.status(400).json({
+          success: false,
+          error: `sistema invalido. Use um de: ${getAvailableSystems().join(', ')}`
+        });
+      }
+
+      const existente = await db.Monstro.findByNome(nome, sistema);
+      if (existente) {
+        return res.status(400).json({
+          success: false,
+          error: 'Ja existe um monstro com este nome neste sistema'
+        });
+      }
+
+      const dados = { nome, sistema };
       if (descricao !== undefined) dados.descricao = descricao;
       if (tipo !== undefined) dados.tipo = tipo;
       if (raridade_id !== undefined) dados.raridade_id = parseInt(raridade_id);
@@ -224,6 +242,7 @@ class MonstroController {
       });
 
     } catch (error) {
+      if (handlePrismaWriteError(error, res)) return;
       log.error({ err: error }, 'Erro ao criar monstro');
       res.status(500).json({
         success: false,
@@ -318,6 +337,7 @@ class MonstroController {
       });
 
     } catch (error) {
+      if (handlePrismaWriteError(error, res)) return;
       log.error({ err: error }, 'Erro ao atualizar monstro');
       res.status(500).json({
         success: false,

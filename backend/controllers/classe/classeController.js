@@ -2,6 +2,7 @@ import db from '../../Model/index.js';
 import logger from '../../helpers/logger.js';
 import { normalizarBonusEntidade, serializarClasseOuRaca } from '../../helpers/catalogJsonHelper.js';
 import { getAvailableSystems } from '../../game-systems/index.js';
+import { handlePrismaWriteError } from '../../helpers/prismaErrorResponse.js';
 
 const log = logger.child({ module: 'classeController' });
 
@@ -63,6 +64,7 @@ class ClasseController {
         data: serializarClasseOuRaca(novaClasse)
       });
     } catch (error) {
+      if (handlePrismaWriteError(error, res)) return;
       log.error({ err: error }, 'Erro ao criar classe');
       res.status(500).json({ error: 'Erro interno do servidor' });
     }
@@ -166,6 +168,7 @@ class ClasseController {
         data: serializarClasseOuRaca(atualizada)
       });
     } catch (error) {
+      if (handlePrismaWriteError(error, res)) return;
       log.error({ err: error }, 'Erro ao atualizar classe');
       res.status(500).json({ success: false, error: 'Erro interno do servidor' });
     }

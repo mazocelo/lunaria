@@ -123,11 +123,15 @@ export function calcularAbsorcao(constituicao, armadura = 0) {
 }
 
 /**
- * Mapa estatico de mult_raca por nome de raca. Espelha a coluna `mult_raca`
- * da tabela `racas` e serve apenas como fallback quando a raca carregada nao
- * traz o valor da coluna. Fallback final: HP_MULT_DEFAULT.
+ * Mapa estatico de mult_raca por nome de raca. E a FONTE UNICA de sincronizacao:
+ * a coluna `mult_raca` da tabela `racas` deve espelhar este mapa, e o script
+ * `scripts/seed-mult-raca.mjs` semeia a coluna a partir daqui. Assim, o caminho
+ * por coluna (getMultRaca com objeto raca) e o caminho por nome (getMultRaca com
+ * string) convergem para o mesmo valor. Ao mexer aqui, rode o seed. Serve tambem
+ * como fallback quando a raca carregada nao traz o valor da coluna; fallback
+ * final: HP_MULT_DEFAULT.
  */
-const MULT_RACA_MAP = {
+export const MULT_RACA_MAP = {
   'Humano': 5, 'Anão': 6, 'Elfo': 4, 'Elfo Negro': 4, 'Meio-Elfo': 5,
   'Halfling': 4, 'Gnomo': 4, 'Orc': 7, 'Meio-Orc': 6, 'Tiefling': 5,
   'Draconato': 7, 'Aasimar': 5, 'Primordiano': 5, 'Anfíbio': 5, 'Centauro': 7,

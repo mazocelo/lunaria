@@ -18,6 +18,13 @@ const Monstro = (prisma) => {
       });
     },
 
+    // Buscar monstro por nome exato (chave unica [nome, sistema])
+    async findByNome(nome, sistema = 'lunaria') {
+      return await model.findFirst({
+        where: { nome, sistema }
+      });
+    },
+
     // Listar todos
     async findAll(sistema = 'lunaria') {
       return await model.findMany({

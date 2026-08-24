@@ -1,10 +1,19 @@
 import { z } from 'zod';
 
 /**
- * Enum de sistemas suportados (espelha o enum `Sistema` do Prisma).
- * `daemon` existe no schema mas nao esta implementado — fora da union.
+ * Espelha o enum `Sistema` do Postgres/Prisma — vocabulario FECHADO: so muda
+ * por migracao, e o proprio banco recusa qualquer outro valor. Por isso aqui
+ * o parse estrito e seguro e util (pega drift de verdade), ao contrario de
+ * `roteiro_status`/`mestre_tier`, que sao varchar livre e ficam como string.
+ *
+ * `daemon` E valido no banco e precisa estar na union: ele existia no enum do
+ * Prisma mas fora daqui, entao a primeira entidade `daemon` derrubaria as sete
+ * listagens que usam este schema. Nao ter telas proprias e problema de
+ * renderizacao (fallback), nao de contrato.
  */
-export const sistemaSchema = z.enum(['lunaria', 'tresdet', 'dnd5e']);
+export const SISTEMAS = ['lunaria', 'tresdet', 'dnd5e', 'daemon'] as const;
+
+export const sistemaSchema = z.enum(SISTEMAS);
 
 /**
  * Bonus do catalogo (Raca/Classe). Chave varia por sistema

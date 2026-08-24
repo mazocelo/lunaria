@@ -2,18 +2,33 @@ import { z } from 'zod';
 import { sistemaSchema } from './raca';
 
 /**
- * Status de geracao do roteiro. Valores observados em
- * services/roteiroGenerationService.js + controller (queued, generating,
- * ready, error).
+ * Status de geracao do roteiro, conforme o backend realmente grava:
+ * `queued` e `generating` (jobs/enqueueRoteiroJob.js, jobs/processRoteiroJob.js),
+ * `completed` (services/roteiroGenerationService.js, historiaController.js) e
+ * `error`. Nao existe `ready` — o enum anterior listava esse valor e recusava
+ * `completed`, derrubando toda listagem que trouxesse uma historia pronta.
+ *
+ * Fica como string livre: a coluna e varchar(50) escrita pelo codigo da app,
+ * vocabulario ABERTO (ao contrario de `sistema`, enum do Postgres, que o banco
+ * fecha e por isso pode ser validado estrito aqui). Status novo no backend
+ * deve degradar a exibicao, nunca derrubar o parse da listagem inteira.
  */
-export const roteiroStatusSchema = z
-  .enum(['queued', 'generating', 'ready', 'error'])
-  .nullable()
-  .optional();
+export const ROTEIRO_STATUS_CONHECIDOS = [
+  'queued',
+  'generating',
+  'completed',
+  'error',
+] as const;
+
+/** Status em que o roteiro ainda esta sendo produzido — mantem o polling ativo. */
+export const ROTEIRO_STATUS_EM_PROGRESSO: readonly string[] = ['queued', 'generating'];
+
+export const roteiroStatusSchema = z.string().nullable().optional();
 
 /**
  * Tier do Mestre (VALID_MESTRE_TIERS em agents/Mestre/config.js).
- * Mantido como string para nao quebrar quando o backend introduzir novo tier.
+ * String livre pelo mesmo criterio de `roteiroStatusSchema`: coluna varchar(20)
+ * de vocabulario aberto, definido em config e nao no schema do banco.
  */
 export const mestreTierSchema = z.string().nullable().optional();
 

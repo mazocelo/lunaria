@@ -10,6 +10,7 @@ import { apiClient } from '../../../services/ApiClient';
 import { useTTS, type UseTTSResult } from '../../../hooks/useTTS';
 import { mergeHistoriaConfig, resolveHistoriaConfig } from '../../../utils/historiaConfig';
 import type { Historia } from '../../../types/api';
+import { ROTEIRO_STATUS_EM_PROGRESSO } from '../../../types/api';
 import type { MestreItem } from '../../../store/mestre/states';
 
 const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
@@ -244,7 +245,7 @@ export const useHistoriaVerModel = ({ navigate }: UseHistoriaVerModelArgs) => {
     roteiroPollRef.current = setInterval(async () => {
       try {
         const updated = await historiaService.getRoteiro(historiaId) as { roteiro?: Record<string, unknown>; roteiro_status?: string };
-        if (!['queued', 'generating'].includes(updated.roteiro_status || '')) {
+        if (!ROTEIRO_STATUS_EM_PROGRESSO.includes(updated.roteiro_status || '')) {
           stopRoteiroPoll();
           setRoteiro(updated.roteiro || null);
           setRoteiroStatus(updated.roteiro_status || null);
@@ -262,7 +263,7 @@ export const useHistoriaVerModel = ({ navigate }: UseHistoriaVerModelArgs) => {
       const data = await historiaService.getRoteiro(historiaId) as { roteiro?: Record<string, unknown>; roteiro_status?: string };
       setRoteiro(data.roteiro || null);
       setRoteiroStatus(data.roteiro_status || null);
-      if (['queued', 'generating'].includes(data.roteiro_status || '')) {
+      if (ROTEIRO_STATUS_EM_PROGRESSO.includes(data.roteiro_status || '')) {
         startRoteiroPoll(historiaId);
       }
     } catch (err) {

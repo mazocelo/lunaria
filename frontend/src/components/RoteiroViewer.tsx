@@ -13,6 +13,9 @@ import { useVoiceCatalog } from '../hooks/useVoiceCatalog';
 // three.js + R3F pesam ~600KB. Carregar sob demanda mantem o bundle inicial
 // intacto para quem nunca abre um mapa.
 const Mapa3D = lazy(() => import('./Mapa3D/Mapa3D'));
+// Fronteira de erro fica fora do lazy: precisa existir mesmo se o chunk 3D
+// falhar ao carregar.
+import { FronteiraErro3D } from './Mapa3D/suporteWebGL';
 
 const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
@@ -433,7 +436,9 @@ const RoteiroViewer = ({
                     }
                   >
                     <div className="mt-2">
-                      <Mapa3D historiaId={historiaId} local={local} isLight={isLight} />
+                      <FronteiraErro3D altura={420}>
+                        <Mapa3D historiaId={historiaId} local={local} isLight={isLight} />
+                      </FronteiraErro3D>
                     </div>
                   </Suspense>
                 )}

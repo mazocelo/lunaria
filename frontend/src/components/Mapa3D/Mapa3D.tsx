@@ -4,6 +4,8 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import { gerarMapa, type LocalRoteiro, type MapaLayout } from '../../mapEngine';
 import { ParedesSala, PisoCorredor, PisoSala, PredioUrbano, Vegetacao, type Porta } from './geometriaMapa';
+import { AvisoSemWebGL } from './suporteWebGL';
+import { suportaWebGL } from './deteccaoWebGL';
 
 /**
  * Visualizador 3D de um local do roteiro.
@@ -51,6 +53,17 @@ export default function Mapa3D({ historiaId, local, altura = 420, isLight = fals
   }, [layout]);
 
   const corFundo = isLight ? '#e2e8f0' : '#0f172a';
+
+  // Checa antes de montar o Canvas: sem isso o R3F cria um canvas em branco e o
+  // usuario nao descobre que o problema e o navegador dele.
+  if (!suportaWebGL()) {
+    return (
+      <AvisoSemWebGL
+        altura={altura}
+        motivo="Seu navegador nao tem WebGL habilitado, que e o necessario para desenhar a cena 3D."
+      />
+    );
+  }
 
   return (
     <div className="relative w-full overflow-hidden rounded-lg" style={{ height: altura }}>

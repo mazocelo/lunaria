@@ -41,37 +41,71 @@ export function PisoSala({ sala }: { sala: Sala }) {
   );
 }
 
+export type LadoSala = 'norte' | 'sul' | 'leste' | 'oeste';
+
+/** Vao de porta: em que lado da sala e em que coordenada do eixo livre. */
+export interface Porta {
+  lado: LadoSala;
+  /** Coordenada no eixo que corre ao longo da parede (X no norte/sul, Z no leste/oeste). */
+  pos: number;
+  largura: number;
+}
+
 /**
- * Quatro paredes ao redor da sala. Ficam semitransparentes para a planta
- * continuar legivel vista de cima — paredes solidas escondem o interior, que e
- * justamente o que o jogador quer ver.
+ * Paredes da sala COM vaos de porta onde chegam corredores.
+ *
+ * Sem os vaos, a parede sela o corredor e a planta deixa de se ler como um
+ * espaco navegavel: as salas viram caixas soltas e o jogador nao enxerga por
+ * onde se anda. Cada parede e emitida como ate dois segmentos, deixando o vao
+ * no meio. Ficam semitransparentes para a planta continuar legivel vista de
+ * cima.
  */
-export function ParedesSala({ sala }: { sala: Sala }) {
+export function ParedesSala({ sala, portas = [] }: { sala: Sala; portas?: Porta[] }) {
   if (sala.altura <= 0) return null;
 
   const y = sala.altura / 2;
-  const paredes: Array<{ pos: [number, number, number]; args: [number, number, number] }> = [
-    {
-      pos: [sala.x + sala.largura / 2, y, sala.z],
-      args: [sala.largura + ESPESSURA_PAREDE, sala.altura, ESPESSURA_PAREDE],
-    },
-    {
-      pos: [sala.x + sala.largura / 2, y, sala.z + sala.profundidade],
-      args: [sala.largura + ESPESSURA_PAREDE, sala.altura, ESPESSURA_PAREDE],
-    },
-    {
-      pos: [sala.x, y, sala.z + sala.profundidade / 2],
-      args: [ESPESSURA_PAREDE, sala.altura, sala.profundidade],
-    },
-    {
-      pos: [sala.x + sala.largura, y, sala.z + sala.profundidade / 2],
-      args: [ESPESSURA_PAREDE, sala.altura, sala.profundidade],
-    },
-  ];
+  const pecas: Array<{ pos: [number, number, number]; args: [number, number, number] }> = [];
+
+  /**
+   * Emite uma parede quebrada nos vaos. `inicio`/`fim` sao a extensao da parede
+   * no eixo livre; `fixo` e a coordenada do eixo perpendicular.
+   */
+  const emitir = (lado: LadoSala, inicio: number, fim: number, fixo: number) => {
+    const vaos = portas
+      .filter((p) => p.lado === lado)
+      .map((p) => [p.pos - p.largura / 2, p.pos + p.largura / 2] as const)
+      .sort((a, b) => a[0] - b[0]);
+
+    let cursor = inicio;
+    const trechos: Array<[number, number]> = [];
+    for (const [a, b] of vaos) {
+      if (a > cursor) trechos.push([cursor, Math.min(a, fim)]);
+      cursor = Math.max(cursor, b);
+    }
+    if (cursor < fim) trechos.push([cursor, fim]);
+
+    for (const [a, b] of trechos) {
+      const comprimento = b - a;
+      if (comprimento <= 0.05) continue;
+      const meio = (a + b) / 2;
+      const horizontal = lado === 'norte' || lado === 'sul';
+      pecas.push({
+        pos: horizontal ? [meio, y, fixo] : [fixo, y, meio],
+        args: horizontal
+          ? [comprimento, sala.altura, ESPESSURA_PAREDE]
+          : [ESPESSURA_PAREDE, sala.altura, comprimento],
+      });
+    }
+  };
+
+  emitir('norte', sala.x, sala.x + sala.largura, sala.z);
+  emitir('sul', sala.x, sala.x + sala.largura, sala.z + sala.profundidade);
+  emitir('oeste', sala.z, sala.z + sala.profundidade, sala.x);
+  emitir('leste', sala.z, sala.z + sala.profundidade, sala.x + sala.largura);
 
   return (
     <group>
-      {paredes.map((p, i) => (
+      {pecas.map((p, i) => (
         <mesh key={i} position={p.pos} castShadow>
           <boxGeometry args={p.args} />
           <meshStandardMaterial color={COR_PAREDE} roughness={0.9} transparent opacity={0.55} />

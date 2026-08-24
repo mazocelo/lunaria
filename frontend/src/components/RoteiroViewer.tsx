@@ -1,14 +1,18 @@
-import { useState, useRef, useEffect, type ComponentType, type ReactNode } from 'react';
+import { useState, useRef, useEffect, lazy, Suspense, type ComponentType, type ReactNode } from 'react';
 import {
   ChevronDown, ChevronRight, Scroll, Sword, MapPin, Users, Gem,
   Zap, Swords, Flag, BookOpen, Compass, CheckCircle2, Circle,
-  ImagePlus, Loader2, X,
+  ImagePlus, Loader2, X, Box,
 } from 'lucide-react';
 import { imageGenerationService } from '../services';
 import ImageLightbox from './ImageLightbox';
 import NarrationAudioButton, { type NarrationTtsController } from './shared/NarrationAudioButton';
 import VoicePicker, { type VoicePickerChangePayload } from './shared/VoicePicker';
 import { useVoiceCatalog } from '../hooks/useVoiceCatalog';
+
+// three.js + R3F pesam ~600KB. Carregar sob demanda mantem o bundle inicial
+// intacto para quem nunca abre um mapa.
+const Mapa3D = lazy(() => import('./Mapa3D/Mapa3D'));
 
 const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
@@ -140,6 +144,10 @@ interface RoteiroLocal {
   perigo?: string;
   descricao?: string;
   imagem?: string | null;
+  // Alimentam o motor de mapas: segredos viram salas ocultas e monstros viram
+  // salas de encontro (ver src/mapEngine).
+  segredos?: string[];
+  monstros_comuns?: string[];
 }
 
 interface RoteiroNpc {
@@ -233,6 +241,9 @@ const RoteiroViewer = ({
   mestreVoiceProvider = DEFAULT_TTS_PROVIDER,
 }: RoteiroViewerProps) => {
   const voiceCatalog = useVoiceCatalog();
+  // Indice do local com o mapa 3D aberto; um por vez para nao manter varios
+  // contextos WebGL vivos ao mesmo tempo.
+  const [mapa3dAberto, setMapa3dAberto] = useState<number | null>(null);
 
   // Ref para manter versao mais recente do roteiro (evita race condition em geracoes paralelas)
   const roteiroRef = useRef<RoteiroPayload | null | undefined>(roteiro);
@@ -400,6 +411,31 @@ const RoteiroViewer = ({
                     isLight={isLight}
                     onGenerated={(url) => updateItemImage('locais', i, url)}
                   />
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setMapa3dAberto(mapa3dAberto === i ? null : i)}
+                  className={`mt-2 flex items-center gap-1 rounded px-2 py-1 text-[11px] transition ${
+                    isLight ? 'bg-slate-200 hover:bg-slate-300' : 'bg-slate-700 hover:bg-slate-600'
+                  }`}
+                >
+                  <Box className="w-3 h-3" />
+                  {mapa3dAberto === i ? 'Fechar mapa 3D' : 'Ver mapa 3D'}
+                </button>
+
+                {mapa3dAberto === i && (
+                  <Suspense
+                    fallback={
+                      <div className="mt-2 flex items-center gap-2 text-[11px] opacity-70">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Carregando motor 3D...
+                      </div>
+                    }
+                  >
+                    <div className="mt-2">
+                      <Mapa3D historiaId={historiaId} local={local} isLight={isLight} />
+                    </div>
+                  </Suspense>
                 )}
               </div>
             ))}

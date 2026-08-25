@@ -44,7 +44,10 @@ function corDoMaterial(cor: string, temTextura: boolean): string {
 
 /** Repeticoes proporcionais ao tamanho: sem isso a textura estica em sala grande. */
 function repeticoesPara(largura: number, profundidade: number): number {
-  return Math.max(2, Math.round(Math.max(largura, profundidade) / 4));
+  // Divisor alto de proposito: o mapa e visto de longe, e repetir muito reduz
+  // cada feicao a poucos pixels, virando cinza chapado. Poucas repeticoes
+  // deixam blocos e fiadas grandes o bastante para se lerem a distancia.
+  return Math.max(1, Math.round(Math.max(largura, profundidade) / 9));
 }
 
 export function PisoSala({ sala, arte }: { sala: Sala; arte: DirecaoArte }) {
@@ -57,6 +60,11 @@ export function PisoSala({ sala, arte }: { sala: Sala; arte: DirecaoArte }) {
       <meshStandardMaterial
         color={corDoMaterial(cor, Boolean(textura))}
         map={textura ?? undefined}
+        // O mesmo bitmap como relevo: sem isto a textura e so pintura chapada e
+        // some a distancia. Com relevo, a luz rasante cria sombra propria em
+        // cada bloco e a superficie se le mesmo pequena na tela.
+        bumpMap={textura ?? undefined}
+        bumpScale={1.4}
         roughness={arte.materiais.rugosidade}
         metalness={arte.materiais.metalico}
         // Salas de destaque brilham de leve para serem achadas de longe.
@@ -143,7 +151,7 @@ export function ParedesSala({
 
   if (pecas.length === 0) return null;
 
-  const textura = obterTextura(arte.materiais.textura, arte.paleta.parede, 3);
+  const textura = obterTextura(arte.materiais.textura, arte.paleta.parede, 2);
 
   return (
     <group>
@@ -153,6 +161,8 @@ export function ParedesSala({
           <meshStandardMaterial
             color={corDoMaterial(arte.paleta.parede, Boolean(textura))}
             map={textura ?? undefined}
+            bumpMap={textura ?? undefined}
+            bumpScale={1.1}
             roughness={arte.materiais.rugosidade}
             metalness={arte.materiais.metalico}
             transparent
@@ -182,6 +192,8 @@ export function PredioUrbano({ sala, arte }: { sala: Sala; arte: DirecaoArte }) 
       <meshStandardMaterial
         color={corDoMaterial(cor, Boolean(textura))}
         map={textura ?? undefined}
+        bumpMap={textura ?? undefined}
+        bumpScale={1.5}
         roughness={arte.materiais.rugosidade}
         metalness={arte.materiais.metalico}
       />
@@ -219,7 +231,7 @@ export function PisoCorredor({ corredor, arte }: { corredor: Corredor; arte: Dir
 
   // Corredor um tom abaixo do piso das salas: cria hierarquia entre "passagem"
   // e "lugar onde algo acontece".
-  const textura = obterTextura(arte.materiais.textura, arte.paleta.piso, 2);
+  const textura = obterTextura(arte.materiais.textura, arte.paleta.piso, 1);
 
   return (
     <group>
@@ -229,6 +241,8 @@ export function PisoCorredor({ corredor, arte }: { corredor: Corredor; arte: Dir
           <meshStandardMaterial
             color={corDoMaterial(arte.paleta.piso, Boolean(textura))}
             map={textura ?? undefined}
+            bumpMap={textura ?? undefined}
+            bumpScale={1.2}
             roughness={Math.min(arte.materiais.rugosidade + 0.05, 1)}
             metalness={arte.materiais.metalico * 0.5}
           />

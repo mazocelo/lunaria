@@ -97,7 +97,9 @@ export default function Mapa3D({ historiaId, local, direcaoArte, altura = 420, i
             comuns por completo e a planta deixava de se ler. */}
         <ambientLight intensity={isLight ? 0.35 : 0.3} />
         <directionalLight
-          position={[centro[0] + raio, centro[1] + raio * 1.6, centro[2] + raio * 0.7]}
+          // Angulo baixo de proposito: luz rasante alonga a sombra de cada bloco
+          // da textura de relevo. Luz vinda de cima achata a superficie.
+          position={[centro[0] + raio * 1.4, centro[1] + raio * 0.75, centro[2] + raio * 0.5]}
           intensity={(isLight ? 1.4 : 1) * arte.atmosfera.luzIntensidade}
           color={arte.atmosfera.luzCor}
           castShadow
@@ -234,7 +236,11 @@ function EnquadrarCamera({
         }
       }
     }
-    distancia = Math.max(distancia, 1) * 1.06;
+    // 0.94: enquadra um pouco APERTADO de proposito. Como o mapa e panoramico e
+    // o card e quase quadrado, uma margem generosa desperdicava metade da altura
+    // e encolhia as salas a ponto de nenhuma textura se ler. O usuario ainda
+    // afasta com a roda do mouse quando quiser a planta inteira.
+    distancia = Math.max(distancia, 1) * 0.94;
 
     perspectiva.position.set(
       centro[0] + dir.x * distancia,

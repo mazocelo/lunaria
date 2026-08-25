@@ -49,14 +49,14 @@ function desenhar(ctx: CanvasRenderingContext2D, textura: Textura, cor: string, 
     case 'tijolo': {
       const alturaFileira = 26;
       const larguraTijolo = 58;
-      ctx.fillStyle = ajustar(cor, 0.62);
+      ctx.fillStyle = ajustar(cor, 0.4);
       ctx.fillRect(0, 0, TAMANHO, TAMANHO);
       for (let linha = 0, y = 0; y < TAMANHO; linha++, y += alturaFileira) {
         // Deslocamento alternado: sem ele a parede vira grade e denuncia o padrao.
         const offset = linha % 2 === 0 ? 0 : -larguraTijolo / 2;
         for (let x = offset; x < TAMANHO; x += larguraTijolo) {
-          ctx.fillStyle = ajustar(cor, 0.85 + rng.proximo() * 0.3);
-          ctx.fillRect(x + 2, y + 2, larguraTijolo - 4, alturaFileira - 4);
+          ctx.fillStyle = ajustar(cor, 0.8 + rng.proximo() * 0.62);
+          ctx.fillRect(x + 3, y + 3, larguraTijolo - 6, alturaFileira - 6);
         }
       }
       ruido(700, 0.05, 2);
@@ -65,7 +65,7 @@ function desenhar(ctx: CanvasRenderingContext2D, textura: Textura, cor: string, 
 
     case 'madeira': {
       for (let x = 0; x < TAMANHO; x += 2) {
-        const veio = 0.86 + Math.abs(Math.sin(x * 0.11 + rng.proximo() * 0.4)) * 0.26;
+        const veio = 0.72 + Math.abs(Math.sin(x * 0.11 + rng.proximo() * 0.4)) * 0.58;
         ctx.fillStyle = ajustar(cor, veio);
         ctx.fillRect(x, 0, 2, TAMANHO);
       }
@@ -85,7 +85,7 @@ function desenhar(ctx: CanvasRenderingContext2D, textura: Textura, cor: string, 
     }
 
     case 'areia':
-      ruido(9000, 0.06, 1.6);
+      ruido(9000, 0.11, 2.2);
       break;
 
     case 'gelo': {
@@ -103,10 +103,10 @@ function desenhar(ctx: CanvasRenderingContext2D, textura: Textura, cor: string, 
     }
 
     case 'musgo': {
-      ruido(2600, 0.07, 3);
+      ruido(2600, 0.13, 4);
       // Manchas de vegetacao por cima da base.
       for (let i = 0; i < 130; i++) {
-        ctx.fillStyle = `rgba(74,124,58,${0.06 + rng.proximo() * 0.2})`;
+        ctx.fillStyle = `rgba(58,102,44,${0.12 + rng.proximo() * 0.34})`;
         ctx.beginPath();
         ctx.arc(rng.proximo() * TAMANHO, rng.proximo() * TAMANHO, 3 + rng.proximo() * 13, 0, Math.PI * 2);
         ctx.fill();
@@ -133,28 +133,27 @@ function desenhar(ctx: CanvasRenderingContext2D, textura: Textura, cor: string, 
 
     case 'pedra':
     default: {
-      // Blocos irregulares + rachaduras: le como alvenaria bruta de longe.
-      for (let i = 0; i < 90; i++) {
-        ctx.fillStyle = ajustar(cor, 0.78 + rng.proximo() * 0.42);
-        const w = 22 + rng.proximo() * 52;
-        const h = 18 + rng.proximo() * 40;
-        ctx.fillRect(rng.proximo() * TAMANHO, rng.proximo() * TAMANHO, w, h);
-      }
-      for (let i = 0; i < 16; i++) {
-        ctx.strokeStyle = `rgba(0,0,0,${0.1 + rng.proximo() * 0.2})`;
-        ctx.lineWidth = 0.8 + rng.proximo() * 1.6;
-        ctx.beginPath();
-        let x = rng.proximo() * TAMANHO;
-        let y = rng.proximo() * TAMANHO;
-        ctx.moveTo(x, y);
-        for (let p = 0; p < 5; p++) {
-          x += (rng.proximo() - 0.5) * 60;
-          y += (rng.proximo() - 0.5) * 60;
-          ctx.lineTo(x, y);
+      // Alvenaria em fiadas irregulares. A argamassa escura vem PRIMEIRO e os
+      // blocos claros por cima deixam uma folga: a aresta de alto contraste e o
+      // que sobrevive quando a textura e reduzida a poucos pixels na tela.
+      ctx.fillStyle = ajustar(cor, 0.42);
+      ctx.fillRect(0, 0, TAMANHO, TAMANHO);
+
+      const alturaFiada = 42;
+      for (let y = 0; y < TAMANHO; y += alturaFiada) {
+        let x = -rng.proximo() * 40;
+        while (x < TAMANHO) {
+          const w = 40 + rng.proximo() * 46;
+          const h = alturaFiada - 5 - rng.proximo() * 5;
+          ctx.fillStyle = ajustar(cor, 0.82 + rng.proximo() * 0.6);
+          ctx.fillRect(x + 3, y + 3, w - 4, h);
+          // Chanfro claro no topo: sugere volume mesmo sem relevo real.
+          ctx.fillStyle = `rgba(255,255,255,${0.05 + rng.proximo() * 0.07})`;
+          ctx.fillRect(x + 3, y + 3, w - 4, 3);
+          x += w;
         }
-        ctx.stroke();
       }
-      ruido(1400, 0.05, 2);
+      ruido(900, 0.09, 2.5);
       break;
     }
   }

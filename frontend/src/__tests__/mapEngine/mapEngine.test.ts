@@ -147,6 +147,55 @@ describe('invariantes geometricas', () => {
     }
   });
 
+  /**
+   * Um corredor so pode tocar as duas salas que ele liga. Atravessar uma
+   * terceira significa rua passando por dentro de predio, ou trilha por cima de
+   * clareira.
+   *
+   * O caso que motivou este teste: urbano e natural encadeavam as celulas por
+   * ORDEM DE CRIACAO, entao o ultimo quarteirao de uma fileira virava "vizinho"
+   * do primeiro da fileira seguinte e a rua cortava o mapa na diagonal. Uma
+   * cidade de 16 quarteiroes chegava a 10 travessias.
+   */
+  it.each(casos)('%s: corredores nao atravessam salas alheias', (_nome, layout) => {
+    for (const c of layout.corredores) {
+      for (let i = 1; i < c.pontos.length; i++) {
+        const a = c.pontos[i - 1];
+        const b = c.pontos[i];
+        const minX = Math.min(a.x, b.x) - c.largura / 2;
+        const maxX = Math.max(a.x, b.x) + c.largura / 2;
+        const minZ = Math.min(a.z, b.z) - c.largura / 2;
+        const maxZ = Math.max(a.z, b.z) + c.largura / 2;
+
+        for (const s of layout.salas) {
+          if (s.id === c.deSalaId || s.id === c.paraSalaId) continue;
+          const cruza =
+            minX < s.x + s.largura && maxX > s.x && minZ < s.z + s.profundidade && maxZ > s.z;
+          expect(cruza, `${c.deSalaId}->${c.paraSalaId} atravessa ${s.id}`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it.each(casos)('%s: todas as salas sao alcancaveis (grafo sem ilhas)', (_nome, layout) => {
+    if (layout.salas.length < 2) return;
+    const vizinhos = new Map<string, string[]>();
+    for (const s of layout.salas) vizinhos.set(s.id, []);
+    for (const c of layout.corredores) {
+      vizinhos.get(c.deSalaId)?.push(c.paraSalaId);
+      vizinhos.get(c.paraSalaId)?.push(c.deSalaId);
+    }
+    const visitados = new Set<string>();
+    const fila = [layout.salas[0].id];
+    while (fila.length) {
+      const atual = fila.pop() as string;
+      if (visitados.has(atual)) continue;
+      visitados.add(atual);
+      for (const v of vizinhos.get(atual) ?? []) if (!visitados.has(v)) fila.push(v);
+    }
+    expect(visitados.size).toBe(layout.salas.length);
+  });
+
   it('interiores conectam todas as salas (grafo sem ilhas)', () => {
     const layout = gerarMapa(1, CATACUMBAS);
     const vizinhos = new Map<string, string[]>();

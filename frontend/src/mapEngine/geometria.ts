@@ -39,13 +39,16 @@ export function corredorEmL(
   larguraCorredor: number,
   horizontalPrimeiro: boolean,
 ): Corredor {
-  const cotovelo = horizontalPrimeiro ? { x: b.x, z: a.z } : { x: a.x, z: b.z };
-  return {
-    deSalaId,
-    paraSalaId,
-    pontos: [a, cotovelo, b],
-    largura: larguraCorredor,
-  };
+  // Alinhados num eixo: corredor RETO, sem cotovelo. Emitir o ponto do meio
+  // duplicado nao quebraria o render, mas deixaria os dados mentindo sobre a
+  // forma — e qualquer analise sobre `pontos` (cruzamento, direcao) herdaria a
+  // mentira.
+  const alinhado = Math.abs(a.x - b.x) < 0.01 || Math.abs(a.z - b.z) < 0.01;
+  const pontos = alinhado
+    ? [a, b]
+    : [a, horizontalPrimeiro ? { x: b.x, z: a.z } : { x: a.x, z: b.z }, b];
+
+  return { deSalaId, paraSalaId, pontos, largura: larguraCorredor };
 }
 
 /** Envelope de tudo que foi gerado; o renderizador usa para enquadrar a camera. */

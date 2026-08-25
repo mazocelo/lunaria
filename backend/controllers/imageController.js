@@ -1,4 +1,5 @@
 import { generateImage } from '../services/imageGenerationService.js';
+import { gerarDirecaoArte } from '../services/direcaoArteService.js';
 import { generateImagePrompt } from '../services/imagePromptService.js';
 import usageService from '../services/usageService.js';
 import { redisClient } from '../redis/redis-config.js';
@@ -63,14 +64,23 @@ async function gerarImagem(req, res) {
       const prompt = await generateImagePrompt(entityType, entityData, req.user?.id);
       log.debug({ prompt }, 'Prompt final');
       const tImg = Date.now();
-      const imageUrl = await generateImage(prompt, {
-        ...(options || {}),
-        estilo_imagem: entityData.estilo_imagem
-      });
+
+      // Para LOCAL, a direcao de arte do mapa 3D sai no MESMO clique. Roda em
+      // paralelo com a imagem porque sao chamadas independentes — sequencial
+      // somaria a latencia das duas ao tempo de espera do usuario.
+      const [imageUrl, direcaoArte] = await Promise.all([
+        generateImage(prompt, {
+          ...(options || {}),
+          estilo_imagem: entityData.estilo_imagem
+        }),
+        entityType === 'local' ? gerarDirecaoArte(entityData, req.user?.id) : Promise.resolve(null),
+      ]);
 
       if (req.user?.id) usageService.track({ userId: req.user.id, provider: 'leonardo', tipo: 'image', duracao_ms: Date.now() - tImg, metadata: { entityType } });
 
-      return res.json({ success: true, data: { url: imageUrl, prompt } });
+      // `direcaoArte` e null quando falha ou nao se aplica: o mapa cai no
+      // default do tipo e o usuario nao ve erro nenhum.
+      return res.json({ success: true, data: { url: imageUrl, prompt, direcaoArte } });
     } finally {
       releaseLock(lockKey);
     }

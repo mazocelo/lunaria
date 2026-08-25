@@ -155,13 +155,33 @@ function buildNpcsSection(roteiro, estadoAtual, arcoAtual) {
   return `**NPCs:**\n  ${npcLines}`;
 }
 
+// Placeholders que `blueprintService.normalizeLocais` grava quando o LLM nao
+// preenche o campo. Sem filtrar, o Mestre lia "[Segredo: Nenhum segredo
+// definido]" em todo local. Espelha PLACEHOLDERS do motor de mapas do frontend.
+const PLACEHOLDERS_LOCAL = [/^nenhum/i, /^sem\s/i, /^n\/a$/i, /^-$/, /^nao definido/i];
+
+function primeiroSegredoUtil(local) {
+  // O schema grava `segredos` (array); o codigo antigo lia `segredo` (singular),
+  // que nunca existiu — por isso NENHUM segredo de local chegava ao prompt.
+  // O fallback para o singular fica por seguranca com roteiros antigos.
+  const lista = Array.isArray(local?.segredos)
+    ? local.segredos
+    : (typeof local?.segredo === 'string' ? [local.segredo] : []);
+
+  return lista
+    .filter(s => typeof s === 'string')
+    .map(s => s.trim())
+    .find(s => s.length > 0 && !PLACEHOLDERS_LOCAL.some(p => p.test(s))) || null;
+}
+
 function buildLocaisSection(roteiro, arcoAtual) {
   if (!roteiro.locais?.length) return null;
   const locaisArco = roteiro.locais.filter(l => l.arco_relacionado === arcoAtual);
   const locaisUsar = locaisArco.length > 0 ? locaisArco.slice(0, 5) : roteiro.locais.slice(0, 5);
   const locaisList = locaisUsar.map(l => {
     let line = `${l.nome} (${l.tipo}) — ${(l.descricao || '').substring(0, 80)}`;
-    if (l.segredo) line += ` [Segredo: ${l.segredo.substring(0, 60)}]`;
+    const segredo = primeiroSegredoUtil(l);
+    if (segredo) line += ` [Segredo: ${segredo.substring(0, 60)}]`;
     return line;
   }).join('; ');
   return `**LOCAIS:** ${locaisList}`;

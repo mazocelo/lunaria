@@ -874,6 +874,15 @@ export function applyMetadadosToSessao(sessao = {}, metadados = {}, historia = n
         ...(contextoAtual?.sessao?.npcsEmergentes || []),
         ...emergentes
       ]),
+      // O campo era lido em 4 lugares e escrito em nenhum, entao o Mestre sempre
+      // via "Locais visitados: nenhum". Acumula como npcsEncontrados logo acima.
+      // Nota: `cenaAtual` e texto livre do LLM, entao a lista guarda rotulos de
+      // cena (incluindo sub-cenas), nao locais canonicos do roteiro — canonizar
+      // exigiria resolver contra roteiro.locais[], que e trabalho a parte.
+      locaisVisitados: uniqueList([
+        ...(contextoAtual?.sessao?.locaisVisitados || []),
+        ...(presenteOrTruthy(estadoJogo.cenaAtual) ? [estadoJogo.cenaAtual] : [])
+      ]),
       memoriaSemantica
     }
   });

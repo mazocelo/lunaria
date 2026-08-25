@@ -1,41 +1,67 @@
 import { useMemo } from 'react';
 import type { Corredor, MapaLayout, PapelSala, Sala } from '../../mapEngine';
+import type { DirecaoArte } from './direcaoArte';
+import { obterTextura } from './texturas';
 
 /**
  * Traducao layout -> geometria three.js.
  *
  * Estes componentes nao decidem NADA sobre a planta: recebem o `MapaLayout`
- * pronto do motor e so o desenham. Toda a logica de geracao vive em
- * `src/mapEngine` e e testada sem renderizar nada.
+ * pronto do motor e a `DirecaoArte` do local, e so desenham. Toda a logica de
+ * geracao vive em `src/mapEngine` e e testada sem renderizar nada.
  */
 
-/** Paleta por papel narrativo — pensada para fundo escuro. */
-const COR_PISO: Record<PapelSala, string> = {
+/**
+ * Cor por papel narrativo. Continua valendo para salas especiais mesmo com
+ * direcao de arte: e o que faz a legenda do canto bater com o que se ve. Sala
+ * `comum` usa a paleta do local, entao a arte manda onde nao ha significado
+ * competindo.
+ */
+const COR_PAPEL: Record<Exclude<PapelSala, 'comum'>, string> = {
   entrada: '#34d399',
-  comum: '#64748b',
   encontro: '#f87171',
   segredo: '#c084fc',
   final: '#fbbf24',
 };
 
-const COR_PAREDE = '#334155';
-const COR_CORREDOR = '#475569';
 const ESPESSURA_PAREDE = 0.4;
 const ESPESSURA_PISO = 0.2;
 
-export function PisoSala({ sala }: { sala: Sala }) {
+function corDoPiso(sala: Sala, arte: DirecaoArte): string {
+  return sala.papel === 'comum' ? arte.paleta.piso : COR_PAPEL[sala.papel];
+}
+
+/**
+ * `meshStandardMaterial` MULTIPLICA `color` pelo `map`. Como as texturas aqui ja
+ * sao desenhadas tingidas com a cor final, passar a mesma cor no material a
+ * aplicaria duas vezes — foi o que deixou as salas quase pretas e apagou o
+ * relevo da textura. Com mapa, a cor vira branca e o bitmap manda; sem mapa
+ * (canvas indisponivel), a cor volta a ser a fonte.
+ */
+function corDoMaterial(cor: string, temTextura: boolean): string {
+  return temTextura ? '#ffffff' : cor;
+}
+
+/** Repeticoes proporcionais ao tamanho: sem isso a textura estica em sala grande. */
+function repeticoesPara(largura: number, profundidade: number): number {
+  return Math.max(2, Math.round(Math.max(largura, profundidade) / 4));
+}
+
+export function PisoSala({ sala, arte }: { sala: Sala; arte: DirecaoArte }) {
+  const cor = corDoPiso(sala, arte);
+  const textura = obterTextura(arte.materiais.textura, cor, repeticoesPara(sala.largura, sala.profundidade));
+
   return (
-    <mesh
-      position={[sala.x + sala.largura / 2, 0, sala.z + sala.profundidade / 2]}
-      receiveShadow
-    >
+    <mesh position={[sala.x + sala.largura / 2, 0, sala.z + sala.profundidade / 2]} receiveShadow>
       <boxGeometry args={[sala.largura, ESPESSURA_PISO, sala.profundidade]} />
       <meshStandardMaterial
-        color={COR_PISO[sala.papel]}
-        roughness={0.85}
+        color={corDoMaterial(cor, Boolean(textura))}
+        map={textura ?? undefined}
+        roughness={arte.materiais.rugosidade}
+        metalness={arte.materiais.metalico}
         // Salas de destaque brilham de leve para serem achadas de longe.
-        emissive={sala.papel === 'comum' ? '#000000' : COR_PISO[sala.papel]}
-        emissiveIntensity={sala.papel === 'comum' ? 0 : 0.25}
+        emissive={sala.papel === 'comum' ? '#000000' : cor}
+        emissiveIntensity={sala.papel === 'comum' ? 0 : 0.28}
       />
     </mesh>
   );
@@ -60,55 +86,81 @@ export interface Porta {
  * no meio. Ficam semitransparentes para a planta continuar legivel vista de
  * cima.
  */
-export function ParedesSala({ sala, portas = [] }: { sala: Sala; portas?: Porta[] }) {
-  if (sala.altura <= 0) return null;
+export function ParedesSala({
+  sala,
+  arte,
+  portas = [],
+}: {
+  sala: Sala;
+  arte: DirecaoArte;
+  portas?: Porta[];
+}) {
+  const pecas = useMemo(() => {
+    if (sala.altura <= 0) return [];
 
-  const y = sala.altura / 2;
-  const pecas: Array<{ pos: [number, number, number]; args: [number, number, number] }> = [];
+    const y = sala.altura / 2;
+    const saida: Array<{ pos: [number, number, number]; args: [number, number, number] }> = [];
 
-  /**
-   * Emite uma parede quebrada nos vaos. `inicio`/`fim` sao a extensao da parede
-   * no eixo livre; `fixo` e a coordenada do eixo perpendicular.
-   */
-  const emitir = (lado: LadoSala, inicio: number, fim: number, fixo: number) => {
-    const vaos = portas
-      .filter((p) => p.lado === lado)
-      .map((p) => [p.pos - p.largura / 2, p.pos + p.largura / 2] as const)
-      .sort((a, b) => a[0] - b[0]);
+    /**
+     * Emite uma parede quebrada nos vaos. `inicio`/`fim` sao a extensao da
+     * parede no eixo livre; `fixo` e a coordenada do eixo perpendicular.
+     */
+    const emitir = (lado: LadoSala, inicio: number, fim: number, fixo: number) => {
+      const vaos = portas
+        .filter((p) => p.lado === lado)
+        .map((p) => [p.pos - p.largura / 2, p.pos + p.largura / 2] as const)
+        .sort((a, b) => a[0] - b[0]);
 
-    let cursor = inicio;
-    const trechos: Array<[number, number]> = [];
-    for (const [a, b] of vaos) {
-      if (a > cursor) trechos.push([cursor, Math.min(a, fim)]);
-      cursor = Math.max(cursor, b);
-    }
-    if (cursor < fim) trechos.push([cursor, fim]);
+      let cursor = inicio;
+      const trechos: Array<[number, number]> = [];
+      for (const [a, b] of vaos) {
+        if (a > cursor) trechos.push([cursor, Math.min(a, fim)]);
+        cursor = Math.max(cursor, b);
+      }
+      if (cursor < fim) trechos.push([cursor, fim]);
 
-    for (const [a, b] of trechos) {
-      const comprimento = b - a;
-      if (comprimento <= 0.05) continue;
-      const meio = (a + b) / 2;
-      const horizontal = lado === 'norte' || lado === 'sul';
-      pecas.push({
-        pos: horizontal ? [meio, y, fixo] : [fixo, y, meio],
-        args: horizontal
-          ? [comprimento, sala.altura, ESPESSURA_PAREDE]
-          : [ESPESSURA_PAREDE, sala.altura, comprimento],
-      });
-    }
-  };
+      for (const [a, b] of trechos) {
+        const comprimento = b - a;
+        if (comprimento <= 0.05) continue;
+        const meio = (a + b) / 2;
+        const horizontal = lado === 'norte' || lado === 'sul';
+        saida.push({
+          pos: horizontal ? [meio, y, fixo] : [fixo, y, meio],
+          args: horizontal
+            ? [comprimento, sala.altura, ESPESSURA_PAREDE]
+            : [ESPESSURA_PAREDE, sala.altura, comprimento],
+        });
+      }
+    };
 
-  emitir('norte', sala.x, sala.x + sala.largura, sala.z);
-  emitir('sul', sala.x, sala.x + sala.largura, sala.z + sala.profundidade);
-  emitir('oeste', sala.z, sala.z + sala.profundidade, sala.x);
-  emitir('leste', sala.z, sala.z + sala.profundidade, sala.x + sala.largura);
+    emitir('norte', sala.x, sala.x + sala.largura, sala.z);
+    emitir('sul', sala.x, sala.x + sala.largura, sala.z + sala.profundidade);
+    emitir('oeste', sala.z, sala.z + sala.profundidade, sala.x);
+    emitir('leste', sala.z, sala.z + sala.profundidade, sala.x + sala.largura);
+
+    return saida;
+  }, [sala, portas]);
+
+  if (pecas.length === 0) return null;
+
+  const textura = obterTextura(arte.materiais.textura, arte.paleta.parede, 3);
 
   return (
     <group>
       {pecas.map((p, i) => (
-        <mesh key={i} position={p.pos} castShadow>
+        <mesh key={i} position={p.pos} castShadow receiveShadow>
           <boxGeometry args={p.args} />
-          <meshStandardMaterial color={COR_PAREDE} roughness={0.9} transparent opacity={0.55} />
+          <meshStandardMaterial
+            color={corDoMaterial(arte.paleta.parede, Boolean(textura))}
+            map={textura ?? undefined}
+            roughness={arte.materiais.rugosidade}
+            metalness={arte.materiais.metalico}
+            transparent
+            // Vista de cima, a parede fica ENTRE a camera e o piso. Opaca demais
+            // e a sala vira um bloco cego; este valor deixa a planta legivel sem
+            // perder a sensacao de volume.
+            opacity={0.5}
+          />
         </mesh>
       ))}
     </group>
@@ -116,7 +168,10 @@ export function ParedesSala({ sala, portas = [] }: { sala: Sala; portas?: Porta[
 }
 
 /** Cidade: o quarteirao e um bloco solido, nao um comodo vazio. */
-export function PredioUrbano({ sala }: { sala: Sala }) {
+export function PredioUrbano({ sala, arte }: { sala: Sala; arte: DirecaoArte }) {
+  const cor = sala.papel === 'comum' ? arte.paleta.parede : COR_PAPEL[sala.papel];
+  const textura = obterTextura(arte.materiais.textura, cor, repeticoesPara(sala.largura, sala.altura));
+
   return (
     <mesh
       position={[sala.x + sala.largura / 2, sala.altura / 2, sala.z + sala.profundidade / 2]}
@@ -125,8 +180,10 @@ export function PredioUrbano({ sala }: { sala: Sala }) {
     >
       <boxGeometry args={[sala.largura, sala.altura, sala.profundidade]} />
       <meshStandardMaterial
-        color={sala.papel === 'comum' ? '#475569' : COR_PISO[sala.papel]}
-        roughness={0.8}
+        color={corDoMaterial(cor, Boolean(textura))}
+        map={textura ?? undefined}
+        roughness={arte.materiais.rugosidade}
+        metalness={arte.materiais.metalico}
       />
     </mesh>
   );
@@ -136,7 +193,7 @@ export function PredioUrbano({ sala }: { sala: Sala }) {
  * Piso do corredor: um bloco por trecho da polilinha. Os trechos sao sempre
  * alinhados a um eixo (corredor em L), entao basta medir qual eixo variou.
  */
-export function PisoCorredor({ corredor }: { corredor: Corredor }) {
+export function PisoCorredor({ corredor, arte }: { corredor: Corredor; arte: DirecaoArte }) {
   const trechos = useMemo(() => {
     const saida: Array<{ pos: [number, number, number]; args: [number, number, number] }> = [];
     for (let i = 1; i < corredor.pontos.length; i++) {
@@ -160,12 +217,21 @@ export function PisoCorredor({ corredor }: { corredor: Corredor }) {
     return saida;
   }, [corredor]);
 
+  // Corredor um tom abaixo do piso das salas: cria hierarquia entre "passagem"
+  // e "lugar onde algo acontece".
+  const textura = obterTextura(arte.materiais.textura, arte.paleta.piso, 2);
+
   return (
     <group>
       {trechos.map((t, i) => (
         <mesh key={i} position={t.pos} receiveShadow>
           <boxGeometry args={t.args} />
-          <meshStandardMaterial color={COR_CORREDOR} roughness={0.95} />
+          <meshStandardMaterial
+            color={corDoMaterial(arte.paleta.piso, Boolean(textura))}
+            map={textura ?? undefined}
+            roughness={Math.min(arte.materiais.rugosidade + 0.05, 1)}
+            metalness={arte.materiais.metalico * 0.5}
+          />
         </mesh>
       ))}
     </group>
@@ -177,7 +243,7 @@ export function PisoCorredor({ corredor }: { corredor: Corredor }) {
  * clareira + angulo fixo) em vez de Math.random, senao as arvores saltariam de
  * lugar a cada re-render do React.
  */
-export function Vegetacao({ layout }: { layout: MapaLayout }) {
+export function Vegetacao({ layout, arte }: { layout: MapaLayout; arte: DirecaoArte }) {
   const arvores = useMemo(() => {
     const saida: Array<[number, number, number]> = [];
     layout.salas.forEach((sala, indiceSala) => {
@@ -203,7 +269,7 @@ export function Vegetacao({ layout }: { layout: MapaLayout }) {
           </mesh>
           <mesh position={[0, 4, 0]} castShadow>
             <coneGeometry args={[1.8, 4.5, 7]} />
-            <meshStandardMaterial color="#15803d" roughness={0.9} />
+            <meshStandardMaterial color={arte.paleta.parede} roughness={0.9} />
           </mesh>
         </group>
       ))}

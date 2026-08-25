@@ -16,6 +16,7 @@ const Mapa3D = lazy(() => import('./Mapa3D/Mapa3D'));
 // Fronteira de erro fica fora do lazy: precisa existir mesmo se o chunk 3D
 // falhar ao carregar.
 import { FronteiraErro3D } from './Mapa3D/suporteWebGL';
+import type { DirecaoArteParcial } from './Mapa3D/direcaoArte';
 
 const DEFAULT_TTS_PROVIDER: string = import.meta.env.VITE_DEFAULT_TTS_PROVIDER || 'elevenlabs';
 
@@ -55,11 +56,11 @@ interface ImagemCardProps {
   entityType: string;
   entityData: Record<string, unknown>;
   isLight?: boolean;
-  onGenerated: (url: string) => void;
+  onGenerated: (url: string, direcaoArte?: DirecaoArteParcial | null) => void;
 }
 
 interface ImageGenerationResponse {
-  data?: { url?: string | null } | null;
+  data?: { url?: string | null; direcaoArte?: DirecaoArteParcial | null } | null;
 }
 
 const ImagemCard = ({ imageUrl, entityType, entityData, onGenerated }: ImagemCardProps) => {
@@ -73,7 +74,9 @@ const ImagemCard = ({ imageUrl, entityType, entityData, onGenerated }: ImagemCar
     try {
       const response = (await imageGenerationService.generate({ entityType, entityData })) as ImageGenerationResponse | null;
       const url = response?.data?.url;
-      if (url) onGenerated(url);
+      // A direcao de arte e opcional: vem so para locais, e vem null quando a
+      // IA falha. O mapa cai no default do tipo nesses casos.
+      if (url) onGenerated(url, response?.data?.direcaoArte ?? null);
       else setError('Nenhuma imagem retornada');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao gerar';
@@ -151,6 +154,9 @@ interface RoteiroLocal {
   // salas de encontro (ver src/mapEngine).
   segredos?: string[];
   monstros_comuns?: string[];
+  // Identidade visual do local para o mapa 3D, escrita pela IA junto com a
+  // imagem. Ausente = o mapa usa o default do tipo.
+  direcao_arte?: DirecaoArteParcial | null;
 }
 
 interface RoteiroNpc {
@@ -412,7 +418,10 @@ const RoteiroViewer = ({
                       estilo_imagem: estiloImagem
                     }}
                     isLight={isLight}
-                    onGenerated={(url) => updateItemImage('locais', i, url)}
+                    onGenerated={(url, direcaoArte) => {
+                      updateItemImage('locais', i, url);
+                      if (direcaoArte) updateArrayItem('locais', i, { direcao_arte: direcaoArte });
+                    }}
                   />
                 )}
 
@@ -437,7 +446,7 @@ const RoteiroViewer = ({
                   >
                     <div className="mt-2">
                       <FronteiraErro3D altura={420}>
-                        <Mapa3D historiaId={historiaId} local={local} isLight={isLight} />
+                        <Mapa3D historiaId={historiaId} local={local} direcaoArte={local.direcao_arte} isLight={isLight} />
                       </FronteiraErro3D>
                     </div>
                   </Suspense>

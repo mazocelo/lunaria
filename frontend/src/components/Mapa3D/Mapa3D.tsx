@@ -4,6 +4,8 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import { gerarMapa, type LocalRoteiro, type MapaLayout } from '../../mapEngine';
 import { ParedesSala, PisoCorredor, PisoSala, PredioUrbano, Vegetacao, type Porta } from './geometriaMapa';
+import { resolverDirecaoArte, type DirecaoArte, type DirecaoArteParcial } from './direcaoArte';
+import { PropsSala } from './props3d';
 import { AvisoSemWebGL } from './suporteWebGL';
 import { suportaWebGL } from './deteccaoWebGL';
 
@@ -18,6 +20,12 @@ import { suportaWebGL } from './deteccaoWebGL';
 interface Mapa3DProps {
   historiaId: number | string;
   local: LocalRoteiro;
+  /**
+   * Direcao de arte do local, preenchida pela IA ao gerar a imagem
+   * (`local.direcao_arte`). Ausente ou invalida, cai no default do tipo — o
+   * render nunca depende da IA ter rodado.
+   */
+  direcaoArte?: DirecaoArteParcial | null;
   /** Altura do viewport 3D; a cena se enquadra sozinha ao tamanho do mapa. */
   altura?: number;
   isLight?: boolean;
@@ -30,13 +38,15 @@ const LEGENDA: Array<{ cor: string; texto: string }> = [
   { cor: '#fbbf24', texto: 'Final' },
 ];
 
-export default function Mapa3D({ historiaId, local, altura = 420, isLight = false }: Mapa3DProps) {
+export default function Mapa3D({ historiaId, local, direcaoArte, altura = 420, isLight = false }: Mapa3DProps) {
   // Memoiza por CONTEUDO, nao por identidade de objeto: `local` costuma vir de
   // props e ganha referencia nova a cada render do pai, o que regeraria o mapa
   // sem necessidade. A chave abaixo so muda quando o local realmente muda.
   const chave = `${historiaId}|${local.nome ?? ''}|${local.tipo ?? ''}|${(local.segredos ?? []).join('~')}|${(local.monstros_comuns ?? []).join('~')}`;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const layout = useMemo(() => gerarMapa(historiaId, local), [chave]);
+
+  const arte = useMemo(() => resolverDirecaoArte(layout.tipo, direcaoArte), [layout.tipo, direcaoArte]);
 
   const { centro, raio, meiaExtensao } = useMemo(() => {
     const { minX, maxX, minZ, maxZ } = layout.limites;
@@ -52,7 +62,7 @@ export default function Mapa3D({ historiaId, local, altura = 420, isLight = fals
     };
   }, [layout]);
 
-  const corFundo = isLight ? '#e2e8f0' : '#0f172a';
+  const corFundo = isLight ? '#e2e8f0' : arte.paleta.ambiente;
 
   // Checa antes de montar o Canvas: sem isso o R3F cria um canvas em branco e o
   // usuario nao descobre que o problema e o navegador dele.
@@ -73,20 +83,36 @@ export default function Mapa3D({ historiaId, local, altura = 420, isLight = fals
         camera={{ position: [centro[0] + raio, centro[1] + raio, centro[2] + raio], fov: 50, far: 8000 }}
       >
         <color attach="background" args={[corFundo]} />
-        <fog attach="fog" args={[corFundo, raio * 2.2, raio * 6]} />
+        {/* Nevoa mais densa aproxima o plano de corte e fecha o horizonte:
+            e o que da profundidade a uma caverna sem custo de geometria. */}
+        <fog
+          attach="fog"
+          args={[corFundo, raio * (3.4 - arte.atmosfera.nevoaDensidade * 1.1), raio * (9.5 - arte.atmosfera.nevoaDensidade * 3)]}
+        />
 
-        <ambientLight intensity={isLight ? 0.9 : 0.45} />
+        {/* Hemisferica em vez de ambiente chapada: ceu e chao com cores
+            distintas dao volume as superficies sem precisar de mais luzes. */}
+        <hemisphereLight args={[arte.atmosfera.luzCor, arte.paleta.piso, isLight ? 1.2 : 0.85]} />
+        {/* Piso minimo de luz: sem ele, paleta escura + nevoa apagavam as salas
+            comuns por completo e a planta deixava de se ler. */}
+        <ambientLight intensity={isLight ? 0.35 : 0.3} />
         <directionalLight
           position={[centro[0] + raio, centro[1] + raio * 1.6, centro[2] + raio * 0.7]}
-          intensity={isLight ? 1.5 : 1.1}
+          intensity={(isLight ? 1.4 : 1) * arte.atmosfera.luzIntensidade}
+          color={arte.atmosfera.luzCor}
           castShadow
-          shadow-mapSize={[1024, 1024]}
+          shadow-mapSize={[2048, 2048]}
+          shadow-bias={-0.0004}
         />
-        {/* Luz de preenchimento fria evita que as faces opostas fiquem pretas. */}
-        <directionalLight position={[centro[0] - raio, centro[1] + raio * 0.7, centro[2] - raio]} intensity={0.35} color="#93c5fd" />
+        {/* Contraluz fria: separa a silhueta do fundo e evita faces pretas. */}
+        <directionalLight
+          position={[centro[0] - raio, centro[1] + raio * 0.7, centro[2] - raio]}
+          intensity={0.4}
+          color="#93c5fd"
+        />
 
         <Suspense fallback={null}>
-          <CenaMapa layout={layout} />
+          <CenaMapa layout={layout} arte={arte} />
         </Suspense>
 
         <EnquadrarCamera centro={centro} meiaExtensao={meiaExtensao} />
@@ -224,33 +250,41 @@ function EnquadrarCamera({
   return null;
 }
 
-function CenaMapa({ layout }: { layout: MapaLayout }) {
+function CenaMapa({ layout, arte }: { layout: MapaLayout; arte: DirecaoArte }) {
   const urbano = layout.arquetipo === 'urbano';
   const natural = layout.arquetipo === 'natural';
   const portas = useMemo(() => calcularPortas(layout), [layout]);
+
+  const corDoTerreno = useMemo(
+    () => `#${new THREE.Color(arte.paleta.piso).multiplyScalar(0.42).getHexString()}`,
+    [arte.paleta.piso],
+  );
 
   return (
     <group>
       {natural && (
         <mesh position={[0, -0.2, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[1200, 1200]} />
-          {/* Montanha compartilha o arquetipo aberto da floresta, mas nao o bioma. */}
-          <meshStandardMaterial color={layout.tipo === 'montanha' ? '#3f3a34' : '#1c3a1f'} roughness={1} />
+          {/* O plano de chao e enorme e preenche o enquadramento inteiro. Se
+              usasse a cor do piso, competiria com as clareiras e as apagaria —
+              precisa ficar mais escuro para elas lerem POR CIMA dele. */}
+          <meshStandardMaterial color={corDoTerreno} roughness={1} />
         </mesh>
       )}
 
       {layout.corredores.map((c, i) => (
-        <PisoCorredor key={`c-${i}`} corredor={c} />
+        <PisoCorredor key={`c-${i}`} corredor={c} arte={arte} />
       ))}
 
       {layout.salas.map((sala) => (
         <group key={sala.id}>
           {urbano ? (
-            <PredioUrbano sala={sala} />
+            <PredioUrbano sala={sala} arte={arte} />
           ) : (
             <>
-              <PisoSala sala={sala} />
-              <ParedesSala sala={sala} portas={portas.get(sala.id)} />
+              <PisoSala sala={sala} arte={arte} />
+              <ParedesSala sala={sala} arte={arte} portas={portas.get(sala.id)} />
+              <PropsSala sala={sala} arte={arte} fechado={!natural} />
             </>
           )}
 
@@ -272,7 +306,7 @@ function CenaMapa({ layout }: { layout: MapaLayout }) {
 
       {/* Vegetacao segue o TIPO, nao o arquetipo: montanha e terreno aberto
           igual a floresta, mas cobri-la de arvores estaria errado. */}
-      {layout.tipo === 'floresta' && <Vegetacao layout={layout} />}
+      {layout.tipo === 'floresta' && <Vegetacao layout={layout} arte={arte} />}
     </group>
   );
 }

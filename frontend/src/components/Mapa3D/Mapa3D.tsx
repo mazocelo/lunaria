@@ -234,7 +234,8 @@ function CenaMapa({ layout }: { layout: MapaLayout }) {
       {natural && (
         <mesh position={[0, -0.2, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[1200, 1200]} />
-          <meshStandardMaterial color="#1c3a1f" roughness={1} />
+          {/* Montanha compartilha o arquetipo aberto da floresta, mas nao o bioma. */}
+          <meshStandardMaterial color={layout.tipo === 'montanha' ? '#3f3a34' : '#1c3a1f'} roughness={1} />
         </mesh>
       )}
 
@@ -269,7 +270,9 @@ function CenaMapa({ layout }: { layout: MapaLayout }) {
         </group>
       ))}
 
-      {natural && <Vegetacao layout={layout} />}
+      {/* Vegetacao segue o TIPO, nao o arquetipo: montanha e terreno aberto
+          igual a floresta, mas cobri-la de arvores estaria errado. */}
+      {layout.tipo === 'floresta' && <Vegetacao layout={layout} />}
     </group>
   );
 }

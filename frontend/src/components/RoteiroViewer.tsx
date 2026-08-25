@@ -381,7 +381,7 @@ const RoteiroViewer = ({
 
       {/* Locais */}
       {roteiro.locais?.length && (
-        <Section title={`Locais (${roteiro.locais.length})`} icon={MapPin} isLight={isLight}>
+        <Section title={`Locais (${roteiro.locais.length})`} icon={MapPin} defaultOpen isLight={isLight}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {roteiro.locais.map((local, i) => (
               <div key={i} className={`p-2 rounded text-xs ${isLight ? 'bg-slate-50' : 'bg-slate-800/50'}`}>

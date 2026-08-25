@@ -19,6 +19,7 @@ export type TipoLocal =
   | 'fortaleza'
   | 'cidade'
   | 'floresta'
+  | 'montanha'
   | 'outro';
 
 /**

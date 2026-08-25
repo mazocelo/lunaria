@@ -14,8 +14,50 @@ const TIPOS_VALIDOS: readonly TipoLocal[] = [
   'fortaleza',
   'cidade',
   'floresta',
+  'montanha',
   'outro',
 ];
+
+/**
+ * Sinonimos que o LLM produz na pratica.
+ *
+ * `blueprintService.js` do backend oferece um enum no prompt mas NUNCA valida o
+ * campo, e `PUT /historias/:id/roteiro` aceita qualquer string — entao o
+ * vocabulario real e aberto. Sem esta tabela, "montanha" (que o proprio prompt
+ * do backend sugere) caia em 'outro' e era renderizada como masmorra fechada.
+ *
+ * A tabela vem completa de proposito: cada valor acrescentado depois muda
+ * `normalizarTipo`, que muda `derivarSeed`, que repinta plantas ja vistas pelos
+ * jogadores. Como nao ha layout persistido, esse repintar nao tem migracao —
+ * por isso e melhor pagar de uma vez. Ver os vetores dourados em
+ * `__tests__/mapEngine/`.
+ */
+const SINONIMOS: Readonly<Record<string, TipoLocal>> = {
+  masmorra: 'dungeon',
+  calabouco: 'dungeon',
+  cripta: 'dungeon',
+  catacumba: 'dungeon',
+  catacumbas: 'dungeon',
+  ruinas: 'ruina',
+  santuario: 'templo',
+  igreja: 'templo',
+  cavernas: 'caverna',
+  gruta: 'caverna',
+  castelo: 'fortaleza',
+  forte: 'fortaleza',
+  torre: 'fortaleza',
+  vila: 'cidade',
+  aldeia: 'cidade',
+  povoado: 'cidade',
+  vilarejo: 'cidade',
+  mata: 'floresta',
+  bosque: 'floresta',
+  selva: 'floresta',
+  colina: 'montanha',
+  montanhas: 'montanha',
+  serra: 'montanha',
+  pico: 'montanha',
+};
 
 const ARQUETIPO_POR_TIPO: Record<TipoLocal, Arquetipo> = {
   dungeon: 'interior',
@@ -26,6 +68,8 @@ const ARQUETIPO_POR_TIPO: Record<TipoLocal, Arquetipo> = {
   outro: 'interior',
   cidade: 'urbano',
   floresta: 'natural',
+  // Montanha e terreno aberto: clareiras e trilhas, nao comodos fechados.
+  montanha: 'natural',
 };
 
 /**
@@ -40,7 +84,8 @@ export function normalizarTipo(tipo?: string): TipoLocal {
     .trim()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
-  return (TIPOS_VALIDOS as readonly string[]).includes(limpo) ? (limpo as TipoLocal) : 'outro';
+  if ((TIPOS_VALIDOS as readonly string[]).includes(limpo)) return limpo as TipoLocal;
+  return SINONIMOS[limpo] ?? 'outro';
 }
 
 /**

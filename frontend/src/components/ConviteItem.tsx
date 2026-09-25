@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from '../contexts/theme';
 import { personagemService } from '../services';
+import { Personagem } from '../models/Personagem';
+
+/** `personagemListSchema` garante `id` obrigatorio; o Model so o permite nulo enquanto nao persistido. */
+type PersonagemPersistido = Personagem & { id: number };
 import { useTemaStore } from '../store/tema';
 
 export type ConviteStatus = 'pendente' | 'aceito' | 'rejeitado' | 'expirado';
@@ -24,13 +28,6 @@ export interface ConvitePayload {
   expirado_em?: string | null;
   remetente: ConviteRemetentePreview;
   historia: ConviteHistoriaPreview;
-}
-
-interface PersonagemPreview {
-  id: number | string;
-  nome: string;
-  raca?: { nome?: string | null } | null;
-  classe?: { nome?: string | null } | null;
 }
 
 interface ConviteItemProps {
@@ -72,7 +69,7 @@ const ConviteItem = ({
   }, [temasCarregados, inicializar]);
   
   // Estado para selecao de personagem
-  const [personagens, setPersonagens] = useState<PersonagemPreview[]>([]);
+  const [personagens, setPersonagens] = useState<PersonagemPersistido[]>([]);
   const [selectedPersonagem, setSelectedPersonagem] = useState<number | string>('');
   const [showPersonagemModal, setShowPersonagemModal] = useState(false);
   const [loadingPersonagens, setLoadingPersonagens] = useState(false);
@@ -109,14 +106,11 @@ const ConviteItem = ({
   const statusInfo = getStatusInfo(convite.status);
 
   // CARREGAR PERSONAGENS
-  // NOTE 2026-05-26: callsite legado consome `response` direto (envelope completo),
-  // mas o uso real esperaria `response.data`. Preservado por compatibilidade
-  // (TODO: corrigir em ticket separado).
   const loadPersonagens = async () => {
     try {
       setLoadingPersonagens(true);
       const response = await personagemService.getAll();
-      setPersonagens((response as unknown as PersonagemPreview[]) || []);
+      setPersonagens(response.data.filter((p): p is PersonagemPersistido => p.id !== null));
     } catch (error) {
       console.error('Erro ao carregar personagens:', error);
     } finally {
@@ -369,7 +363,7 @@ const ConviteItem = ({
                           <div className={`text-xs ${
                             isLight ? 'text-slate-600' : 'text-slate-400'
                           }`}>
-                            {personagem.raca?.nome} - {personagem.classe?.nome}
+                            {personagem.raca} - {personagem.classe}
                           </div>
                         </div>
                       </label>

@@ -35,27 +35,20 @@ function Selector({
   const { theme } = useTheme();
   const isLight = theme === 'light';
 
-  // Preserva semantica original do componente — note que o JS legado mistura
-  // shapes de retorno (single vs multiple) e o tipo `lastArray` no caminho
-  // multiple e tratado como string ou array dependendo do uso do consumer.
+  // ToggleGroup (multiple) entrega a lista completa ja atualizada em onValueChange.
+  // Tratamos essa lista como fonte de verdade e apenas aplicamos o limite `max`.
   const handleChange = (value: string | string[]) => {
     if (type === 'multiple') {
-      const current: string[] = Array.isArray(selected) ? selected : [];
-      const valueStr = Array.isArray(value) ? String(value[0] ?? '') : value;
-      const isSelected = current.includes(valueStr);
+      const next: string[] = Array.isArray(value) ? value : value ? [value] : [];
 
-      const newValue: string[] = isSelected
-        ? current.filter((v) => v !== valueStr)
-        : [...current, valueStr];
-
-      let lastArray: string | string[] = newValue[newValue.length - 1] || '';
-
-      if (max && lastArray && (lastArray as string).length >= max) {
-        if (zerate) lastArray = (lastArray as string).slice(-1);
-        else if (removeLast) lastArray = (lastArray as unknown as string[]).filter((_, i) => i !== 0);
-        else lastArray = (lastArray as string).slice(0, max);
+      let limited = next;
+      if (max && next.length > max) {
+        if (zerate) limited = next.slice(-1);
+        else if (removeLast) limited = next.slice(next.length - max);
+        else limited = next.slice(0, max);
       }
-      onChange(lastArray, newValue);
+
+      onChange(limited, limited);
     } else if (value) {
       onChange(value, false);
     }

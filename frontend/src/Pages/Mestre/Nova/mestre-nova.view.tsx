@@ -254,9 +254,7 @@ const NovaMestreView = ({
                 </optgroup>
                 <optgroup label="Groq (Llama)">
                   <option value="openai/gpt-oss-120b">GPT OSS 120B</option>
-                  <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
                   <option value="openai/gpt-oss-20b">GPT OSS 20B (Rapido)</option>
-                  <option value="meta-llama/llama-4-scout-17b-16e-instruct">Llama 4 Scout (Avancado)</option>
                 </optgroup>
                 <optgroup label="Anthropic">
                   <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (Premium+)</option>

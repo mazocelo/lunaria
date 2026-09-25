@@ -1,0 +1,2885 @@
+[
+  {
+    "nome": "Ganancioso",
+    "descricao": "Não resiste a tesouros e riquezas. Quando encontra algo valioso, deve fazer teste de Carisma ou tenta pegá-lo, mesmo em situações perigosas.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "autocontrole_tesouro",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "presenca_tesouro",
+      "descricao": "Na presença de tesouros"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "tentado",
+      "descricao": "Teste de Carisma DC 12 ao ver tesouro ou tenta pegar. -2 em autocontrole perto de riquezas",
+      "dc": 12,
+      "atributo_teste": "carisma"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Curioso Compulsivo",
+    "descricao": "Não consegue deixar mistérios sem investigar. Portas fechadas, ruídos estranhos, livros proibidos — tudo precisa ser explorado.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "autocontrole_misterio",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "misterio_proximo",
+      "descricao": "Na presença de mistérios ou segredos"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "compelido",
+      "descricao": "Teste de Inteligência DC 12 ao encontrar mistério ou investiga. -2 em resistir curiosidade",
+      "dc": 12,
+      "atributo_teste": "inteligencia"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Segredo Sombrio",
+    "descricao": "Carrega um segredo terrível do passado. Se revelado, pode destruir relações e causar consequências graves.",
+    "custo": -2,
+    "tipo": [
+      "narrativa",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma_sob_pressao",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "segredo",
+      "descricao": "O Mestre pode criar situações que ameaçam revelar o segredo, causando estresse"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Procurado",
+    "descricao": "Uma organização, reino ou indivíduo poderoso te caça ativamente. Caçadores aparecem periodicamente.",
+    "custo": -2,
+    "tipo": [
+      "narrativa",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "furtividade_cidades",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "procurado",
+      "descricao": "O Mestre pode enviar caçadores ou forçar situações de fuga periodicamente"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Dívida Impagável",
+    "descricao": "Deve um favor enorme a alguém perigoso. Essa pessoa pode cobrar a qualquer momento.",
+    "custo": -2,
+    "tipo": [
+      "narrativa",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "autonomia",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "devedor",
+      "descricao": "O credor pode exigir favores perigosos a qualquer momento"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Rival",
+    "descricao": "Um NPC com habilidades similares às suas compete ativamente contra você e tenta te superar.",
+    "custo": -1,
+    "tipo": [
+      "narrativa",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "compostura",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "rivalidade",
+      "descricao": "O Mestre introduz um rival recorrente que complica a jornada"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Pesadelos Proféticos",
+    "descricao": "Sofre pesadelos terríveis que às vezes contêm visões do futuro. Nem sempre é claro o que é real.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "descanso_eficiencia",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Constituição DC 10 ao descansar ou recupera apenas 75% HP. Pode conter pistas",
+      "dc": 10,
+      "atributo_teste": "constituicao"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Honestidade Compulsiva",
+    "descricao": "Incapaz de mentir deliberadamente. Pode omitir informações, mas não pode dizer inverdades.",
+    "custo": -1,
+    "tipo": [
+      "moral",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "enganacao",
+        "valor": -10
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Não pode mentir. Testes de enganação sempre falham automaticamente"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Pacifista",
+    "descricao": "Evita matar a todo custo. Pode lutar para se defender, mas tenta sempre incapacitar em vez de matar.",
+    "custo": -1,
+    "tipo": [
+      "moral",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_contra_vivos",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "combate_letal",
+      "descricao": "Em combate letal"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Deve tentar incapacitar em vez de matar. Matar causa -2 em todos os testes por 1d6 horas de jogo",
+      "dc": 14,
+      "atributo_teste": "carisma"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Protetor dos Inocentes",
+    "descricao": "Não consegue ignorar civis ou criaturas indefesas em perigo, mesmo quando isso compromete a missão.",
+    "custo": -1,
+    "tipo": [
+      "moral",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "autocontrole_protecao",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Carisma DC 14 para ignorar inocentes em perigo. -3 em autocontrole perto de civis ameaçados",
+      "dc": 14,
+      "atributo_teste": "carisma"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vingativo",
+    "descricao": "Nunca esquece uma ofensa. Quando alguém te prejudica, não descansa até se vingar.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "perdao",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Deve perseguir vingança contra quem te prejudicou. +1 em ataques contra o alvo da vingança"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Desconfiado",
+    "descricao": "Não confia em ninguém facilmente. Testes sociais de NPCs contra você têm bônus de +2 na dificuldade.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "social_confianca",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "NPCs precisam de +2 DC para convencê-lo. Dificulta aceitar ajuda de estranhos",
+      "dc": 12,
+      "atributo_teste": "inteligencia"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Juramento Sagrado",
+    "descricao": "Fez um juramento a uma divindade ou causa que limita severamente suas ações.",
+    "custo": -2,
+    "tipo": [
+      "moral",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "liberdade_acao",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "quebra_juramento",
+      "descricao": "Se violar o juramento"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Violar o juramento causa perda de poderes divinos por 1d6 sessões"
+    },
+    "usar": 0,
+    "elemento": [
+      "divino"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Ente Querido em Perigo",
+    "descricao": "Alguém que você ama está em perigo constante e pode ser usado como refém contra você.",
+    "custo": -2,
+    "tipo": [
+      "narrativa",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "concentracao",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "O Mestre pode ameaçar o ente querido para forçar escolhas difíceis"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Identidade Oculta",
+    "descricao": "Vive sob uma identidade falsa. Se descoberta, consequências sociais e legais severas.",
+    "custo": -1,
+    "tipo": [
+      "narrativa",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "estresse_social",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Deve manter a farsa. O Mestre pode criar situações que ameaçam a identidade"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Profecia Sombria",
+    "descricao": "Uma profecia diz que você causará uma grande catástrofe. Algumas pessoas sabem e te temem.",
+    "custo": -2,
+    "tipo": [
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma_religiosos",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Alguns NPCs reagem com medo ou hostilidade ao descobrir quem você é",
+      "alvo_tipo": "outros"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vício",
+    "descricao": "Dependência de uma substância (álcool, ervas, poções). Sem ela, sofre penalidades crescentes.",
+    "custo": -2,
+    "tipo": [
+      "fisiologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "autocontrole_substancia",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "sem_substancia",
+      "descricao": "Sem a substância"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "abstinencia",
+      "descricao": "Sem a substância por 24h: -1 em tudo. 48h: -2. 72h: -3"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Impulsivo",
+    "descricao": "Age antes de pensar. Em situações de tensão, deve agir imediatamente sem planejar.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "planejamento",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Deve agir no 1o turno sem consultar. Teste de Inteligência DC 14 para esperar. -2 em planejamento",
+      "dc": 14,
+      "atributo_teste": "inteligencia"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Destemido (Temerário)",
+    "descricao": "Não sente medo, o que soa heróico mas é perigoso — não recua de ameaças mortais.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "autopreservacao",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Imune a medo, mas não pode fugir ou recuar de combates voluntariamente"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Marca Amaldiçoada",
+    "descricao": "Porta uma marca mágica visível que atrai criaturas sombrias e causa desconfiança.",
+    "custo": -2,
+    "tipo": [
+      "maldicao",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "furtividade_sombrios",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Criaturas sombrias te detectam a 30m. NPCs religiosos podem ser hostis",
+      "alvo_tipo": "outros"
+    },
+    "usar": 0,
+    "elemento": [
+      "sombrio"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Amnésia Total",
+    "descricao": "Não lembra nada antes de um evento recente. Seu passado é um mistério completo.",
+    "custo": -2,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "conhecimento_passado",
+        "valor": -5
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Sem memórias do passado. O Mestre pode revelar fragmentos e surpresas ao longo da história"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Exilado",
+    "descricao": "Banido do seu povo ou terra natal. Voltar significa morte ou prisão.",
+    "custo": -1,
+    "tipo": [
+      "social",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma_compatriotas",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Não pode retornar à terra natal. Encontrar compatriotas pode causar hostilidade"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Promessa Inquebrantável",
+    "descricao": "Fez uma promessa que não pode quebrar, mesmo quando cumpri-la é extremamente inconveniente.",
+    "custo": -1,
+    "tipo": [
+      "moral",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "liberdade_acao",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Deve cumprir a promessa a todo custo. O Mestre pode criar conflitos entre a promessa e a missão"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Sanguinário",
+    "descricao": "Sente prazer em combate e violência. Aliados podem ficar desconfortáveis com seu comportamento.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "diplomacia",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Em combate, deve atacar a cada turno. -1 em testes sociais com aliados pacíficos"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Mentiroso Patológico",
+    "descricao": "Mente compulsivamente, mesmo quando a verdade seria mais vantajosa.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "social",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "credibilidade",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Carisma DC 12 para dizer a verdade. Aliados eventualmente desconfiam"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Paranoia",
+    "descricao": "Acredita que todos conspiram contra você. Dificulta confiar e trabalhar em equipe.",
+    "custo": -2,
+    "tipo": [
+      "psicologico",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "cooperacao",
+        "valor": -2
+      },
+      {
+        "atributo": "carisma",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 em testes sociais cooperativos. Teste de Inteligência DC 14 para aceitar planos de outros"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Superstição",
+    "descricao": "Acredita firmemente em presságios e rituais supersticiosos que limitam suas ações.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "racionalidade",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Deve seguir rituais supersticiosos. Quebrá-los causa -1 em tudo por 24h de jogo"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Orgulho Excessivo",
+    "descricao": "Não aceita ajuda nem admite erros. Pedir ajuda exige teste de Carisma.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "social",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "cooperacao",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Carisma DC 12 para aceitar ajuda ou admitir erro"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Coração Mole",
+    "descricao": "Incapaz de recusar pedidos de ajuda, mesmo de estranhos suspeitos.",
+    "custo": -1,
+    "tipo": [
+      "moral",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_manipulacao",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Carisma DC 14 para recusar ajuda sincera. -2 em resistir manipulação emocional",
+      "dc": 14,
+      "atributo_teste": "carisma"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Cleptomaníaco",
+    "descricao": "Impulso incontrolável de roubar objetos, mesmo sem necessidade ou valor.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "autocontrole_roubo",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Destreza DC 12 em lojas/casas ou tenta roubar. -3 em autocontrole perto de objetos",
+      "dc": 12,
+      "atributo_teste": "destreza"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Maldição Hereditária",
+    "descricao": "Sua linhagem carrega uma maldição que se manifesta em momentos críticos com efeitos imprevisíveis.",
+    "custo": -3,
+    "tipo": [
+      "maldicao",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "sorte_critica",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "maldito",
+      "descricao": "Em momentos críticos (crítico falho), efeito negativo aleatório determinado pelo Mestre"
+    },
+    "usar": 0,
+    "elemento": [
+      "sombrio"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Voz dos Mortos",
+    "descricao": "Ouve sussurros de espíritos dos mortos. Às vezes útil, frequentemente perturbador e distrativo.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "concentracao_mortos",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Ouve mortos próximos. Pode obter informações, mas -1 em concentração em áreas com muitos mortos",
+      "dc": 13,
+      "atributo_teste": "inteligencia"
+    },
+    "usar": 0,
+    "elemento": [
+      "necro"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Jurado de Morte",
+    "descricao": "Uma entidade poderosa (demônio, dragão, lich) quer você morto e envia agentes periodicamente.",
+    "custo": -3,
+    "tipo": [
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "seguranca_descanso",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Inimigo poderoso envia assassinos e agentes periodicamente. O Mestre determina quando"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Transformação Incontrolável",
+    "descricao": "Sob certas condições (lua cheia, raiva extrema, sangue), transforma-se involuntariamente perdendo controle.",
+    "custo": -3,
+    "tipo": [
+      "transformacao",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "controle",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "gatilho_transformacao",
+      "descricao": "Sob condições específicas"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "transformado",
+      "descricao": "Sob gatilho: teste de Constituição DC 15 ou transforma. Mestre controla ações. -3 em controle",
+      "dc": 15,
+      "atributo_teste": "constituicao"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fobia de Altura",
+    "descricao": "Medo patológico de alturas. Sofre penalidades severas em locais elevados.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "coragem",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "em_alturas",
+      "descricao": "Em locais elevados"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "fobia",
+      "descricao": "Teste de coragem obrigatório em alturas, -3 em ações"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fobia de Espaços Fechados",
+    "descricao": "Medo patológico de espaços confinados como masmorras, cavernas e salas pequenas.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "coragem",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "espacos_fechados",
+      "descricao": "Em espaços confinados"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "claustrofobia",
+      "descricao": "Teste de coragem em espaços fechados ou fica em pânico"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fobia de Fogo",
+    "descricao": "Terror irracional de chamas. Congela ou foge na presença de fogo descontrolado.",
+    "custo": -1,
+    "tipo": [
+      "psicologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "coragem_fogo",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "presenca_fogo",
+      "descricao": "Na presença de fogo"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "fobia",
+      "descricao": "Teste de Constituição DC 12 na presença de fogo ou foge/congela. -3 contra efeitos de fogo",
+      "dc": 12,
+      "atributo_teste": "constituicao"
+    },
+    "usar": 0,
+    "elemento": [
+      "fogo"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fobia de Mortos-Vivos",
+    "descricao": "Pânico na presença de mortos-vivos. Extremamente problemático em cemitérios e masmorras necromânticas.",
+    "custo": -1,
+    "tipo": [
+      "psicologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "coragem_mortos_vivos",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "presenca_mortos_vivos",
+      "descricao": "Na presença de mortos-vivos"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "fobia",
+      "descricao": "Teste de Constituição DC 14 na presença de mortos-vivos. -3 contra mortos-vivos",
+      "dc": 14,
+      "atributo_teste": "constituicao"
+    },
+    "usar": 0,
+    "elemento": [
+      "necro"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fobia de Insetos",
+    "descricao": "Terror de insetos e aracnídeos. Entra em pânico contra monstros tipo inseto.",
+    "custo": -1,
+    "tipo": [
+      "psicologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "coragem_insetos",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "presenca_insetos",
+      "descricao": "Na presença de insetos"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "fobia",
+      "descricao": "Teste de Constituição DC 12 na presença de insetos. -3 contra criaturas inseto",
+      "dc": 12,
+      "atributo_teste": "constituicao"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fobia de Água",
+    "descricao": "Medo profundo de água. Recusa-se a nadar e sofre penalidades perto de grandes massas de água.",
+    "custo": -1,
+    "tipo": [
+      "psicologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "coragem_agua",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "perto_agua",
+      "descricao": "Perto de grandes massas de água"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "fobia",
+      "descricao": "Não nada voluntariamente. Teste DC 12 perto de água. -3 em ações perto de grandes massas de água",
+      "dc": 12,
+      "atributo_teste": "constituicao"
+    },
+    "usar": 0,
+    "elemento": [
+      "agua"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vulnerabilidade ao Fogo",
+    "descricao": "Sofre dano dobrado de ataques e efeitos de fogo.",
+    "custo": -2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_fogo",
+        "valor": -100
+      }
+    ],
+    "restricao": {
+      "condicao": "ataques_fogo",
+      "descricao": "Contra ataques de fogo"
+    },
+    "dano_base": "2x",
+    "efeito": {
+      "status": "vulneravel_fogo",
+      "descricao": "Sofre o dobro de dano de ataques de fogo"
+    },
+    "usar": 0,
+    "elemento": [
+      "fogo"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vulnerabilidade ao Frio",
+    "descricao": "Sofre dano dobrado de ataques e efeitos de gelo.",
+    "custo": -2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_gelo",
+        "valor": -100
+      }
+    ],
+    "restricao": {
+      "condicao": "ataques_gelo",
+      "descricao": "Contra ataques de gelo"
+    },
+    "dano_base": "2x",
+    "efeito": {
+      "status": "vulneravel_gelo",
+      "descricao": "Sofre o dobro de dano de ataques de gelo"
+    },
+    "usar": 0,
+    "elemento": [
+      "gelo"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vulnerabilidade a Eletricidade",
+    "descricao": "Sofre dano dobrado de ataques elétricos e sônicos.",
+    "custo": -2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_eletrico",
+        "valor": -100
+      }
+    ],
+    "restricao": {
+      "condicao": "ataques_eletricos",
+      "descricao": "Contra ataques elétricos"
+    },
+    "dano_base": "2x",
+    "efeito": {
+      "status": "vulneravel_eletrico",
+      "descricao": "Sofre o dobro de dano de ataques elétricos e sônicos"
+    },
+    "usar": 0,
+    "elemento": [
+      "eletrico",
+      "sonico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vulnerabilidade à Magia",
+    "descricao": "Mais suscetível a efeitos mágicos. Sofre dano dobrado de ataques mágicos puros.",
+    "custo": -2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": null,
+    "restricao": {
+      "condicao": "ataques_magicos",
+      "descricao": "Contra ataques mágicos"
+    },
+    "dano_base": "2x",
+    "efeito": {
+      "status": "vulneravel_magico",
+      "descricao": "Sofre o dobro de dano de ataques mágicos puros"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": -3
+  },
+  {
+    "nome": "Vulnerabilidade à Prata",
+    "descricao": "Armas e objetos de prata causam dano dobrado e queimam ao toque.",
+    "custo": -2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": null,
+    "restricao": {
+      "condicao": "contato_prata",
+      "descricao": "Contato com prata"
+    },
+    "dano_base": "2x",
+    "efeito": {
+      "status": "vulneravel_prata",
+      "descricao": "Dano dobrado de prata, queimadura ao contato"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vulnerabilidade à Luz Solar",
+    "descricao": "Sofre dano constante quando exposto à luz solar direta.",
+    "custo": -2,
+    "tipo": [
+      "defensiva",
+      "ambiental"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "luz_solar",
+      "descricao": "Sob luz solar"
+    },
+    "dano_base": "1d4",
+    "efeito": {
+      "status": "queimadura_solar",
+      "descricao": "Sofre 1d4 de dano por turno exposto ao sol, -2 em tudo"
+    },
+    "usar": 0,
+    "elemento": [
+      "luz"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vulnerabilidade à Luz Forte",
+    "descricao": "Sensibilidade extrema à luz intensa, sofrendo penalidades visuais.",
+    "custo": -1,
+    "tipo": [
+      "defensiva",
+      "ambiental"
+    ],
+    "bonus": [
+      {
+        "atributo": "percepcao",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "luz_intensa",
+      "descricao": "Em luz intensa"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 em percepção e ataques à distância sob luz forte"
+    },
+    "usar": 0,
+    "elemento": [
+      "luz"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Ambiente Especial (Água)",
+    "descricao": "Só sobrevive confortavelmente em ambientes aquáticos. Fora da água, sofre penalidades crescentes.",
+    "custo": -2,
+    "tipo": [
+      "ambiental",
+      "fisiologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "movimento",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "fora_da_agua",
+      "descricao": "Fora da água"
+    },
+    "dano_base": "1d4",
+    "efeito": {
+      "status": "desidratacao",
+      "descricao": "Fora da água: perde 1d4 PV por hora e -3 em movimento"
+    },
+    "usar": 0,
+    "elemento": [
+      "agua"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fraqueza Física",
+    "descricao": "Constituição naturalmente frágil. Penalidade permanente em testes de Força.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "forca",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 permanente em testes de Força e capacidade de carga"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": -3,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Lentidão",
+    "descricao": "Move-se mais devagar que o normal. Velocidade de movimento reduzida em 30%.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "movimento",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-30% na velocidade de movimento. Última na iniciativa em empates"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Cegueira Noturna",
+    "descricao": "Dificuldade severa para enxergar em ambientes escuros ou com pouca luz.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "sensorial"
+    ],
+    "bonus": [
+      {
+        "atributo": "percepcao",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "ambientes_escuros",
+      "descricao": "Em pouca luz"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-3 em percepção e -2 em ataques no escuro"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Surdez Parcial",
+    "descricao": "Audição comprometida que dificulta perceber sons e comunicação à distância.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "sensorial"
+    ],
+    "bonus": [
+      {
+        "atributo": "percepcao_auditiva",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-3 em testes de percepção auditiva. Pode não ouvir sussurros ou armadilhas sonoras"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Dependência de Sangue",
+    "descricao": "Precisa consumir sangue regularmente para sobreviver e manter suas capacidades.",
+    "custo": -2,
+    "tipo": [
+      "fisiologico",
+      "narrativa"
+    ],
+    "bonus": null,
+    "restricao": {
+      "condicao": "sem_sangue",
+      "descricao": "Sem sangue"
+    },
+    "dano_base": "1d4",
+    "efeito": {
+      "status": "sede_sangue",
+      "descricao": "Sem sangue por 24h: -1 em tudo. 48h: -2 e 1d4 dano/dia"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Envelhecimento Acelerado",
+    "descricao": "Envelhece muito mais rápido que o normal, perdendo capacidades gradualmente.",
+    "custo": -2,
+    "tipo": [
+      "fisiologico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia",
+        "valor": -1
+      },
+      {
+        "atributo": "movimento",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Perde 1 ponto de atributo físico por arco narrativo longo"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": -2,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Insônia Crônica",
+    "descricao": "Raramente dorme bem. Descanso longo é menos efetivo e cansaço se acumula.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "recuperacao_descanso_pct",
+        "valor": -25
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Descanso longo recupera apenas 75% do HP. Teste de Constituição para recuperação total"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Alergia Severa",
+    "descricao": "Alergias extremas a substâncias comuns (pólen, metais, ervas) que podem ser debilitantes.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "passiva"
+    ],
+    "bonus": null,
+    "restricao": {
+      "condicao": "exposicao_alergenos",
+      "descricao": "Na presença do alérgeno"
+    },
+    "dano_base": "1d4",
+    "efeito": {
+      "descricao": "Teste de Constituição ou -2 em tudo por 1d6 horas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Má Fama",
+    "descricao": "Reputação terrível que precede você. NPCs reagem com desconfiança ou hostilidade.",
+    "custo": -2,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "infame",
+      "descricao": "NPCs começam hostis ou desconfiados. -3 em Carisma social",
+      "alvo_tipo": "outros"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Aparência Monstruosa",
+    "descricao": "Aparência aterrorizante que causa medo e repulsa em humanoides comuns.",
+    "custo": -2,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "terror",
+      "descricao": "Causa medo em civis. -3 em interações sociais, +1 em intimidação",
+      "alvo_tipo": "outros"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Aparência Exótica",
+    "descricao": "Claramente não-humano, causando curiosidade excessiva ou desconfiança.",
+    "custo": -1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 em interações com sociedades xenófobas, mas pode atrair curiosidade positiva em outras"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Modelo Especial",
+    "descricao": "Corpo com proporções muito diferentes do humanoide padrão. Dificuldade com equipamentos normais.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "equipamento_padrao",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Não pode usar armaduras e equipamentos padrão. Precisa de itens feitos sob medida"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": -2,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Inculto",
+    "descricao": "Sem educação formal. Dificuldade com conhecimentos acadêmicos, leitura e escrita.",
+    "custo": -1,
+    "tipo": [
+      "intelectual",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "inteligencia",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 em testes de conhecimento. Não sabe ler nem escrever inicialmente"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Restrição Intelectual",
+    "descricao": "Limitações cognitivas que dificultam raciocínio complexo e aprendizado de magias.",
+    "custo": -1,
+    "tipo": [
+      "intelectual",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "inteligencia",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 em Inteligência para testes complexos e aprendizado de habilidades mágicas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Restrição Intelectual e Mágica",
+    "descricao": "Limitações severas tanto intelectuais quanto mágicas. Não pode usar magias complexas.",
+    "custo": -2,
+    "tipo": [
+      "intelectual",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "inteligencia",
+        "valor": -2
+      },
+      {
+        "atributo": "poder_magico",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 em Inteligência e poder mágico. Não pode usar magias acima de nível 3"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": -5
+  },
+  {
+    "nome": "Código de Honra",
+    "descricao": "Segue um código de honra rígido que limita táticas e pode ser explorado por inimigos.",
+    "custo": -2,
+    "tipo": [
+      "moral",
+      "restritiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "taticas_sujas",
+        "valor": -10
+      }
+    ],
+    "restricao": {
+      "condicao": "codigo_honra",
+      "descricao": "Código ativo sempre"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Não pode usar táticas desonrosas, atacar desarmados, ou trair confiança"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Código de Honra de Combate",
+    "descricao": "Regras rígidas de combate: não ataca pelas costas, não ataca caídos, duelos devem ser 1v1.",
+    "custo": -1,
+    "tipo": [
+      "moral",
+      "combate"
+    ],
+    "bonus": [
+      {
+        "atributo": "ataque_costas",
+        "valor": -10
+      }
+    ],
+    "restricao": {
+      "condicao": "em_combate",
+      "descricao": "Durante combates"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Não ataca pelas costas, não ataca caídos, desafia para duelos 1v1"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fúria Incontrolável",
+    "descricao": "Perde o controle quando ferido gravemente, atacando qualquer um — aliados inclusos.",
+    "custo": -2,
+    "tipo": [
+      "psicologico",
+      "combate"
+    ],
+    "bonus": [
+      {
+        "atributo": "controle",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "quando_ferido",
+      "descricao": "Quando abaixo de 25% HP"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "furia_descontrolada",
+      "descricao": "Abaixo de 25% HP: teste de Inteligência DC 14 ou ataca o alvo mais próximo (aliado ou inimigo)"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Ansiedade Social",
+    "descricao": "Nervosismo extremo em interações sociais, especialmente com grupos ou desconhecidos.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "grupos_grandes",
+      "descricao": "Em grupos de 3+ desconhecidos"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 em Carisma com desconhecidos, teste de Carisma DC 12 para falar em público"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Maldição de Banimento",
+    "descricao": "Amaldiçoado a ser banido de planos de existência. Efeitos de banimento são irresistíveis.",
+    "custo": -3,
+    "tipo": [
+      "maldicao"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_banimento",
+        "valor": -10
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Efeitos de banimento são automáticos. Entidades planares podem te expulsar facilmente"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 2,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Maldição Incontrolável",
+    "descricao": "Maldição que se manifesta aleatoriamente, causando efeitos negativos sem aviso.",
+    "custo": -2,
+    "tipo": [
+      "maldicao",
+      "aleatoria"
+    ],
+    "bonus": [
+      {
+        "atributo": "sorte_critica",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "maldito",
+      "descricao": "Em falhas críticas, efeito negativo extra determinado pelo Mestre"
+    },
+    "usar": 0,
+    "elemento": [
+      "sombrio"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Código da Gratidão",
+    "descricao": "Deve sempre retribuir favores. Não pode recusar ajuda a quem já te ajudou.",
+    "custo": -1,
+    "tipo": [
+      "moral",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "recusa_favores",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "deve_retribuir",
+      "descricao": "Deve retribuir favores"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Não pode recusar pedidos de quem já te ajudou, mesmo que perigosos"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Cólera Infernal",
+    "descricao": "Sangue infernal que causa surtos de raiva demoníaca quando provocado.",
+    "custo": -2,
+    "tipo": [
+      "psicologico",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "controle_emocional",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "quando_provocado",
+      "descricao": "Quando provocado ou insultado"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "colera",
+      "descricao": "Teste de Carisma DC 14 quando provocado ou ataca o provocador cegamente"
+    },
+    "usar": 0,
+    "elemento": [
+      "fogo"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Cérebro Orgânico",
+    "descricao": "Corpo artificial mas com cérebro biológico vulnerável a ataques mentais e psíquicos.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_mental",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 em resistência contra ataques psíquicos e controle mental"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Dependência de Água",
+    "descricao": "Precisa estar em contato com água regularmente ou sofre desidratação acelerada.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "ambiental"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_seca",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "sem_agua",
+      "descricao": "Longe de água por mais de 8h"
+    },
+    "dano_base": "1d4",
+    "efeito": {
+      "descricao": "Sem contato com água por 8h: -1 em tudo. 24h: 1d4 dano/hora"
+    },
+    "usar": 0,
+    "elemento": [
+      "agua"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Incompatibilidade Mágica",
+    "descricao": "Corpo que rejeita magia curativa. Poções e magias de cura são 50% menos efetivas.",
+    "custo": -2,
+    "tipo": [
+      "fisiologico",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "cura_recebida_pct",
+        "valor": -50
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Cura mágica e poções restauram apenas 50% do valor normal"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": -3
+  },
+  {
+    "nome": "Aversão a Metal",
+    "descricao": "Contato com metal causa desconforto e penalidades. Não pode usar armaduras metálicas.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "uso_metal",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Não pode usar armaduras de metal. Armas metálicas causam -1 no ataque"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Presa Fácil",
+    "descricao": "Emana uma energia que atrai predadores e monstros territoriais.",
+    "custo": -2,
+    "tipo": [
+      "passiva",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "furtividade_monstros",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Monstros te priorizam como alvo. +20% chance de encontros aleatórios"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Sono Pesado",
+    "descricao": "Dorme tão profundamente que é difícil acordar. Não percebe ataques noturnos.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "percepcao_dormindo",
+        "valor": -5
+      }
+    ],
+    "restricao": {
+      "condicao": "dormindo",
+      "descricao": "Enquanto dorme"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Constituição DC 15 para acordar. -5 percepção dormindo. Ataques surpresa automáticos",
+      "dc": 15,
+      "atributo_teste": "constituicao"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Desajeitado",
+    "descricao": "Propenso a tropeçar, derrubar coisas e fazer barulho nos piores momentos.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "furtividade",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 em furtividade e em testes que exijam sutileza física"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Gagueira",
+    "descricao": "Dificuldade de fala que piora sob pressão, prejudicando conjuração e testes sociais.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma_fala",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-1 em testes sociais. Magias com componente verbal têm 15% de chance de falhar"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Cicatriz Horrenda",
+    "descricao": "Cicatriz visível e perturbadora que afeta interações sociais mas conta uma história.",
+    "custo": -1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-1 em Carisma social, mas +1 em intimidação"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Azarado",
+    "descricao": "A sorte simplesmente não está do seu lado. Falhas críticas acontecem com mais frequência.",
+    "custo": -2,
+    "tipo": [
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "critico_falha",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Falha crítica em 1-2 no d20 em vez de apenas 1",
+      "dc": null,
+      "atributo_teste": null
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Glutão",
+    "descricao": "Apetite insaciável. Precisa comer o dobro e pode ser distraído por comida.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "racoes_consumo",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Consome o dobro de rações. Teste de Constituição DC 10 para resistir a comida quando com fome"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fragilidade Arcana",
+    "descricao": "Conexão instável com magia. Magias podem falhar ou ter efeitos colaterais.",
+    "custo": -2,
+    "tipo": [
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "estabilidade_magica",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "10% de chance de efeito colateral aleatório ao conjurar magia (determinado pelo Mestre)"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": -3
+  },
+  {
+    "nome": "Sangue Frio",
+    "descricao": "Sensível a temperaturas baixas. Sofre penalidades em climas frios e ambientes gelados.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "ambiental"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_frio",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "clima_frio",
+      "descricao": "Em ambientes frios"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 em todos os testes em ambientes frios. Precisa do dobro de agasalho"
+    },
+    "usar": 0,
+    "elemento": [
+      "gelo"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Aura Perturbadora",
+    "descricao": "Emana uma energia que deixa seres vivos desconfortáveis na sua presença.",
+    "custo": -1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma_prolongado",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Animais fogem de você. NPCs sentem desconforto, -1 em interações prolongadas",
+      "alvo_tipo": "outros"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Dependência de Luz Lunar",
+    "descricao": "Poderes mágicos são mais fracos durante o dia e mais fortes à noite sob a lua.",
+    "custo": -1,
+    "tipo": [
+      "magico",
+      "ambiental"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_magico_diurno",
+        "valor": -1
+      }
+    ],
+    "restricao": {
+      "condicao": "durante_dia",
+      "descricao": "Durante o dia"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-1 em dano mágico durante o dia. +1 durante a noite com lua visível"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Obeso",
+    "descricao": "Peso excessivo que dificulta mobilidade e agilidade.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "agilidade",
+        "valor": -2
+      },
+      {
+        "atributo": "movimento",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 Agilidade, -1 velocidade de movimento. Não pode escalar sem teste"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 2,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Covarde",
+    "descricao": "Medo instintivo de confronto direto. Precisa de coragem para entrar em combate voluntariamente.",
+    "custo": -2,
+    "tipo": [
+      "psicologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "coragem",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Carisma DC 12 para entrar em combate voluntariamente. -3 em coragem, -1 no 1o turno",
+      "dc": 12,
+      "atributo_teste": "carisma"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Daltônico",
+    "descricao": "Não distingue cores, dificultando identificação de poções, símbolos e armadilhas visuais.",
+    "custo": -1,
+    "tipo": [
+      "fisiologico",
+      "sensorial"
+    ],
+    "bonus": [
+      {
+        "atributo": "percepcao_visual_cor",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Não diferencia cores. Pode confundir poções e falha em testes visuais baseados em cor"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Marca de Caça",
+    "descricao": "Uma guilda de caçadores de recompensa tem um contrato aberto sobre sua cabeça.",
+    "custo": -2,
+    "tipo": [
+      "narrativa",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "furtividade_cidades",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Caçadores de recompensa podem aparecer em cidades. Tavernas podem ter seu cartaz"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fome Amaldiçoada",
+    "descricao": "Maldição que causa fome insaciável que comida normal não satisfaz completamente.",
+    "custo": -2,
+    "tipo": [
+      "maldicao",
+      "fisiologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "saciedade",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Sempre com fome. Sem alimentação especial, -1 em tudo após 12h"
+    },
+    "usar": 0,
+    "elemento": [
+      "sombrio"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Ligação Empática",
+    "descricao": "Sente a dor dos aliados próximos. Quando um aliado toma dano, você sofre 1 ponto.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "hp_compartilhado",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": "1",
+    "efeito": {
+      "descricao": "Sofre 1 de dano quando aliado em 5m toma dano. Pode sentir emoções de aliados"
+    },
+    "usar": 0,
+    "elemento": [
+      "psiquico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fraqueza por Música",
+    "descricao": "Música mágica ou bardica te afeta com dobro de intensidade.",
+    "custo": -1,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_sonico",
+        "valor": -5
+      }
+    ],
+    "restricao": {
+      "condicao": "musica_magica",
+      "descricao": "Na presença de música mágica"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Efeitos de bardos e música mágica têm dobro de duração e efeito contra você"
+    },
+    "usar": 0,
+    "elemento": [
+      "sonico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vulnerabilidade a Radiação",
+    "descricao": "Sofre dano dobrado e efeitos mutagênicos quando exposto à radiação.",
+    "custo": -2,
+    "tipo": [
+      "defensiva",
+      "ambiental"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_radiacao",
+        "valor": -5
+      }
+    ],
+    "restricao": {
+      "condicao": "exposicao_radiacao",
+      "descricao": "Na presença de radiação"
+    },
+    "dano_base": "2x",
+    "efeito": {
+      "descricao": "Dano dobrado de radiação. Exposição prolongada causa mutações negativas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Egoísta",
+    "descricao": "Dificuldade em compartilhar recursos e trabalhar em benefício do grupo.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "social",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "generosidade",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Carisma DC 10 para compartilhar itens ou loot. -1 em ações cooperativas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Medo de Magia",
+    "descricao": "Desconfiança profunda de magia e praticantes. Entra em pânico ao ser alvo de feitiços.",
+    "custo": -1,
+    "tipo": [
+      "psicologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "coragem_magia",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "alvo_magia",
+      "descricao": "Quando alvo de magia"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "fobia",
+      "descricao": "Teste DC 12 quando alvo de magia. -3 contra efeitos mágicos de medo",
+      "dc": 12,
+      "atributo_teste": "constituicao"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Devoção Fanática",
+    "descricao": "Devoção cega a uma religião ou ideologia que pode cegar seu julgamento.",
+    "custo": -2,
+    "tipo": [
+      "moral",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "julgamento_independente",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Deve seguir dogmas da fé. Ações contra a doutrina causam crise e -2 em tudo por 24h"
+    },
+    "usar": 0,
+    "elemento": [
+      "divino"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fobia de Sangue",
+    "descricao": "Pânico ao ver sangue, incluindo o próprio. Pode congelar durante combates violentos.",
+    "custo": -2,
+    "tipo": [
+      "psicologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "coragem_sangue",
+        "valor": -3
+      }
+    ],
+    "restricao": {
+      "condicao": "presenca_sangue",
+      "descricao": "Na presença de sangue"
+    },
+    "dano_base": null,
+    "efeito": {
+      "status": "fobia",
+      "descricao": "Teste DC 14 ao ver sangue ou perde ação. -3 em combates com sangue visível",
+      "dc": 14,
+      "atributo_teste": "constituicao"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Amnésia Seletiva",
+    "descricao": "Perdeu memórias específicas importantes. Pode não reconhecer pessoas ou lugares do passado.",
+    "custo": -1,
+    "tipo": [
+      "psicologico",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "memoria_passado",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-1 em testes de conhecimento sobre o próprio passado. O Mestre pode revelar memórias aos poucos"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Compulsão por Ordem",
+    "descricao": "Necessidade obsessiva de organização. Caos e desordem causam ansiedade e penalidades.",
+    "custo": -1,
+    "tipo": [
+      "psicologico"
+    ],
+    "bonus": [
+      {
+        "atributo": "adaptacao_caos",
+        "valor": -2
+      }
+    ],
+    "restricao": {
+      "condicao": "ambientes_caoticos",
+      "descricao": "Em ambientes caóticos"
+    },
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-1 em tudo em ambientes desorganizados. Perde tempo organizando antes de agir"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Amaldiçoado pela Sorte",
+    "descricao": "Coisas boas que acontecem a você sempre vêm com uma consequência negativa inesperada.",
+    "custo": -2,
+    "tipo": [
+      "maldicao",
+      "narrativa"
+    ],
+    "bonus": [
+      {
+        "atributo": "consequencia_sorte",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Quando algo muito bom acontece, o Mestre pode introduzir uma complicação proporcional"
+    },
+    "usar": 0,
+    "elemento": [
+      "sombrio"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Lealdade Cega",
+    "descricao": "Leal a uma pessoa ou organização a ponto de cumprir ordens prejudiciais sem questionar.",
+    "custo": -2,
+    "tipo": [
+      "psicologico",
+      "moral"
+    ],
+    "bonus": [
+      {
+        "atributo": "independencia",
+        "valor": -3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Inteligência DC 16 para desobedecer ordens nocivas. -3 em independência",
+      "dc": 16,
+      "atributo_teste": "inteligencia"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  }
+]

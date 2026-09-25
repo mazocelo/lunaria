@@ -1,0 +1,610 @@
+[
+  {
+    "nome": "Guerreiro",
+    "custo": 1,
+    "descricao": "Mestre do combate direto, versátil com qualquer arma e armadura. O pilar de qualquer grupo em batalha.",
+    "bonus": {
+      "forca": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Combate Corpo a Corpo",
+          "id": 99
+        },
+        {
+          "nome": "Defesa com Armaduras Pesadas",
+          "id": 25
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Bárbaro",
+    "custo": 2,
+    "descricao": "Guerreiro selvagem que canaliza raiva primitiva como arma. Devastador em combate corpo a corpo.",
+    "bonus": {
+      "forca": "+2",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Fúria de Combate",
+          "id": 19
+        },
+        {
+          "nome": "Resistência Elevada",
+          "id": 24
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Paladino",
+    "custo": 0,
+    "descricao": "Cavaleiro sagrado com rígido código moral, canaliza poder divino para combater o mal e proteger aliados.",
+    "bonus": {
+      "carisma": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Magias Divinas",
+          "id": 103
+        },
+        {
+          "nome": "Poderes Contra o Mal",
+          "id": 116
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Código de Honra",
+          "id": 64
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Cavaleiro",
+    "custo": 1,
+    "descricao": "Símbolo de nobreza e disciplina, especialista em combate montado e defesa pesada.",
+    "bonus": {
+      "forca": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Combate Corpo a Corpo",
+          "id": 99
+        },
+        {
+          "nome": "Defesa com Armaduras Pesadas",
+          "id": 25
+        },
+        {
+          "nome": "Liderança Natural",
+          "id": 51
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Código de Honra de Combate",
+          "id": 65
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Mago",
+    "custo": 1,
+    "descricao": "Estudioso do conhecimento arcano com o maior repertório de magias do jogo. Frágil, mas devastador à distância.",
+    "bonus": {
+      "inteligencia": "+2",
+      "vantagens": [
+        {
+          "nome": "Feitiços Arcanos Variados",
+          "id": 111
+        },
+        {
+          "nome": "Detectar Magia",
+          "id": 36
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Elementalista",
+    "custo": 1,
+    "descricao": "Mestre de um elemento arcano (fogo, água, terra ou ar). Especialista em destruição elemental.",
+    "bonus": {
+      "inteligencia": "+1",
+      "vantagens": [
+        {
+          "nome": "Magia de Fogo",
+          "id": 107
+        },
+        {
+          "nome": "Magia de Água",
+          "id": 108
+        },
+        {
+          "nome": "Magia de Terra",
+          "id": 109
+        },
+        {
+          "nome": "Magia de Ar",
+          "id": 110
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Necromante",
+    "custo": 0,
+    "descricao": "Controla a morte e o medo, reanimando mortos e lançando maldições debilitantes.",
+    "bonus": {
+      "inteligencia": "+1",
+      "vantagens": [
+        {
+          "nome": "Animação de Mortos-Vivos",
+          "id": 125
+        },
+        {
+          "nome": "Magias de Maldição",
+          "id": 126
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Má Fama",
+          "id": 57
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Clérigo",
+    "custo": 1,
+    "descricao": "Canaliza o poder dos deuses para curar aliados, proteger o grupo e punir inimigos da fé.",
+    "bonus": {
+      "carisma": "+1",
+      "inteligencia": "+1",
+      "vantagens": [
+        {
+          "nome": "Magias Divinas",
+          "id": 103
+        },
+        {
+          "nome": "Cura e Proteção",
+          "id": 104
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Druida",
+    "custo": 1,
+    "descricao": "Guardião do equilíbrio natural, transforma-se em animais e controla as forças da natureza.",
+    "bonus": {
+      "inteligencia": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Transformação Animal",
+          "id": 105
+        },
+        {
+          "nome": "Magia Natural",
+          "id": 106
+        },
+        {
+          "nome": "Movimentação Florestal",
+          "id": 101
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aversão a Metal",
+          "id": 75
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Bardo",
+    "custo": 2,
+    "descricao": "Artista viajante e mágico versátil que inspira aliados e confunde inimigos com música e palavras.",
+    "bonus": {
+      "carisma": "+2",
+      "vantagens": [
+        {
+          "nome": "Inspirar Aliados",
+          "id": 52
+        },
+        {
+          "nome": "Confundir com Música",
+          "id": 128
+        },
+        {
+          "nome": "Lábia",
+          "id": 50
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Ladino",
+    "custo": 2,
+    "descricao": "Especialista em furtividade, trapaças e golpes precisos. Resolve problemas com esperteza, não força.",
+    "bonus": {
+      "destreza": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Ataques Furtivos",
+          "id": 102
+        },
+        {
+          "nome": "Arrombamento",
+          "id": 58
+        },
+        {
+          "nome": "Infiltração",
+          "id": 114
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Assassino",
+    "custo": 2,
+    "descricao": "Treinado para eliminar alvos silenciosamente com precisão letal e venenos mortais.",
+    "bonus": {
+      "destreza": "+2",
+      "vantagens": [
+        {
+          "nome": "Ataques Furtivos",
+          "id": 102
+        },
+        {
+          "nome": "Uso de Venenos",
+          "id": 62
+        },
+        {
+          "nome": "Infiltração",
+          "id": 114
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Ranger",
+    "custo": 2,
+    "descricao": "Protetor das terras selvagens, caçador nato com maestria em arco e sobrevivência.",
+    "bonus": {
+      "destreza": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Arco e Flecha",
+          "id": 119
+        },
+        {
+          "nome": "Rastreamento",
+          "id": 56
+        },
+        {
+          "nome": "Sobrevivência",
+          "id": 57
+        },
+        {
+          "nome": "Movimentação Florestal",
+          "id": 101
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Monge",
+    "custo": 2,
+    "descricao": "Disciplina física e espiritual como arma. Mestre do combate desarmado com velocidade sobrenatural.",
+    "bonus": {
+      "agilidade": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Combate Desarmado",
+          "id": 112
+        },
+        {
+          "nome": "Velocidade e Precisão",
+          "id": 113
+        },
+        {
+          "nome": "Artes Marciais",
+          "id": 115
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Ninja",
+    "custo": 2,
+    "descricao": "Guerreiro das sombras com técnicas secretas de furtividade, infiltração e artes marciais.",
+    "bonus": {
+      "agilidade": "+1",
+      "destreza": "+1",
+      "vantagens": [
+        {
+          "nome": "Infiltração",
+          "id": 114
+        },
+        {
+          "nome": "Artes Marciais",
+          "id": 115
+        },
+        {
+          "nome": "Velocidade e Precisão",
+          "id": 113
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Samurai",
+    "custo": 0,
+    "descricao": "Guerreiro leal e disciplinado, mestre da katana que segue um código de honra estrito.",
+    "bonus": {
+      "forca": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Mestre da Katana",
+          "id": 122
+        },
+        {
+          "nome": "Mente Disciplinada",
+          "id": 81
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Código de Honra",
+          "id": 64
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Swashbuckler",
+    "custo": 1,
+    "descricao": "Duelista carismático que combina acrobacias, provocações e estilo com esgrima letal.",
+    "bonus": {
+      "destreza": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Esgrima Acrobática",
+          "id": 123
+        },
+        {
+          "nome": "Provocações e Truques",
+          "id": 124
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Pirata",
+    "custo": 1,
+    "descricao": "Aventureiro ousado dos mares, especialista em combate naval e aquisição de tesouros.",
+    "bonus": {
+      "destreza": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Combate Naval",
+          "id": 117
+        },
+        {
+          "nome": "Roubos e Saques",
+          "id": 118
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Gladiador",
+    "custo": 2,
+    "descricao": "Luta para entreter e sobreviver na arena. Especialista em combate corpo a corpo e intimidação.",
+    "bonus": {
+      "forca": "+1",
+      "destreza": "+1",
+      "vantagens": [
+        {
+          "nome": "Combate Corpo a Corpo",
+          "id": 99
+        },
+        {
+          "nome": "Intimidação",
+          "id": 49
+        },
+        {
+          "nome": "Provocar",
+          "id": 23
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Caçador de Monstros",
+    "custo": 2,
+    "descricao": "Especialista em rastrear e eliminar ameaças sobrenaturais, explorando fraquezas de criaturas.",
+    "bonus": {
+      "inteligencia": "+1",
+      "destreza": "+1",
+      "vantagens": [
+        {
+          "nome": "Rastrear Monstros",
+          "id": 120
+        },
+        {
+          "nome": "Explorar Fraquezas Sobrenaturais",
+          "id": 121
+        },
+        {
+          "nome": "Visão do Caçador",
+          "id": 46
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Alquimista",
+    "custo": 2,
+    "descricao": "Especialista em alquimia que cria poções, bombas e compostos com efeitos variados.",
+    "bonus": {
+      "inteligencia": "+2",
+      "vantagens": [
+        {
+          "nome": "Criar Poções",
+          "id": 60
+        },
+        {
+          "nome": "Combate Indireto",
+          "id": 100
+        },
+        {
+          "nome": "Detectar Magia",
+          "id": 36
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Inventor",
+    "custo": 1,
+    "descricao": "Gênio criativo que resolve problemas com engenhosidade mecânica e dispositivos tecnológicos.",
+    "bonus": {
+      "inteligencia": "+2",
+      "vantagens": [
+        {
+          "nome": "Criação de Máquinas",
+          "id": 127
+        },
+        {
+          "nome": "Combate Indireto",
+          "id": 100
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Bruxo",
+    "custo": 0,
+    "descricao": "Obteve poder mágico através de um pacto com uma entidade poderosa. Magia potente com um preço.",
+    "bonus": {
+      "carisma": "+1",
+      "inteligencia": "+1",
+      "vantagens": [
+        {
+          "nome": "Concentração Mágica",
+          "id": 151
+        },
+        {
+          "nome": "Invocar Familiar",
+          "id": 31
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Dívida Impagável",
+          "id": 5
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Feiticeiro",
+    "custo": 0,
+    "descricao": "Magia corre no sangue. Poder arcano inato e imprevisível que não precisa de estudo formal.",
+    "bonus": {
+      "carisma": "+2",
+      "vantagens": [
+        {
+          "nome": "Magia Inata",
+          "id": 93
+        },
+        {
+          "nome": "Afinidade Arcana",
+          "id": 74
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Fragilidade Arcana",
+          "id": 83
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Curandeiro",
+    "custo": 0,
+    "descricao": "Dedicado à arte da cura, usa conhecimentos herbais e mágicos para manter o grupo vivo.",
+    "bonus": {
+      "inteligencia": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Cura e Proteção",
+          "id": 104
+        },
+        {
+          "nome": "Criar Poções",
+          "id": 60
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Pacifista",
+          "id": 9
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Guerreiro Mágico",
+    "custo": 1,
+    "descricao": "Híbrido entre guerreiro e mago que combina aço com arcano em combate devastador.",
+    "bonus": {
+      "forca": "+1",
+      "inteligencia": "+1",
+      "vantagens": [
+        {
+          "nome": "Combate Corpo a Corpo",
+          "id": 99
+        },
+        {
+          "nome": "Escudo Mágico",
+          "id": 13
+        }
+      ],
+      "desvantagens": []
+    }
+  }
+]

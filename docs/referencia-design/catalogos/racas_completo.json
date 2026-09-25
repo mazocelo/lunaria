@@ -1,0 +1,1115 @@
+[
+  {
+    "nome": "Humano",
+    "custo": 0,
+    "descricao": "A raça mais abundante e adaptável, conhecida por sua versatilidade e capacidade de aprender rapidamente.",
+    "bonus": {
+      "vantagens": [
+        {
+          "nome": "Adaptabilidade",
+          "id": 65
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Anão",
+    "custo": 1,
+    "descricao": "Humanoides robustos de baixa estatura, famosos por sua resistência à magia e mestria em forjar.",
+    "bonus": {
+      "constituicao": "+2",
+      "vantagens": [
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        },
+        {
+          "nome": "Resistência Mágica",
+          "id": 66
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Lentidão",
+          "id": 50
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Elfo",
+    "custo": 1,
+    "descricao": "Seres ágeis e longevos com forte afinidade com a natureza e a magia elemental.",
+    "bonus": {
+      "destreza": "+1",
+      "inteligencia": "+1",
+      "vantagens": [
+        {
+          "nome": "Visão Aguçada",
+          "id": 95
+        },
+        {
+          "nome": "Afinidade com Magia Elemental",
+          "id": 75
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Elfo Negro",
+    "custo": 2,
+    "descricao": "Elfos subterrâneos de pele escura, ágeis e resistentes à magia, com afinidade pelas sombras.",
+    "bonus": {
+      "destreza": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        },
+        {
+          "nome": "Resistência Mágica",
+          "id": 66
+        },
+        {
+          "nome": "Afinidade com Magia Sombria",
+          "id": 76
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Vulnerabilidade à Luz Solar",
+          "id": 46
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Meio-Elfo",
+    "custo": 0,
+    "descricao": "Fruto da união entre humanos e elfos, combina adaptabilidade humana com sentidos élficos.",
+    "bonus": {
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Visão Aguçada",
+          "id": 95
+        },
+        {
+          "nome": "Lábia",
+          "id": 50
+        }
+      ],
+      "desvantagens": []
+    }
+  },
+  {
+    "nome": "Halfling",
+    "custo": 0,
+    "descricao": "Criaturas pequenas e ágeis com sorte inata e talento para passar despercebidos.",
+    "bonus": {
+      "destreza": "+2",
+      "vantagens": [
+        {
+          "nome": "Sortudo",
+          "id": 64
+        },
+        {
+          "nome": "Passos Silenciosos",
+          "id": 39
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Modelo Especial",
+          "id": 60
+        },
+        {
+          "nome": "Fraqueza Física",
+          "id": 49
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Gnomo",
+    "custo": 1,
+    "descricao": "Humanoides pequenos e engenhosos com mente brilhante e magia inata de ilusões.",
+    "bonus": {
+      "inteligencia": "+2",
+      "vantagens": [
+        {
+          "nome": "Faro Aguçado",
+          "id": 89
+        },
+        {
+          "nome": "Magia Inata",
+          "id": 93
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Modelo Especial",
+          "id": 60
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Orc",
+    "custo": 1,
+    "descricao": "Humanoides brutais e poderosos com visão no escuro e força impressionante.",
+    "bonus": {
+      "forca": "+2",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Má Fama",
+          "id": 57
+        },
+        {
+          "nome": "Vulnerabilidade à Luz Forte",
+          "id": 47
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Meio-Orc",
+    "custo": 0,
+    "descricao": "Resultado da união entre orcs e humanos, herda a força orca mas com mais controle.",
+    "bonus": {
+      "forca": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        },
+        {
+          "nome": "Intimidação",
+          "id": 49
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Exótica",
+          "id": 59
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Tiefling",
+    "custo": 0,
+    "descricao": "Humanoides com linhagem infernal, inteligentes e carismáticos mas carregam o estigma demoníaco.",
+    "bonus": {
+      "inteligencia": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Resistência ao Fogo",
+          "id": 87
+        },
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Cólera Infernal",
+          "id": 71
+        },
+        {
+          "nome": "Aparência Exótica",
+          "id": 59
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Draconato",
+    "custo": 2,
+    "descricao": "Dragões humanoides orgulhosos com sopro elemental devastador e resistência natural.",
+    "bonus": {
+      "forca": "+2",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Sopro de Dragão",
+          "id": 73
+        },
+        {
+          "nome": "Armadura Natural",
+          "id": 79
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Monstruosa",
+          "id": 58
+        },
+        {
+          "nome": "Código de Honra",
+          "id": 64
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Aasimar",
+    "custo": 2,
+    "descricao": "Descendentes de celestiais com aura divina, destinados a combater as trevas.",
+    "bonus": {
+      "carisma": "+2",
+      "vantagens": [
+        {
+          "nome": "Boa Fama",
+          "id": 53
+        },
+        {
+          "nome": "Afinidade com Magia Divina",
+          "id": 77
+        },
+        {
+          "nome": "Resistência a Necromancia",
+          "id": 94
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Protetor dos Inocentes",
+          "id": 10
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Primordiano",
+    "custo": 2,
+    "descricao": "Tocados pelos planos elementais, manifestam o poder de fogo, água, terra ou ar na própria pele.",
+    "bonus": {
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Afinidade com Magia Elemental",
+          "id": 75
+        },
+        {
+          "nome": "Resistência ao Fogo",
+          "id": 87
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Exótica",
+          "id": 59
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Anfíbio",
+    "custo": 0,
+    "descricao": "Humanoides aquáticos com capacidade de respirar debaixo d'água e resistência natural.",
+    "bonus": {
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Natação",
+          "id": 78
+        },
+        {
+          "nome": "Sentidos Aguçados",
+          "id": 44
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Ambiente Especial (Água)",
+          "id": 48
+        },
+        {
+          "nome": "Vulnerabilidade ao Fogo",
+          "id": 41
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Centauro",
+    "custo": 1,
+    "descricao": "Criaturas com torso humano e corpo de cavalo, dotadas de força e velocidade impressionantes.",
+    "bonus": {
+      "forca": "+1",
+      "agilidade": "+1",
+      "vantagens": [
+        {
+          "nome": "Investida",
+          "id": 5
+        },
+        {
+          "nome": "Vigor Sobrenatural",
+          "id": 91
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Modelo Especial",
+          "id": 60
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Minotauro",
+    "custo": 1,
+    "descricao": "Humanoides com cabeça bovina, poderosos e com senso de direção infalível em labirintos.",
+    "bonus": {
+      "forca": "+2",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Mente Labiríntica",
+          "id": 98
+        },
+        {
+          "nome": "Investida",
+          "id": 5
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Monstruosa",
+          "id": 58
+        },
+        {
+          "nome": "Código de Honra de Combate",
+          "id": 65
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Kythari",
+    "custo": 2,
+    "descricao": "Humanoides disciplinados de outro plano, com mentes resistentes e reflexos excepcionais.",
+    "bonus": {
+      "destreza": "+1",
+      "inteligencia": "+1",
+      "vantagens": [
+        {
+          "nome": "Mente Disciplinada",
+          "id": 81
+        },
+        {
+          "nome": "Iniciativa Aprimorada",
+          "id": 80
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Exótica",
+          "id": 59
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Kemono",
+    "custo": 1,
+    "descricao": "Animais antropomórficos ágeis com sentidos sensoriais extremamente aguçados.",
+    "bonus": {
+      "destreza": "+1",
+      "agilidade": "+1",
+      "vantagens": [
+        {
+          "nome": "Sentidos Aguçados",
+          "id": 44
+        },
+        {
+          "nome": "Faro Aguçado",
+          "id": 89
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Exótica",
+          "id": 59
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Pardalino",
+    "custo": 1,
+    "descricao": "Felinos humanoides curiosos e ágeis, impulsionados por uma curiosidade insaciável.",
+    "bonus": {
+      "destreza": "+2",
+      "vantagens": [
+        {
+          "nome": "Escalar Paredes",
+          "id": 90
+        },
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        },
+        {
+          "nome": "Sentidos Aguçados",
+          "id": 44
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Curioso Compulsivo",
+          "id": 2
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Kobold",
+    "custo": -1,
+    "descricao": "Pequenos reptilianos ardilosos que compensam sua fraqueza com astúcia e trabalho em equipe.",
+    "bonus": {
+      "destreza": "+1",
+      "vantagens": [
+        {
+          "nome": "Desarmar Armadilhas",
+          "id": 59
+        },
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Modelo Especial",
+          "id": 60
+        },
+        {
+          "nome": "Fraqueza Física",
+          "id": 49
+        },
+        {
+          "nome": "Vulnerabilidade à Luz Forte",
+          "id": 47
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Goblin",
+    "custo": -1,
+    "descricao": "Criaturas pequenas, rápidas e oportunistas. O que falta em força, sobra em esperteza e velocidade.",
+    "bonus": {
+      "destreza": "+1",
+      "agilidade": "+1",
+      "vantagens": [
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        },
+        {
+          "nome": "Passos Silenciosos",
+          "id": 39
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Modelo Especial",
+          "id": 60
+        },
+        {
+          "nome": "Má Fama",
+          "id": 57
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Hobgoblin",
+    "custo": 1,
+    "descricao": "Goblinoides disciplinados e militaristas, superiores em organização e tática de combate.",
+    "bonus": {
+      "forca": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Armadura Natural",
+          "id": 79
+        },
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        },
+        {
+          "nome": "Mente Disciplinada",
+          "id": 81
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Exótica",
+          "id": 59
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Bugbear",
+    "custo": 1,
+    "descricao": "Os maiores goblinoides, surpreendentemente furtivos apesar do tamanho, com força bruta devastadora.",
+    "bonus": {
+      "forca": "+2",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        },
+        {
+          "nome": "Faro Aguçado",
+          "id": 89
+        },
+        {
+          "nome": "Ataque Furtivo",
+          "id": 40
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Fúria Incontrolável",
+          "id": 66
+        },
+        {
+          "nome": "Aparência Monstruosa",
+          "id": 58
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Meio-Dragão",
+    "custo": 4,
+    "descricao": "Descendentes de dragões e mortais com poder arcano inato e resistência elemental impressionante.",
+    "bonus": {
+      "forca": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Afinidade Arcana",
+          "id": 74
+        },
+        {
+          "nome": "Sopro de Dragão",
+          "id": 73
+        },
+        {
+          "nome": "Armadura Natural",
+          "id": 79
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Monstruosa",
+          "id": 58
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Ogro",
+    "custo": 2,
+    "descricao": "Humanoides primitivos de 3m de altura com força massiva, mas limitados intelectualmente e socialmente.",
+    "bonus": {
+      "forca": "+3",
+      "constituicao": "+3",
+      "vantagens": [
+        {
+          "nome": "Resistência a Dano",
+          "id": 17
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Modelo Especial",
+          "id": 60
+        },
+        {
+          "nome": "Inculto",
+          "id": 61
+        },
+        {
+          "nome": "Má Fama",
+          "id": 57
+        },
+        {
+          "nome": "Aparência Monstruosa",
+          "id": 58
+        },
+        {
+          "nome": "Restrição Intelectual e Mágica",
+          "id": 63
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Meio-Ogro",
+    "custo": 1,
+    "descricao": "Descendentes de ogros e humanoides, herdam força bruta mas com menos limitações que ogros puros.",
+    "bonus": {
+      "forca": "+2",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Resistência Elevada",
+          "id": 24
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Inculto",
+          "id": 61
+        },
+        {
+          "nome": "Aparência Exótica",
+          "id": 59
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Troglodita",
+    "custo": 1,
+    "descricao": "Homens-lagarto subterrâneos com armadura natural, camuflagem e visão no escuro.",
+    "bonus": {
+      "forca": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Armadura Natural",
+          "id": 79
+        },
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        },
+        {
+          "nome": "Camuflagem",
+          "id": 38
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Monstruosa",
+          "id": 58
+        },
+        {
+          "nome": "Vulnerabilidade ao Frio",
+          "id": 42
+        },
+        {
+          "nome": "Sangue Frio",
+          "id": 84
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Verdeante",
+    "custo": 2,
+    "descricao": "Criaturas feéricas com ossos de madeira e pele de casca, manifestam aspectos da natureza.",
+    "bonus": {
+      "constituicao": "+1",
+      "destreza": "+1",
+      "vantagens": [
+        {
+          "nome": "Aspecto da Natureza",
+          "id": 83
+        },
+        {
+          "nome": "Empatia com Animais",
+          "id": 92
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Vulnerabilidade ao Fogo",
+          "id": 41
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Cristálide",
+    "custo": 4,
+    "descricao": "Criaturas cristalinas com poderes psíquicos, teleporte inato e mentes impenetráveis.",
+    "bonus": {
+      "constituicao": "+1",
+      "inteligencia": "+1",
+      "vantagens": [
+        {
+          "nome": "Corpo de Construto",
+          "id": 84
+        },
+        {
+          "nome": "Mente Cristalina",
+          "id": 97
+        },
+        {
+          "nome": "Teleporte Inato",
+          "id": 82
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Exótica",
+          "id": 59
+        },
+        {
+          "nome": "Incompatibilidade Mágica",
+          "id": 74
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Anjo",
+    "custo": 3,
+    "descricao": "Seres celestiais com aura divina, sentidos aguçados e afinidade com magia de luz.",
+    "bonus": {
+      "carisma": "+2",
+      "vantagens": [
+        {
+          "nome": "Boa Fama",
+          "id": 53
+        },
+        {
+          "nome": "Voo",
+          "id": 41
+        },
+        {
+          "nome": "Afinidade com Magia Divina",
+          "id": 77
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Maldição de Banimento",
+          "id": 68
+        },
+        {
+          "nome": "Protetor dos Inocentes",
+          "id": 10
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Demônio",
+    "custo": 2,
+    "descricao": "Criaturas abissais com poder sombrio, resistência ao fogo e aptidão para magia negra.",
+    "bonus": {
+      "forca": "+1",
+      "inteligencia": "+1",
+      "vantagens": [
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        },
+        {
+          "nome": "Resistência ao Fogo",
+          "id": 87
+        },
+        {
+          "nome": "Afinidade com Magia Sombria",
+          "id": 76
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Má Fama",
+          "id": 57
+        },
+        {
+          "nome": "Maldição de Banimento",
+          "id": 68
+        },
+        {
+          "nome": "Vulnerabilidade a Eletricidade",
+          "id": 43
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Meio-Abissal",
+    "custo": 2,
+    "descricao": "Descendentes de demônios e mortais com poderes sombrios e resistência parcial ao fogo.",
+    "bonus": {
+      "forca": "+1",
+      "inteligencia": "+1",
+      "vantagens": [
+        {
+          "nome": "Visão no Escuro",
+          "id": 45
+        },
+        {
+          "nome": "Resistência ao Fogo",
+          "id": 87
+        },
+        {
+          "nome": "Afinidade com Magia Sombria",
+          "id": 76
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Vulnerabilidade a Eletricidade",
+          "id": 43
+        },
+        {
+          "nome": "Aparência Exótica",
+          "id": 59
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Meio-Celestial",
+    "custo": 2,
+    "descricao": "Descendentes de anjos e mortais com aura sagrada e aptidão para magia de luz.",
+    "bonus": {
+      "constituicao": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Afinidade com Magia Divina",
+          "id": 77
+        },
+        {
+          "nome": "Resistência a Necromancia",
+          "id": 94
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Código de Honra",
+          "id": 64
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Fada",
+    "custo": 2,
+    "descricao": "Criaturas pequenas e mágicas com voo natural e ilusões inatas, mas fisicamente frágeis.",
+    "bonus": {
+      "destreza": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Aparência Inofensiva",
+          "id": 85
+        },
+        {
+          "nome": "Voo Baixo",
+          "id": 42
+        },
+        {
+          "nome": "Magia Inata",
+          "id": 93
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Modelo Especial",
+          "id": 60
+        },
+        {
+          "nome": "Fraqueza Física",
+          "id": 49
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Licantropo",
+    "custo": 1,
+    "descricao": "Amaldiçoado com transformação bestial que concede poder mas rouba o controle.",
+    "bonus": {
+      "forca": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Forma de Fera",
+          "id": 70
+        },
+        {
+          "nome": "Sentidos Aguçados",
+          "id": 44
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Transformação Incontrolável",
+          "id": 34
+        },
+        {
+          "nome": "Vulnerabilidade à Prata",
+          "id": 45
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Meio-Gênio",
+    "custo": 3,
+    "descricao": "Filhos de humanos e gênios com afinidade arcana e resistência elemental.",
+    "bonus": {
+      "inteligencia": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Afinidade Arcana",
+          "id": 74
+        },
+        {
+          "nome": "Voo Baixo",
+          "id": 42
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Código da Gratidão",
+          "id": 70
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Silvagante",
+    "custo": 1,
+    "descricao": "Gigantes gentis da floresta com conexão profunda com a natureza e habilidade de se camuflar.",
+    "bonus": {
+      "forca": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Empatia com Animais",
+          "id": 92
+        },
+        {
+          "nome": "Camuflagem",
+          "id": 38
+        },
+        {
+          "nome": "Magia Inata",
+          "id": 93
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Exótica",
+          "id": 59
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Deva",
+    "custo": 2,
+    "descricao": "Servos imortais de deuses bondosos que reencarnam para combater as trevas, com memórias de vidas passadas.",
+    "bonus": {
+      "inteligencia": "+1",
+      "carisma": "+1",
+      "vantagens": [
+        {
+          "nome": "Memória de Vidas Passadas",
+          "id": 86
+        },
+        {
+          "nome": "Resistência a Necromancia",
+          "id": 94
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Código de Honra",
+          "id": 64
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Androide",
+    "custo": 1,
+    "descricao": "Construto com aparência humana. Lógico e eficiente, mas vulnerável a manipulação emocional.",
+    "bonus": {
+      "inteligencia": "+1",
+      "constituicao": "+1",
+      "vantagens": [
+        {
+          "nome": "Natureza de Construto",
+          "id": 72
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Cérebro Orgânico",
+          "id": 72
+        },
+        {
+          "nome": "Incompatibilidade Mágica",
+          "id": 74
+        }
+      ]
+    }
+  },
+  {
+    "nome": "Golem",
+    "custo": 3,
+    "descricao": "Criaturas artificiais mágicas com força massiva e resistência à magia, mas sem sutileza social.",
+    "bonus": {
+      "forca": "+2",
+      "constituicao": "+2",
+      "vantagens": [
+        {
+          "nome": "Natureza de Construto",
+          "id": 72
+        },
+        {
+          "nome": "Resistência Mágica",
+          "id": 66
+        }
+      ],
+      "desvantagens": [
+        {
+          "nome": "Aparência Monstruosa",
+          "id": 58
+        },
+        {
+          "nome": "Restrição Intelectual",
+          "id": 62
+        },
+        {
+          "nome": "Lentidão",
+          "id": 50
+        }
+      ]
+    }
+  }
+]

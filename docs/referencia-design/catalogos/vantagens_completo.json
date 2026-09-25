@@ -1,0 +1,4335 @@
+[
+  {
+    "nome": "Ataque Múltiplo",
+    "descricao": "Pode atacar mais de uma vez por turno, com penalidade de -2 em cada ataque adicional.",
+    "custo": 2,
+    "tipo": [
+      "ofensiva"
+    ],
+    "bonus": null,
+    "restricao": null,
+    "dano_base": "1d6+1 x2",
+    "efeito": {
+      "acao": "extra",
+      "descricao": "Permite dois ataques no mesmo turno com -2 em cada"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": {
+      "atributo": "forca",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Golpe Poderoso",
+    "descricao": "Sacrifica precisão por dano bruto. Recebe -2 no teste de ataque mas adiciona +4 ao dano se acertar.",
+    "custo": 1,
+    "tipo": [
+      "ofensiva",
+      "combate"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano",
+        "valor": 4
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-2 no ataque, +4 no dano"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "atributo": "forca",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Ataque Oportuno",
+    "descricao": "Quando um inimigo sai da sua área de ameaça, você pode realizar um ataque de oportunidade gratuito.",
+    "custo": 1,
+    "tipo": [
+      "ofensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "ataques_oportunidade",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Ataque gratuito quando inimigo sai do alcance corpo a corpo"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 2,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Crítico Aprimorado",
+    "descricao": "Seus acertos críticos acontecem com 19 ou 20 no dado, em vez de apenas 20.",
+    "custo": 2,
+    "tipo": [
+      "ofensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "critico_range",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Crítico em 19-20 em vez de apenas 20"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 5,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Investida",
+    "descricao": "Move-se em linha reta e ataca com bônus de +2 no dano, mas recebe -2 na defesa até o próximo turno.",
+    "custo": 1,
+    "tipo": [
+      "ofensiva",
+      "movimento"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Move em linha reta + ataque com +2 dano, -2 defesa até próximo turno"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Disparo Preciso",
+    "descricao": "Ignora penalidades por cobertura parcial ao atacar com armas à distância.",
+    "custo": 1,
+    "tipo": [
+      "ofensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "precisao_distancia",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Ignora cobertura parcial em ataques à distância"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 2,
+    "requisitos": {
+      "atributo": "destreza",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Foco em Combate",
+    "descricao": "Anos de treino com um tipo de arma concedem +1 permanente nos testes de ataque com ela.",
+    "custo": 1,
+    "tipo": [
+      "ofensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "ataque",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+1 em ataques com tipo de arma escolhido"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Chuva de Flechas",
+    "descricao": "Dispara uma rajada de flechas que cobre uma área, atingindo múltiplos alvos.",
+    "custo": 3,
+    "tipo": [
+      "ofensiva"
+    ],
+    "bonus": null,
+    "restricao": null,
+    "dano_base": "1d4+2",
+    "efeito": {
+      "tipo": "area",
+      "descricao": "Atinge todos em um cone de 6m à frente",
+      "alvo_tipo": "area"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 5,
+    "requisitos": {
+      "atributo": "destreza",
+      "minimo": 14
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Golpe Atordoante",
+    "descricao": "Um golpe preciso que pode atordoar o alvo por 1 turno se ele falhar um teste de Constituição.",
+    "custo": 2,
+    "tipo": [
+      "ofensiva",
+      "controle"
+    ],
+    "bonus": null,
+    "restricao": null,
+    "dano_base": "1d6",
+    "efeito": {
+      "status": "atordoado",
+      "descricao": "Alvo testa Constituição ou fica atordoado por 1 turno",
+      "alvo_tipo": "inimigo"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Armadura Extra",
+    "descricao": "Possui uma defesa natural ou mágica acima do normal que reduz dano recebido.",
+    "custo": 1,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "defesa",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "armadura",
+      "descricao": "Reduz 2 de dano físico por ataque"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 2,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Esquiva Aprimorada",
+    "descricao": "Reflexos excepcionais concedem +2 na esquiva contra ataques que você pode ver.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "esquiva",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em esquiva contra ataques visíveis"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": {
+      "atributo": "agilidade",
+      "minimo": 13
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Campo de Força",
+    "descricao": "Cria uma barreira invisível que absorve até 10 pontos de dano antes de dissipar.",
+    "custo": 3,
+    "tipo": [
+      "defensiva",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "absorver_dano",
+        "valor": 10
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "barreira",
+      "descricao": "Absorve 10 pontos de dano, depois dissipa"
+    },
+    "usar": 1,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 5,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 14
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Escudo Mágico",
+    "descricao": "Invoca um escudo de energia que concede +3 de defesa por 1d4 turnos.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "defesa",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "escudo",
+      "descricao": "+3 defesa por 1d4 turnos"
+    },
+    "usar": 1,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 2,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Pele de Pedra",
+    "descricao": "A pele endurece magicamente, reduzindo todo dano físico recebido em 3 pontos por 1d6 turnos.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "reducao_dano_fisico",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "petrificado_parcial",
+      "descricao": "Reduz 3 de dano físico por 1d6 turnos, -1 em agilidade"
+    },
+    "usar": 1,
+    "elemento": [
+      "terra"
+    ],
+    "nivel": 4,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Contra-Ataque",
+    "descricao": "Quando um inimigo erra um ataque corpo a corpo contra você, pode revidar imediatamente.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "ofensiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "contra_ataque",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Revide automático quando inimigo erra ataque corpo a corpo"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 4,
+    "requisitos": {
+      "atributo": "agilidade",
+      "minimo": 13
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Bloqueio com Escudo",
+    "descricao": "Usa o escudo para bloquear um ataque completamente, negando todo o dano. Uma vez por combate.",
+    "custo": 1,
+    "tipo": [
+      "defensiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "bloqueio",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Bloqueia completamente um ataque por combate"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 2,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Resistência a Dano",
+    "descricao": "Corpo endurecido por treinamento ou natureza, reduz 1 ponto de todo dano físico recebido permanentemente.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "reducao_dano",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Reduz 1 de todo dano físico recebido"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": {
+      "atributo": "constituicao",
+      "minimo": 13
+    },
+    "hp_bonus": 3,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Grito de Batalha",
+    "descricao": "Um grito feroz que intimida inimigos próximos, causando -1 nos ataques deles por 2 turnos.",
+    "custo": 1,
+    "tipo": [
+      "ofensiva",
+      "controle",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "intimidar_area",
+        "valor": -1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "intimidado",
+      "descricao": "Inimigos num raio de 5m recebem -1 em ataques por 2 turnos",
+      "alvo_tipo": "inimigos"
+    },
+    "usar": 1,
+    "elemento": [
+      "sonico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Fúria de Combate",
+    "descricao": "Entra em estado de fúria, ganhando +2 em dano e resistência a dor, mas -2 em defesa.",
+    "custo": 2,
+    "tipo": [
+      "ofensiva",
+      "combate"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "furia",
+      "descricao": "+2 dano, +2 resistência a dor, -2 defesa enquanto ativo"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 3,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Posição Defensiva",
+    "descricao": "Adota postura defensiva, ganhando +3 em defesa mas não pode atacar neste turno.",
+    "custo": 1,
+    "tipo": [
+      "defensiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "defesa",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 defesa, não pode atacar neste turno"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Desarmar",
+    "descricao": "Tenta derrubar a arma do oponente. Teste de Destreza contestado — se vencer, a arma cai no chão.",
+    "custo": 1,
+    "tipo": [
+      "ofensiva",
+      "controle"
+    ],
+    "bonus": [
+      {
+        "atributo": "manobra_desarme",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Destreza contestado para derrubar arma do oponente",
+      "alvo_tipo": "inimigo"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 2,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Derrubar",
+    "descricao": "Tenta jogar o oponente no chão. Teste de Força contestado — se vencer, o alvo fica caído.",
+    "custo": 1,
+    "tipo": [
+      "ofensiva",
+      "controle"
+    ],
+    "bonus": [
+      {
+        "atributo": "manobra_derrubada",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "caido",
+      "descricao": "Teste de Força contestado para derrubar o alvo",
+      "alvo_tipo": "inimigo"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Provocar",
+    "descricao": "Insulta o inimigo forçando-o a te atacar no próximo turno, ignorando aliados mais vulneráveis.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "controle",
+      "combate"
+    ],
+    "bonus": [
+      {
+        "atributo": "provocacao",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "provocado",
+      "descricao": "Alvo deve atacar você no próximo turno",
+      "alvo_tipo": "inimigo"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Resistência Elevada",
+    "descricao": "Corpo forjado para suportar castigo. Ganha +5 PV máximos permanentemente.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "hp_max",
+        "valor": 5
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+5 PV máximos permanentes"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 5,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Defesa com Armaduras Pesadas",
+    "descricao": "Treinamento especializado permite usar armaduras pesadas sem penalidade de movimento.",
+    "custo": 1,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "pen_armadura_pesada",
+        "valor": 0
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Sem penalidade de movimento com armaduras pesadas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "atributo": "forca",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Combate com Duas Armas",
+    "descricao": "Luta com uma arma em cada mão, podendo realizar um ataque extra com a arma secundária com -2.",
+    "custo": 2,
+    "tipo": [
+      "ofensiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "ataques_extras",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "acao": "extra",
+      "descricao": "Ataque extra com arma secundária com -2"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": {
+      "atributo": "destreza",
+      "minimo": 13
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Mira Mortal",
+    "descricao": "Gasta um turno inteiro mirando. No próximo turno, ataque à distância recebe +4 no teste e +2 no dano.",
+    "custo": 1,
+    "tipo": [
+      "ofensiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "ataque_preparado",
+        "valor": 4
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Gasta 1 turno mirando, próximo ataque à distância: +4 ataque, +2 dano"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 2,
+    "requisitos": {
+      "atributo": "destreza",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Névoa Protetora",
+    "descricao": "Cria uma nuvem de névoa ao redor de si que dificulta ataques à distância contra aliados na área.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "controle",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "cobertura_aliados",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "obscurecido",
+      "descricao": "Ataques à distância contra aliados na névoa têm -3",
+      "alvo_tipo": "aliados"
+    },
+    "usar": 1,
+    "elemento": [
+      "agua"
+    ],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Luta às Cegas",
+    "descricao": "Treinamento especial permite lutar sem penalidade em escuridão ou contra inimigos invisíveis.",
+    "custo": 2,
+    "tipo": [
+      "combate",
+      "passiva",
+      "sensorial"
+    ],
+    "bonus": [
+      {
+        "atributo": "pen_escuridao",
+        "valor": 0
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Sem penalidade de ataque no escuro ou contra invisíveis"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 4,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Escudo de Luz",
+    "descricao": "Aura de luz sagrada que concede +2 defesa a si e aliados adjacentes.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "suporte",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "defesa",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 defesa para si e aliados adjacentes por 1d4 turnos",
+      "alvo_tipo": "self_e_aliados"
+    },
+    "usar": 1,
+    "elemento": [
+      "divino",
+      "luz"
+    ],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Invocar Familiar",
+    "descricao": "Invoca uma criatura mágica menor que serve como companheiro, olheiro e auxílio em combate.",
+    "custo": 2,
+    "tipo": [
+      "suporte",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "familiar_hp",
+        "valor": 5
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Invoca familiar com 5 PV que pode explorar, espionar e auxiliar com +1 em testes de percepção",
+      "alvo_tipo": "invocacao"
+    },
+    "usar": 1,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 2,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Barreira Elemental",
+    "descricao": "Cria um escudo que absorve dano de um elemento específico escolhido na ativação.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "absorcao_elemental",
+        "valor": 15
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Absorve até 15 pontos de dano de um elemento escolhido"
+    },
+    "usar": 1,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Dissipar Magia",
+    "descricao": "Remove efeitos mágicos ativos de um alvo ou área. Teste de Inteligência contra a dificuldade do efeito.",
+    "custo": 2,
+    "tipo": [
+      "suporte",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "remover_efeito",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Remove um efeito mágico ativo, teste de Inteligência vs dificuldade do efeito",
+      "alvo_tipo": "inimigo"
+    },
+    "usar": 1,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 4,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 13
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Maldição Menor",
+    "descricao": "Amaldiçoa um alvo, impondo -2 em todos os testes por 1d6 turnos.",
+    "custo": 2,
+    "tipo": [
+      "controle",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "penalidade_alvo",
+        "valor": -2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "amaldicoado",
+      "descricao": "-2 em todos os testes do alvo por 1d6 turnos",
+      "alvo_tipo": "inimigo"
+    },
+    "usar": 1,
+    "elemento": [
+      "necro"
+    ],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Benção",
+    "descricao": "Abençoa aliados próximos, concedendo +1 em ataques e testes de resistência por 1d6 turnos.",
+    "custo": 2,
+    "tipo": [
+      "suporte",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "bonus_aliados",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+1 em ataques e testes de resistência para aliados em 5m por 1d6 turnos",
+      "alvo_tipo": "aliados"
+    },
+    "usar": 1,
+    "elemento": [
+      "divino"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Detectar Magia",
+    "descricao": "Sente a presença de magia num raio de 10m, identificando itens mágicos e efeitos ativos.",
+    "custo": 1,
+    "tipo": [
+      "sensorial",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "deteccao_magica_raio",
+        "valor": 10
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Detecta magia num raio de 10m, identifica tipo e intensidade"
+    },
+    "usar": 1,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Invisibilidade",
+    "descricao": "Torna-se invisível por alguns turnos. O efeito termina ao atacar ou usar habilidades ofensivas.",
+    "custo": 3,
+    "tipo": [
+      "furtivo",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "furtividade_bonus",
+        "valor": 10
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "status": "invisivel",
+      "descricao": "Invisível por 1d6+1 turnos ou até atacar"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Camuflagem",
+    "descricao": "Adapta-se visualmente ao ambiente, ganhando bônus em furtividade quando imóvel.",
+    "custo": 1,
+    "tipo": [
+      "furtivo",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "furtividade",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em furtividade quando parado em ambiente natural"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Passos Silenciosos",
+    "descricao": "Move-se sem fazer barulho, tornando detecção por audição muito difícil.",
+    "custo": 1,
+    "tipo": [
+      "furtivo",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "furtividade",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em furtividade + inimigos não detectam por som"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Ataque Furtivo",
+    "descricao": "Ao atacar de surpresa ou contra alvo flanqueado, causa dano extra significativo.",
+    "custo": 2,
+    "tipo": [
+      "ofensiva",
+      "furtivo"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_furtivo",
+        "valor": 7
+      }
+    ],
+    "restricao": null,
+    "dano_base": "+2d6",
+    "efeito": {
+      "descricao": "+2d6 de dano extra contra alvos desprevenidos ou flanqueados"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "atributo": "destreza",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Voo",
+    "descricao": "Pode voar livremente, ignorando terreno difícil e alcançando lugares elevados.",
+    "custo": 3,
+    "tipo": [
+      "movimento"
+    ],
+    "bonus": [
+      {
+        "atributo": "movimento_aereo",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "tipo": "movimento",
+      "status": "voando",
+      "descricao": "Voo livre com velocidade normal de movimento"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 5,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Voo Baixo",
+    "descricao": "Pode planar a baixa altitude, ignorando obstáculos no solo mas sem voar livremente.",
+    "custo": 1,
+    "tipo": [
+      "movimento"
+    ],
+    "bonus": [
+      {
+        "atributo": "movimento_planar",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "tipo": "movimento",
+      "status": "voando_baixo",
+      "descricao": "Plana até 3m de altura, ignora terreno difícil"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Teleporte Curto",
+    "descricao": "Teleporta-se instantaneamente até 10m de distância, ignorando obstáculos.",
+    "custo": 2,
+    "tipo": [
+      "movimento",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "teleporte_distancia",
+        "valor": 10
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "tipo": "movimento",
+      "descricao": "Teleporte até 10m ignorando obstáculos"
+    },
+    "usar": 1,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Sentidos Aguçados",
+    "descricao": "Sentidos extremamente apurados que permitem detectar ameaças ocultas e armadilhas.",
+    "custo": 1,
+    "tipo": [
+      "sensorial",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "percepcao",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "tipo": "sensorial",
+      "descricao": "+2 em percepção, detecta criaturas escondidas e armadilhas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Visão no Escuro",
+    "descricao": "Enxerga normalmente na escuridão total até 18m de distância.",
+    "custo": 1,
+    "tipo": [
+      "sensorial",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "visao_escuro_metros",
+        "valor": 18
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Visão normal no escuro até 18m"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Visão do Caçador",
+    "descricao": "Identifica pontos fracos em monstros, revelando resistências e vulnerabilidades.",
+    "custo": 2,
+    "tipo": [
+      "sensorial"
+    ],
+    "bonus": [
+      {
+        "atributo": "analise_monstro",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Revela resistências, vulnerabilidades e HP aproximado do alvo"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 2,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Olho do Dragão",
+    "descricao": "Visão térmica que permite ver através de fumaça, neblina e escuridão parcial.",
+    "custo": 2,
+    "tipo": [
+      "sensorial",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "visao_termica",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Visão térmica: ignora fumaça, neblina e escuridão parcial"
+    },
+    "usar": 0,
+    "elemento": [
+      "fogo"
+    ],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Telepatia",
+    "descricao": "Comunica-se mentalmente com seres conscientes num raio de 100m.",
+    "custo": 2,
+    "tipo": [
+      "social",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "comunicacao_mental_metros",
+        "valor": 100
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "tipo": "comunicacao",
+      "descricao": "Comunicação mental em 100m, não funciona com seres sem mente",
+      "alvo_tipo": "aliados"
+    },
+    "usar": 0,
+    "elemento": [
+      "psiquico"
+    ],
+    "nivel": 2,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Intimidação",
+    "descricao": "Presença ameaçadora que concede bônus em tentativas de intimidar e coagir.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "intimidacao",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em testes de intimidação"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Lábia",
+    "descricao": "Habilidade natural para convencer, mentir e enganar com palavras.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "persuasao",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em testes de persuasão e enganação"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Liderança Natural",
+    "descricao": "Presença inspiradora que motiva aliados em combate e situações de pressão.",
+    "custo": 2,
+    "tipo": [
+      "social",
+      "suporte"
+    ],
+    "bonus": [
+      {
+        "atributo": "moral_aliados",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Aliados em 10m ganham +1 em testes de moral e resistência a medo",
+      "alvo_tipo": "aliados"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": {
+      "atributo": "carisma",
+      "minimo": 13
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Inspirar Aliados",
+    "descricao": "Através de palavras ou música, concede +1 temporário em ataques e dano para aliados.",
+    "custo": 2,
+    "tipo": [
+      "suporte",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "bonus_ataque_aliados",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+1 em ataques e dano para aliados em 10m por 1d4 turnos",
+      "alvo_tipo": "aliados"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "atributo": "carisma",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Boa Fama",
+    "descricao": "Reputação positiva que facilita interações sociais e abre portas.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+1 em interações sociais, NPCs neutros começam amigáveis",
+      "alvo_tipo": "outros"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Contatos",
+    "descricao": "Rede de informantes e aliados em várias cidades que podem fornecer informações e favores.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "rede_informantes",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Pode pedir informações ou favores menores em cidades visitadas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Negociador",
+    "descricao": "Talento para barganhas que garante melhores preços em compras e vendas.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "desconto_compra_pct",
+        "valor": 15
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "10-20% de desconto em compras e +10-20% no valor de vendas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Rastreamento",
+    "descricao": "Habilidade de seguir rastros de criaturas por terrenos variados.",
+    "custo": 1,
+    "tipo": [
+      "sensorial",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "rastreamento",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em testes de rastreamento, pode seguir rastros antigos"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Sobrevivência",
+    "descricao": "Conhecimento de como sobreviver na natureza selvagem — encontrar comida, água e abrigo.",
+    "custo": 1,
+    "tipo": [
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "sobrevivencia",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em sobrevivência, pode encontrar recursos naturais e abrigo"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Arrombamento",
+    "descricao": "Perícia em abrir fechaduras, cofres e mecanismos trancados.",
+    "custo": 1,
+    "tipo": [
+      "furtivo",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "arrombamento",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em testes de arrombamento de fechaduras e mecanismos"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Desarmar Armadilhas",
+    "descricao": "Perícia em identificar e desativar armadilhas mecânicas e mágicas.",
+    "custo": 1,
+    "tipo": [
+      "furtivo",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "armadilhas",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em detectar e desarmar armadilhas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Criar Poções",
+    "descricao": "Conhecimento alquímico para criar poções de cura, buffs e venenos a partir de ingredientes.",
+    "custo": 2,
+    "tipo": [
+      "crafting"
+    ],
+    "bonus": [
+      {
+        "atributo": "crafting_pocoes",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Pode fabricar poções usando ingredientes e receitas conhecidas"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Forjar Armas",
+    "descricao": "Habilidade de criar e melhorar armas usando materiais e uma forja.",
+    "custo": 2,
+    "tipo": [
+      "crafting"
+    ],
+    "bonus": [
+      {
+        "atributo": "crafting_armas",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Pode forjar armas e aplicar melhorias com materiais corretos"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": {
+      "atributo": "forca",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Uso de Venenos",
+    "descricao": "Conhecimento para aplicar venenos em armas e comida sem risco de se envenenar.",
+    "custo": 1,
+    "tipo": [
+      "furtivo",
+      "ofensiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_veneno_extra",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Aplica venenos em armas sem risco, +1d4 dano de veneno por 3 turnos"
+    },
+    "usar": 1,
+    "elemento": [
+      "veneno"
+    ],
+    "nivel": 2,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Absorção de Energia",
+    "descricao": "Absorve parte do dano de ataques elementais para recuperar PV.",
+    "custo": 3,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "absorcao_elemental_pct",
+        "valor": 50
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "acao": "cura",
+      "descricao": "Recupera metade do dano recebido de um elemento escolhido"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 5,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Sortudo",
+    "descricao": "A sorte te acompanha. Três vezes por sessão, pode re-rolar um teste falhado.",
+    "custo": 3,
+    "tipo": [
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "rerolls_por_sessao",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "3x por sessão pode re-rolar um teste falhado, ficando com o melhor resultado"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Adaptabilidade",
+    "descricao": "Versatilidade natural que permite aprender rapidamente. Ganha +1 ponto de atributo ao subir de nível.",
+    "custo": 1,
+    "tipo": [
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "pontos_nivel_extra",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+1 ponto de atributo adicional ao subir de nível"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Resistência Mágica",
+    "descricao": "Resistência inata a efeitos mágicos. +2 em testes de resistência contra magia.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_magica",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em testes de resistência contra efeitos mágicos"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Imunidade ao Fogo",
+    "descricao": "Imune a dano e efeitos de fogo. Chamas não causam dano nem queimam.",
+    "custo": 3,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "imunidade_fogo",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "tipo": "imunidade",
+      "descricao": "Imune a todo dano e efeitos de fogo"
+    },
+    "usar": 0,
+    "elemento": [
+      "fogo"
+    ],
+    "nivel": 5,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Imunidade a Veneno",
+    "descricao": "Sistema imunológico ou natureza que impede qualquer efeito de veneno.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "imunidade_veneno",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "tipo": "imunidade",
+      "descricao": "Imune a venenos e doenças naturais"
+    },
+    "usar": 0,
+    "elemento": [
+      "veneno"
+    ],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Mente Blindada",
+    "descricao": "Mente fortemente protegida contra telepatia, controle mental e efeitos psíquicos.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_mental",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em resistência contra efeitos mentais, telepatia e controle"
+    },
+    "usar": 0,
+    "elemento": [
+      "psiquico"
+    ],
+    "nivel": 2,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Forma de Fera",
+    "descricao": "Pode se transformar em uma forma bestial com bônus em atributos físicos mas perda de racionalidade.",
+    "custo": 3,
+    "tipo": [
+      "transformacao"
+    ],
+    "bonus": [
+      {
+        "atributo": "forca_bonus_fera",
+        "valor": 3
+      },
+      {
+        "atributo": "constituicao_bonus_fera",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": "1d8",
+    "efeito": {
+      "status": "forma_fera",
+      "descricao": "+3 Força, +2 Constituição, -3 Inteligência, ataque natural 1d8"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Metamorfose",
+    "descricao": "Pode alterar aparência para se parecer com qualquer humanoide de tamanho similar.",
+    "custo": 3,
+    "tipo": [
+      "transformacao",
+      "social"
+    ],
+    "bonus": [
+      {
+        "atributo": "disfarce_bonus",
+        "valor": 5
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Altera aparência para imitar qualquer humanoide. Teste de Carisma para manter a farsa"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Natureza de Construto",
+    "descricao": "Corpo artificial que não precisa comer, dormir ou respirar. Imune a venenos e doenças.",
+    "custo": 3,
+    "tipo": [
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "imunidade_veneno",
+        "valor": 1
+      },
+      {
+        "atributo": "imunidade_sono",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Não come, não dorme, não respira. Imune a veneno e doença. Não pode ser curado por magia divina"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 5,
+    "mana_bonus": -5
+  },
+  {
+    "nome": "Sopro de Dragão",
+    "descricao": "Pode exalar um cone de energia elemental (fogo, gelo, ácido, etc.).",
+    "custo": 3,
+    "tipo": [
+      "ofensiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_sopro",
+        "valor": 7
+      }
+    ],
+    "restricao": null,
+    "dano_base": "2d6",
+    "efeito": {
+      "tipo": "cone",
+      "descricao": "Cone de 5m de dano elemental. Uma vez por descanso curto",
+      "alvo_tipo": "area"
+    },
+    "usar": 1,
+    "elemento": [
+      "fogo"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 3
+  },
+  {
+    "nome": "Afinidade Arcana",
+    "descricao": "Conexão inata com magia que facilita conjuração. -1 no custo de mana de todas as magias.",
+    "custo": 2,
+    "tipo": [
+      "magico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "custo_mana_reducao",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-1 no custo de mana de todas as magias (mínimo 1)"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 5
+  },
+  {
+    "nome": "Afinidade com Magia Elemental",
+    "descricao": "Talento natural para magias de elementos da natureza. +1 em dano de magias elementais.",
+    "custo": 1,
+    "tipo": [
+      "magico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_elemental",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+1 em dano de magias de fogo, gelo, eletricidade, terra e vento"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 3
+  },
+  {
+    "nome": "Afinidade com Magia Sombria",
+    "descricao": "Conexão com energias sombrias. Magias de necromancia e sombras custam -1 mana.",
+    "custo": 1,
+    "tipo": [
+      "magico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "custo_mana_necro_reducao",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "-1 custo de mana para magias de necromancia e sombras"
+    },
+    "usar": 0,
+    "elemento": [
+      "sombrio"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 3
+  },
+  {
+    "nome": "Afinidade com Magia Divina",
+    "descricao": "Conexão com energias sagradas. Magias de cura e proteção são 20% mais efetivas.",
+    "custo": 1,
+    "tipo": [
+      "magico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "cura_bonus_pct",
+        "valor": 20
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Magias de cura curam +20% e magias de proteção duram 1 turno a mais"
+    },
+    "usar": 0,
+    "elemento": [
+      "divino"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 3
+  },
+  {
+    "nome": "Natação",
+    "descricao": "Pode nadar com velocidade normal e respirar debaixo d'água.",
+    "custo": 1,
+    "tipo": [
+      "movimento",
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "respirar_agua",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Nada com velocidade normal, respira debaixo d'água indefinidamente"
+    },
+    "usar": 0,
+    "elemento": [
+      "agua"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Armadura Natural",
+    "descricao": "Pele, escamas ou exoesqueleto que fornecem proteção natural permanente.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "defesa",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 defesa natural permanente que acumula com armadura"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 3,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Iniciativa Aprimorada",
+    "descricao": "Reflexos excepcionais que concedem vantagem na ordem de combate.",
+    "custo": 1,
+    "tipo": [
+      "combate",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "iniciativa",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 permanente na rolagem de iniciativa"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Mente Disciplinada",
+    "descricao": "Treinamento mental intenso que protege contra efeitos de medo, charme e confusão.",
+    "custo": 1,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_mental",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em resistência contra medo, charme e confusão"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Teleporte Inato",
+    "descricao": "Habilidade racial de se teleportar curtas distâncias como ação natural.",
+    "custo": 3,
+    "tipo": [
+      "movimento",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "teleporte_bonus_metros",
+        "valor": 5
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teleporte de até 5m como ação bônus. Uma vez por turno"
+    },
+    "usar": 1,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Aspecto da Natureza",
+    "descricao": "Pode manifestar aspectos naturais que concedem bônus situacionais em combate.",
+    "custo": 2,
+    "tipo": [
+      "transformacao",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "aspecto_bonus",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Escolhe 1 aspecto por combate: Raízes (+2 defesa), Vento (+2 iniciativa), Chama (+2 dano)"
+    },
+    "usar": 1,
+    "elemento": [
+      "natureza"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Corpo de Construto",
+    "descricao": "Corpo parcialmente artificial com imunidades de construto e resistência elevada.",
+    "custo": 3,
+    "tipo": [
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "defesa",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+1 defesa, imune a sono e veneno, não precisa respirar"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 5,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Aparência Inofensiva",
+    "descricao": "Parece inofensivo e frágil, fazendo inimigos subestimarem você.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "enganacao",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Inimigos inteligentes te ignoram como ameaça no primeiro turno. +2 em enganação",
+      "alvo_tipo": "inimigos"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Memória de Vidas Passadas",
+    "descricao": "Acessa fragmentos de memórias de vidas anteriores, trazendo conhecimentos variados.",
+    "custo": 2,
+    "tipo": [
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "conhecimento_bonus_sessao",
+        "valor": 5
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Uma vez por sessão, pode rolar um teste de conhecimento com +5 como se lembrasse de uma vida passada"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Resistência ao Fogo",
+    "descricao": "Resistência parcial ao fogo. Reduz dano de fogo pela metade.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "reducao_dano_fogo_pct",
+        "valor": 50
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Reduz todo dano de fogo pela metade"
+    },
+    "usar": 0,
+    "elemento": [
+      "fogo"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Poder Mutante",
+    "descricao": "Mutação que concede uma habilidade especial única determinada aleatoriamente.",
+    "custo": 2,
+    "tipo": [
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "poder_aleatorio",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Habilidade mutante única: o Mestre determina um poder aleatório baseado na mutação"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Faro Aguçado",
+    "descricao": "Olfato extremamente apurado que permite rastrear por cheiro e detectar substâncias.",
+    "custo": 1,
+    "tipo": [
+      "sensorial",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "percepcao_olfativa",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em percepção por cheiro, pode rastrear criaturas pelo faro"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Escalar Paredes",
+    "descricao": "Pode escalar superfícies verticais e até tetos sem teste, como uma aranha.",
+    "custo": 2,
+    "tipo": [
+      "movimento",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "escalada_automatica",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Escala superfícies verticais e tetos com velocidade de movimento normal"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 2,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vigor Sobrenatural",
+    "descricao": "Stamina além do natural. Não sofre efeitos de exaustão por esforço físico prolongado.",
+    "custo": 1,
+    "tipo": [
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "imunidade_exaustao",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Imune a exaustão por esforço. Pode marchar, correr e lutar sem cansar"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 3,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Empatia com Animais",
+    "descricao": "Conexão natural com animais. Pode acalmar e se comunicar basicamente com eles.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "controle_animal",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Animais não te atacam a menos que provocados. Pode pedir favores simples",
+      "alvo_tipo": "outros"
+    },
+    "usar": 0,
+    "elemento": [
+      "natureza"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Magia Inata",
+    "descricao": "Acesso a uma magia simples sem precisar de treinamento formal. Usável ilimitadamente.",
+    "custo": 1,
+    "tipo": [
+      "magico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "magia_gratis_nivel",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Uma magia de nível 1 usável ilimitadamente sem custo de mana"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 3
+  },
+  {
+    "nome": "Resistência a Necromancia",
+    "descricao": "Proteção contra energia necromântica. +3 em resistência contra efeitos de mortos-vivos e drenagem de vida.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_necro",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em resistência contra necromancia, drenagem de vida e controle por mortos-vivos"
+    },
+    "usar": 0,
+    "elemento": [
+      "necro"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Visão Aguçada",
+    "descricao": "Visão excepcionalmente nítida, capaz de ver detalhes a grandes distâncias.",
+    "custo": 1,
+    "tipo": [
+      "sensorial",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "percepcao_visual",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em percepção visual, enxerga detalhes a até 1km de distância"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Dádiva do Caos Rubro",
+    "descricao": "Manifestação de poder caótico que concede uma habilidade aleatória do Caos Rubro.",
+    "custo": 2,
+    "tipo": [
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "poder_caos_rubro",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Uma habilidade aleatória do Caos Rubro determinada pelo Mestre ao criar o personagem"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Mente Cristalina",
+    "descricao": "Mente inorgânica e transparente, totalmente imune a efeitos psíquicos e emocionais.",
+    "custo": 3,
+    "tipo": [
+      "defensiva",
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "imunidade_psiquico",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Imune a efeitos psíquicos, medo, charme e controle mental"
+    },
+    "usar": 0,
+    "elemento": [
+      "psiquico"
+    ],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 3
+  },
+  {
+    "nome": "Mente Labiríntica",
+    "descricao": "Senso de direção perfeito. Nunca se perde em labirintos, masmorras ou cavernas.",
+    "custo": 1,
+    "tipo": [
+      "passiva",
+      "racial"
+    ],
+    "bonus": [
+      {
+        "atributo": "imunidade_desorientacao",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Imune a desorientação, sempre sabe o caminho de volta em labirintos e masmorras"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Combate Corpo a Corpo",
+    "descricao": "Treinamento avançado em luta desarmada e com armas de contato. +1 permanente em ataques corpo a corpo.",
+    "custo": 0,
+    "tipo": [
+      "combate",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "ataque_corpo",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+1 em ataques corpo a corpo"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Gladiador",
+        "Bárbaro",
+        "Monge",
+        "Guerreiro Mágico"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Combate Indireto",
+    "descricao": "Especialista em atacar com itens arremessados, poções e armadilhas em vez de armas diretas.",
+    "custo": 0,
+    "tipo": [
+      "combate",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "ataque_arremesso",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em ataques com itens arremessáveis, poções ofensivas e armadilhas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Alquimista",
+        "Inventor"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Movimentação Florestal",
+    "descricao": "Move-se por florestas e terreno natural sem penalidade de terreno difícil.",
+    "custo": 0,
+    "tipo": [
+      "movimento",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "pen_terreno_natural",
+        "valor": 0
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Ignora terreno difícil em florestas e ambientes naturais"
+    },
+    "usar": 0,
+    "elemento": [
+      "natureza"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Amazona",
+        "Ranger",
+        "Druida"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Ataques Furtivos",
+    "descricao": "Quando ataca de surpresa, causa dano extra proporcional ao nível.",
+    "custo": 0,
+    "tipo": [
+      "ofensiva",
+      "furtivo",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_furtivo",
+        "valor": 4
+      }
+    ],
+    "restricao": null,
+    "dano_base": "+1d6",
+    "efeito": {
+      "descricao": "+1d6 dano em ataques de surpresa. +1d6 adicional a cada 4 níveis"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Assassino",
+        "Ladrão",
+        "Ninja"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Magias Divinas",
+    "descricao": "Acesso a magias canalizadas por poder divino. Inclui cura, proteção e punição.",
+    "custo": 0,
+    "tipo": [
+      "magico",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "magia_divina",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Pode usar magias divinas. Lista de magias depende da divindade escolhida"
+    },
+    "usar": 0,
+    "elemento": [
+      "divino"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Clérigo",
+        "Paladino"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 8
+  },
+  {
+    "nome": "Cura e Proteção",
+    "descricao": "Especialização em magias de cura e escudos protetores. Curas restauram +50% de valor.",
+    "custo": 0,
+    "tipo": [
+      "suporte",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "cura_bonus_pct",
+        "valor": 50
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Magias de cura restauram +50%. Escudos mágicos duram 1 turno a mais"
+    },
+    "usar": 0,
+    "elemento": [
+      "divino"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Clérigo"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 8
+  },
+  {
+    "nome": "Transformação Animal",
+    "descricao": "Pode se transformar em animais que já viu, ganhando seus atributos físicos.",
+    "custo": 0,
+    "tipo": [
+      "transformacao",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "formas_animais",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Transforma-se em animal conhecido. Ganha atributos físicos do animal, mantém mentais"
+    },
+    "usar": 1,
+    "elemento": [
+      "natureza"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Druida"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Magia Natural",
+    "descricao": "Acesso a magias da natureza: controle de plantas, clima e terreno.",
+    "custo": 0,
+    "tipo": [
+      "magico",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "magia_natural",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Pode usar magias naturais. Mais poderosas em ambientes selvagens"
+    },
+    "usar": 0,
+    "elemento": [
+      "natureza"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Druida"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 8
+  },
+  {
+    "nome": "Magia de Fogo",
+    "descricao": "Especialização elemental em fogo. +2 em dano de todas as magias de fogo.",
+    "custo": 0,
+    "tipo": [
+      "magico",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_fogo",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 dano em magias de fogo. Pode conjurar fogo menor sem custo de mana"
+    },
+    "usar": 0,
+    "elemento": [
+      "fogo"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Elementalista"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 5
+  },
+  {
+    "nome": "Magia de Água",
+    "descricao": "Especialização elemental em água e gelo. +2 em dano de todas as magias de água/gelo.",
+    "custo": 0,
+    "tipo": [
+      "magico",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_agua",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 dano em magias de água/gelo. Pode manipular água menor sem custo"
+    },
+    "usar": 0,
+    "elemento": [
+      "agua",
+      "gelo"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Elementalista"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 5
+  },
+  {
+    "nome": "Magia de Terra",
+    "descricao": "Especialização elemental em terra. +2 em dano de magias de terra e +1 defesa quando em solo natural.",
+    "custo": 0,
+    "tipo": [
+      "magico",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_terra",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 dano em magias de terra. +1 defesa quando pisando em solo natural"
+    },
+    "usar": 0,
+    "elemento": [
+      "terra"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Elementalista"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 5
+  },
+  {
+    "nome": "Magia de Ar",
+    "descricao": "Especialização elemental em vento e raios. +2 em dano de magias de ar/eletricidade.",
+    "custo": 0,
+    "tipo": [
+      "magico",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_vento",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 dano em magias de vento/elétrico. +1 velocidade de movimento"
+    },
+    "usar": 0,
+    "elemento": [
+      "vento",
+      "eletrico"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Elementalista"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 5
+  },
+  {
+    "nome": "Feitiços Arcanos Variados",
+    "descricao": "Acesso ao maior repertório de magias do jogo. Pode aprender magias de qualquer escola.",
+    "custo": 0,
+    "tipo": [
+      "magico",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "magias_extras_nivel",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Pode aprender magias de qualquer escola. +1 magia conhecida por nível"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Mago"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 10
+  },
+  {
+    "nome": "Combate Desarmado",
+    "descricao": "Mãos e pés são armas letais. Ataques desarmados causam dano como armas leves.",
+    "custo": 0,
+    "tipo": [
+      "combate",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_desarmado",
+        "valor": 4
+      }
+    ],
+    "restricao": null,
+    "dano_base": "1d6",
+    "efeito": {
+      "descricao": "Ataques desarmados causam 1d6, escalando com nível. +1 ataque extra desarmado"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Monge"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Velocidade e Precisão",
+    "descricao": "Treinamento que combina velocidade sobrenatural com golpes precisos.",
+    "custo": 0,
+    "tipo": [
+      "combate",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "iniciativa",
+        "valor": 2
+      },
+      {
+        "atributo": "ataque",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 iniciativa, +1 ataque. Pode usar Agilidade em vez de Força para ataques"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Monge",
+        "Ninja"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Infiltração",
+    "descricao": "Especialista em entrar e sair de lugares sem ser detectado.",
+    "custo": 0,
+    "tipo": [
+      "furtivo",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "furtividade",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em furtividade. Pode se esconder mesmo sendo observado se houver cobertura"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Ninja",
+        "Ladrão",
+        "Assassino"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Artes Marciais",
+    "descricao": "Domínio de técnicas marciais que permitem manobras especiais em combate desarmado.",
+    "custo": 0,
+    "tipo": [
+      "combate",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "manobras_marciais",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Desbloqueio de manobras marciais: Soco Atordoante, Chute Giratório, Palma de Ferro"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Ninja",
+        "Monge"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Poderes Contra o Mal",
+    "descricao": "Canaliza poder sagrado contra mortos-vivos e demônios, causando dano extra e repelindo-os.",
+    "custo": 0,
+    "tipo": [
+      "ofensiva",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_radiante_extra",
+        "valor": 4
+      }
+    ],
+    "restricao": null,
+    "dano_base": "+1d6",
+    "efeito": {
+      "descricao": "+1d6 dano radiante contra mortos-vivos e demônios. Pode repelir fracos"
+    },
+    "usar": 1,
+    "elemento": [
+      "divino"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Paladino"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Combate Naval",
+    "descricao": "Especialista em lutar em navios e ambientes marítimos. Sem penalidade em terreno instável.",
+    "custo": 0,
+    "tipo": [
+      "combate",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "ataque_naval_bonus",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Sem penalidade em navios, +1 em ataques em ambiente marítimo"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Pirata"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Roubos e Saques",
+    "descricao": "Perícia em encontrar tesouros escondidos e furtar durante o caos.",
+    "custo": 0,
+    "tipo": [
+      "furtivo",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "furto",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em furto. Encontra 20% mais loot em baús e inimigos derrotados"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Pirata",
+        "Ladrão"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Arco e Flecha",
+    "descricao": "Maestria com arco que concede bônus em ataques à distância e alcance estendido.",
+    "custo": 0,
+    "tipo": [
+      "ofensiva",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "ataque_distancia",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+1 em ataques com arco. +50% de alcance em ataques com arco"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Ranger"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Rastrear Monstros",
+    "descricao": "Conhecimento especializado para seguir rastros de monstros e identificar suas tocas.",
+    "custo": 0,
+    "tipo": [
+      "sensorial",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "rastreamento_monstros",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em rastreamento de monstros. Identifica tipo de monstro por rastros"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Caçador de Monstros"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Explorar Fraquezas Sobrenaturais",
+    "descricao": "Estudo intenso de criaturas sobrenaturais revela suas vulnerabilidades em combate.",
+    "custo": 0,
+    "tipo": [
+      "combate",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "dano_bonus_fraqueza",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Teste de Inteligência para descobrir fraqueza de monstro. Se passar, +2 dano contra ele"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Caçador de Monstros"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Mestre da Katana",
+    "descricao": "Domínio absoluto da katana, permitindo técnicas especiais de corte e contra-ataque.",
+    "custo": 0,
+    "tipo": [
+      "combate",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "ataque_katana",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em ataques com katana. Desbloqueio de técnicas: Corte Rápido, Contra-Golpe"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Samurai"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Esgrima Acrobática",
+    "descricao": "Estilo de luta que combina acrobacias com esgrima, usando agilidade em vez de força.",
+    "custo": 0,
+    "tipo": [
+      "combate",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "esquiva",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Usa Destreza em vez de Força para ataques com espada leve. +1 esquiva"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Swashbuckler"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Provocações e Truques",
+    "descricao": "Combina insultos e manobras sujas para desequilibrar oponentes em combate.",
+    "custo": 0,
+    "tipo": [
+      "social",
+      "combate",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "provocacao",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Pode provocar inimigo (teste de Carisma vs Inteligência). Se passar, inimigo tem -2 no próximo ataque"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Swashbuckler"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Animação de Mortos-Vivos",
+    "descricao": "Poder de reanimar cadáveres como servos mortos-vivos obedientes.",
+    "custo": 0,
+    "tipo": [
+      "magico",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "servos_max",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Reanima mortos como servos. Máximo de nível/3 servos ativos simultaneamente"
+    },
+    "usar": 1,
+    "elemento": [
+      "necro"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Necromante"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Magias de Maldição",
+    "descricao": "Acesso a magias de maldição que enfraquecem, atormentam e debilitam inimigos.",
+    "custo": 0,
+    "tipo": [
+      "magico",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "custo_maldicao_reducao",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Pode lançar maldições. Maldições custam -1 mana e duram 1 turno a mais"
+    },
+    "usar": 0,
+    "elemento": [
+      "necro",
+      "sombrio"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Necromante"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 5
+  },
+  {
+    "nome": "Criação de Máquinas",
+    "descricao": "Habilidade de construir dispositivos mecânicos, autômatos e ferramentas avançadas.",
+    "custo": 0,
+    "tipo": [
+      "crafting",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "crafting_maquinas",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Pode construir máquinas e dispositivos usando materiais e projetos"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Inventor"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Confundir com Música",
+    "descricao": "Música mágica que confunde inimigos, causando desorientação e penalidades.",
+    "custo": 0,
+    "tipo": [
+      "controle",
+      "social",
+      "classe"
+    ],
+    "bonus": [
+      {
+        "atributo": "confusao_area",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Inimigos em 10m testam Inteligência ou ficam confusos por 1d4 turnos (-2 em tudo)"
+    },
+    "usar": 1,
+    "elemento": [
+      "sonico"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "classe": [
+        "Bardo"
+      ]
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Durão",
+    "descricao": "Corpo endurecido por anos de castigo. Ganha +3 PV por nível.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "hp_por_nivel",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 PV por nível permanentemente"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "atributo": "constituicao",
+      "minimo": 12
+    },
+    "hp_bonus": 3,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Reserva de Mana",
+    "descricao": "Reservatório mágico expandido que concede +5 mana máxima permanente.",
+    "custo": 2,
+    "tipo": [
+      "magico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "mana_max",
+        "valor": 5
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+5 mana máxima permanente"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 5
+  },
+  {
+    "nome": "Sangue Noble",
+    "descricao": "Descendente de linhagem nobre. Facilita interações com aristocracia e acesso a locais exclusivos.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "carisma_nobreza",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em interações com nobres. Acesso a cortes e eventos aristocráticos"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Conhecimento das Ruas",
+    "descricao": "Sabe como funcionam os becos, mercados negros e submundos das cidades.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "furtivo",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "conhecimento_submundo",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em encontrar mercado negro, informantes e esconderijos em cidades"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Explorador de Masmorras",
+    "descricao": "Experiência em ambientes subterrâneos concede vantagem em detectar armadilhas e passagens secretas.",
+    "custo": 1,
+    "tipo": [
+      "sensorial",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "percepcao_masmorras",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em detectar armadilhas e passagens secretas em masmorras e cavernas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Atlético",
+    "descricao": "Corpo treinado para esforço físico. Bônus permanente em escalar, nadar e correr.",
+    "custo": 1,
+    "tipo": [
+      "movimento",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "atletismo",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em testes de escalar, nadar e correr"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Alerta",
+    "descricao": "Quase impossível de surpreender. +3 em iniciativa e não pode ser pego desprevenido.",
+    "custo": 2,
+    "tipo": [
+      "combate",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "iniciativa",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em iniciativa. Nunca é surpreendido se estiver consciente"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Observador",
+    "descricao": "Atenção aos detalhes que outros ignoram. Lê lábios e percebe pistas visuais sutis.",
+    "custo": 1,
+    "tipo": [
+      "sensorial",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "percepcao_detalhes",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em percepção passiva. Pode ler lábios e notar detalhes sutis"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Vontade de Ferro",
+    "descricao": "Determinação inabalável que protege contra efeitos mentais e de controle.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_mental",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em resistência contra charme, medo e controle mental"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 2,
+    "requisitos": {
+      "atributo": "carisma",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Evasão",
+    "descricao": "Reflexos extraordinários. Ao passar em teste de Agilidade contra dano de área, recebe zero dano.",
+    "custo": 3,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "evasao_area",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Sucesso em teste de Agilidade contra dano de área = 0 dano (em vez de metade)"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 5,
+    "requisitos": {
+      "atributo": "agilidade",
+      "minimo": 14
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Sentidos de Perigo",
+    "descricao": "Instinto que avisa sobre emboscadas e armadilhas antes de ativá-las.",
+    "custo": 2,
+    "tipo": [
+      "sensorial",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "sentido_perigo",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Não pode ser flanqueado. Teste de percepção gratuito contra emboscadas e armadilhas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Mestre de Armadilhas",
+    "descricao": "Pode construir e posicionar armadilhas improvisadas usando materiais do ambiente.",
+    "custo": 1,
+    "tipo": [
+      "crafting",
+      "furtivo"
+    ],
+    "bonus": [
+      {
+        "atributo": "crafting_armadilhas",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Constrói armadilhas com materiais do ambiente. +2 em montar e esconder armadilhas"
+    },
+    "usar": 1,
+    "elemento": [],
+    "nivel": 2,
+    "requisitos": {
+      "atributo": "destreza",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Herbalismo",
+    "descricao": "Conhecimento de plantas medicinais e venenosas. Pode criar remédios e antídotos na natureza.",
+    "custo": 1,
+    "tipo": [
+      "crafting",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "herbalismo",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Identifica plantas úteis. Pode fabricar remédios e antídotos em ambientes naturais"
+    },
+    "usar": 0,
+    "elemento": [
+      "natureza"
+    ],
+    "nivel": 1,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 10
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Montaria Experiente",
+    "descricao": "Habilidade de montar criaturas com maestria, ganhando bônus em combate montado.",
+    "custo": 1,
+    "tipo": [
+      "combate",
+      "movimento",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "combate_montado",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em ataques montado. Montura não foge de combate. Investida montada +3 dano"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Esquiva Sobrenatural",
+    "descricao": "Percebe ataques que não pode ver. Não perde bônus de esquiva contra atacantes invisíveis.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "esquiva_invisivel",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Mantém bônus de esquiva mesmo contra invisíveis e ataques pelas costas"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 4,
+    "requisitos": {
+      "atributo": "agilidade",
+      "minimo": 13
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Encantador de Itens",
+    "descricao": "Pode imbuir equipamentos com propriedades mágicas usando componentes e tempo.",
+    "custo": 2,
+    "tipo": [
+      "crafting",
+      "magico"
+    ],
+    "bonus": [
+      {
+        "atributo": "encantamento",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Pode encantar armas e armaduras com bônus mágicos usando materiais raros"
+    },
+    "usar": 1,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 5,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 14
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Revidar Magia",
+    "descricao": "Quando resiste a uma magia com sucesso, pode refletir o efeito de volta ao conjurador.",
+    "custo": 3,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "reflexao_magica",
+        "valor": 1
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Ao passar em teste de resistência mágica, 25% de chance de refletir a magia"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 7,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 15
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Estudioso",
+    "descricao": "Mente treinada em conhecimentos variados. Bônus permanente em testes de conhecimento.",
+    "custo": 1,
+    "tipo": [
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "conhecimento",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em todos os testes de conhecimento (história, arcano, religião, natureza)"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Linguista",
+    "descricao": "Facilidade excepcional com idiomas. Entende fragmentos de qualquer língua.",
+    "custo": 1,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "idiomas",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Fala 3 idiomas extras. Pode tentar entender qualquer língua com teste DC 15"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Articulador Político",
+    "descricao": "Entende jogos de poder e manipulação política. Detecta mentiras e intenções ocultas.",
+    "custo": 2,
+    "tipo": [
+      "social",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "insight_politico",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em detectar mentiras e intenções ocultas. Bônus em intriga política"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 3,
+    "requisitos": {
+      "atributo": "carisma",
+      "minimo": 13
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Resistência Elemental",
+    "descricao": "Resistência natural a um tipo de elemento escolhido. Reduz dano daquele elemento pela metade.",
+    "custo": 2,
+    "tipo": [
+      "defensiva",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "resistencia_elemental",
+        "valor": 50
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Escolha 1 elemento na criação: dano daquele elemento reduzido em 50%"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": null,
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Acrobata",
+    "descricao": "Agilidade acrobática que permite manobras como saltos, piruetas e quedas seguras.",
+    "custo": 1,
+    "tipo": [
+      "movimento",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "acrobacia",
+        "valor": 2
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+2 em acrobacia. Reduz dano de queda pela metade. Pode se levantar sem gastar ação"
+    },
+    "usar": 0,
+    "elemento": [],
+    "nivel": 1,
+    "requisitos": {
+      "atributo": "agilidade",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Concentração Mágica",
+    "descricao": "Foco mental que impede interrupção de magias. Bônus em manter concentração sob dano.",
+    "custo": 2,
+    "tipo": [
+      "magico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "concentracao_magica",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "+3 em testes de concentração. Dano não interrompe magias automaticamente"
+    },
+    "usar": 0,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 2,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 12
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  },
+  {
+    "nome": "Canalizar Mana",
+    "descricao": "Pode recuperar parte da mana gasta concentrando-se por 1 turno sem agir.",
+    "custo": 2,
+    "tipo": [
+      "magico",
+      "passiva"
+    ],
+    "bonus": [
+      {
+        "atributo": "recuperacao_mana",
+        "valor": 3
+      }
+    ],
+    "restricao": null,
+    "dano_base": null,
+    "efeito": {
+      "descricao": "Gasta 1 turno sem agir para recuperar 1d4+1 de mana. Uma vez por combate"
+    },
+    "usar": 1,
+    "elemento": [
+      "magico"
+    ],
+    "nivel": 3,
+    "requisitos": {
+      "atributo": "inteligencia",
+      "minimo": 13
+    },
+    "hp_bonus": 0,
+    "mana_bonus": 0
+  }
+]

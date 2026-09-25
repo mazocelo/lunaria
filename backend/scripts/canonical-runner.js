@@ -31,7 +31,7 @@ const FROZEN_DIR = path.join(BACKEND_ROOT, 'tests', 'fixtures', 'frozen');
 
 // ── Model mapping ──
 const MODEL_MAP = {
-  groq: 'llama-3.3-70b-versatile',
+  groq: 'openai/gpt-oss-120b',
   gemini: 'gemini-2.5-flash',
   sonnet: 'claude-sonnet-4-6',
 };

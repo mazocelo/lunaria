@@ -6,7 +6,7 @@ import logger from '../../../../helpers/logger.js';
 
 const log = logger.child({ module: 'GeradorBackground' });
 
-const BACKGROUND_MODEL_NAME = 'meta-llama/llama-4-scout-17b-16e-instruct';
+const BACKGROUND_MODEL_NAME = 'openai/gpt-oss-120b';
 
 /**
  * Cria o agente para geração de background de personagens

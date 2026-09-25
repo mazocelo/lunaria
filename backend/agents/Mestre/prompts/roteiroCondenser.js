@@ -328,7 +328,7 @@ export async function atualizarProgressao(roteiro, resumoTexto, progressaoAnteri
 
     const model = new ChatGroq({
       apiKey: process.env.GROQ_API_KEY,
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      model: 'openai/gpt-oss-120b',
       temperature: 0.1,
       maxTokens: 500
     });
@@ -353,7 +353,7 @@ Responda APENAS com JSON válido:
 
     const startTime = Date.now();
     const response = await model.invoke(prompt);
-    trackLLMUsage(response, { modelName: 'meta-llama/llama-4-scout-17b-16e-instruct', userId, startTime, agent: 'ProgressaoBlueprint' });
+    trackLLMUsage(response, { modelName: 'openai/gpt-oss-120b', userId, startTime, agent: 'ProgressaoBlueprint' });
 
     // Parse JSON da resposta
     const text = response.content.trim();

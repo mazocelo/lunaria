@@ -74,7 +74,7 @@ export class ResumoAgent {
     const startTime = Date.now();
     const response = await this.model.invoke(prompt);
     trackLLMUsage(response, {
-      modelName: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      modelName: 'openai/gpt-oss-120b',
       userId,
       startTime,
       agent: 'ResumoAgent'

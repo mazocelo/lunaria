@@ -21,9 +21,7 @@ export const AI_MODELS = {
   'gemini-3.1-pro-preview':        { provider: 'gemini', label: 'Gemini 3.1 Pro', badge: 'Profeta', inputPrice: 2.00, outputPrice: 12.00, context: 1048576, temperature: 0.85, topP: 0.95, timeouts: { player_action: 30000, turn_start: 60000 } },
   // Groq (Llama) — LPU hardware, inferência rápida mas com picos sob carga
   'openai/gpt-oss-120b':                       { provider: 'groq', label: 'GPT OSS 120B', badge: null, inputPrice: 0, outputPrice: 0, context: 131072, temperature: 0.8, topP: 0.92, timeouts: { player_action: 35000, turn_start: 70000 } },
-  'llama-3.3-70b-versatile':                   { provider: 'groq', label: 'Llama 3.3 70B Versatile', badge: null, inputPrice: 0, outputPrice: 0, context: 131072, temperature: 0.8, topP: 0.92, timeouts: { player_action: 30000, turn_start: 60000 } },
   'openai/gpt-oss-20b':                        { provider: 'groq', label: 'GPT OSS 20B', badge: 'Rapido', inputPrice: 0, outputPrice: 0, context: 131072, temperature: 0.7, topP: 0.90, timeouts: { player_action: 12000, turn_start: 25000 } },
-  'meta-llama/llama-4-scout-17b-16e-instruct': { provider: 'groq', label: 'Llama 4 Scout', badge: 'Avancado', inputPrice: 0, outputPrice: 0, context: 131072, temperature: 0.7, topP: 0.90, timeouts: { player_action: 20000, turn_start: 40000 } },
   // Anthropic — latência maior, especialmente Sonnet com prompts narrativos densos
   'claude-sonnet-4-6': { provider: 'anthropic', label: 'Claude Sonnet 4.6', badge: 'Premium+', inputPrice: 3.00, outputPrice: 15.00, context: 200000, temperature: 0.85, topP: null, timeouts: { player_action: 60000, turn_start: 120000 } },
   'claude-haiku-4-5-20251001': { provider: 'anthropic', label: 'Claude Haiku 4.5', badge: 'Premium', inputPrice: 0.80, outputPrice: 4.00, context: 200000, temperature: 0.85, topP: null, timeouts: { player_action: 30000, turn_start: 60000 } },
@@ -49,7 +47,9 @@ export const DEPRECATED_MODELS = {
   'gemini-1.5-flash': 'gemini-2.5-flash',
   'gemini-2.0-flash-lite': 'gemini-2.5-flash-lite',
   'llama-3.1-8b-instant': 'gemini-2.5-flash',
-  'meta-llama-3.3-70b-versatile': 'llama-3.3-70b-versatile',
+  'meta-llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
+  'llama-3.3-70b-versatile': 'openai/gpt-oss-120b',
+  'meta-llama/llama-4-scout-17b-16e-instruct': 'openai/gpt-oss-120b',
 };
 
 // Resolve o nome do modelo efetivo a partir da config da sessão

@@ -209,7 +209,8 @@ class ConviteController {
       // Verificar se a história ainda tem vagas
       const participantesAtuais = await db.prisma.historias_personagens.count({
         where: {
-          historia_id: convite.historia_id
+          historia_id: convite.historia_id,
+          personagens: { deleted_at: null }
         }
       });
 

@@ -189,7 +189,7 @@ const Historia = (prisma) => {
         // Verificar máximo de participantes
         if (historia.maximo_de_participantes) {
           const participantesAtuais = await tx.historias_personagens.count({
-            where: { historia_id: historiaId }
+            where: { historia_id: historiaId, personagens: { deleted_at: null } }
           });
 
           if (participantesAtuais >= historia.maximo_de_participantes) {

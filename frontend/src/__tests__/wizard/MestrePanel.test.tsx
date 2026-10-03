@@ -76,3 +76,16 @@ describe('MestrePanel: conversar não grava nem avança (A14/A15)', () => {
     desmontar();
   });
 });
+
+describe('MestrePanel: Mestre pensando (M2)', () => {
+  it('enviando mostra o indicador no fim da conversa', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={mensagens} enviando={true} />);
+    expect(html).toContain('O Mestre está pensando…');
+    expect(html.indexOf('O Mestre está pensando…')).toBeGreaterThan(html.indexOf('Diga-me o nome do herói.'));
+  });
+
+  it('parado não mostra o indicador', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={mensagens} />);
+    expect(html).not.toContain('O Mestre está pensando');
+  });
+});

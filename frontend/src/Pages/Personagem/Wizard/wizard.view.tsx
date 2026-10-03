@@ -11,11 +11,14 @@ import StageFrame from './components/StageFrame';
 import WizardFooter from './components/WizardFooter';
 import MestrePanel from './components/MestrePanel';
 import LegacyStageAdapter from './components/LegacyStageAdapter';
+import MestrePensando from './components/MestrePensando';
+import MestreFalaCard from './components/MestreFalaCard';
 import NomeStage from './stages/NomeStage';
 import CatalogStage, { type CatalogItem } from './stages/CatalogStage';
 import { telaDaEtapa } from './stages/stageScreen';
 import { getStageConfig } from './stages/stageConfig';
 import { getProgressItems, canCreate } from './stages/stageSelectors';
+import { falaDeRecusa, avisoDeFalha, type TentativaDeAvanco } from './stages/mestreFeedback';
 import type { WizardSuggestion } from './hooks/useChatState';
 import type { WizardModel } from './wizard.model';
 
@@ -173,6 +176,15 @@ const WizardView = (props: WizardViewProps) => {
   const [rascunhoNome, setRascunhoNome] = useState({ base: nome, valor: nome });
   if (rascunhoNome.base !== nome) setRascunhoNome({ base: nome, valor: nome });
 
+  // Pedido de avanço pendente; vira o card de recusa se o Mestre responder sem mudar a etapa.
+  // Some ao trocar de etapa, para não reaparecer quando o jogador voltar.
+  const [tentativa, setTentativa] = useState<TentativaDeAvanco | null>(null);
+  if (tentativa && tentativa.etapa !== etapaAtual) setTentativa(null);
+  const tentarAvancar = (acao: () => void) => {
+    setTentativa({ etapa: etapaAtual, qtdMensagens: mensagens.length });
+    acao();
+  };
+
   const allSelecoes = useMemo(() => [...vantagensIds, ...desvantagensIds], [vantagensIds, desvantagensIds]);
 
   const racaAtual = useMemo(
@@ -264,14 +276,16 @@ const WizardView = (props: WizardViewProps) => {
   const escolherDoCatalogo = (tipo: 'raca' | 'classe', item: CatalogItem) => {
     const sugestao: WizardSuggestion = { tipo, id: item.id, nome: item.nome, descricao: item.descricao, custo: item.custo ?? 0 };
     selecionarSugestao(sugestao);
-    if (tipo === 'raca') avancarComMestre({ raca_id: item.id, raca_nome: item.nome });
-    else avancarComMestre({ classe_id: item.id, classe_nome: item.nome });
+    tentarAvancar(() => {
+      if (tipo === 'raca') avancarComMestre({ raca_id: item.id, raca_nome: item.nome });
+      else avancarComMestre({ classe_id: item.id, classe_nome: item.nome });
+    });
   };
 
   const escolherSugestaoDoMestre = (s: WizardSuggestion) => {
     selecionarSugestao(s);
-    if (s.tipo === 'raca') avancarComMestre({ raca_id: s.id, raca_nome: s.nome });
-    else if (s.tipo === 'classe') avancarComMestre({ classe_id: s.id, classe_nome: s.nome });
+    if (s.tipo === 'raca') tentarAvancar(() => avancarComMestre({ raca_id: s.id, raca_nome: s.nome }));
+    else if (s.tipo === 'classe') tentarAvancar(() => avancarComMestre({ classe_id: s.id, classe_nome: s.nome }));
     setMestreAberto(false);
   };
 
@@ -279,8 +293,12 @@ const WizardView = (props: WizardViewProps) => {
     const valor = rascunhoNome.valor.trim();
     if (!valor) return;
     if (valor !== nome) definirNome(valor);
-    avancarComMestre({ nome: valor });
+    tentarAvancar(() => avancarComMestre({ nome: valor }));
   };
+
+  const recusa = tela === 'legado' ? null : falaDeRecusa(tentativa, etapaAtual, enviando, mensagens);
+  const falhaDoMestre = tela === 'legado' ? null : avisoDeFalha(mensagens, etapaAtual);
+  const abrirConversa = () => { setTentativa(null); setMestreAberto(true); };
 
   const onVoltar = () => {
     const anterior = etapas[etapaIndex - 1];
@@ -385,6 +403,16 @@ const WizardView = (props: WizardViewProps) => {
       )}
 
       <StageFrame etapaId={etapaAtual} titulo={config.label} flavor={config.flavor} direcao={direcao} isLight={isLight}>
+        {falhaDoMestre && (
+          <div role="status" aria-live="polite" data-mestre="falha" className="card-rpg mb-4 flex items-start gap-3 border border-amber-500/30 bg-amber-500/10 !py-3">
+            <AlertTriangle size={16} className={`mt-0.5 shrink-0 ${isLight ? 'text-amber-700' : 'text-amber-400'}`} />
+            <div className={`flex-1 font-modern text-sm ${isLight ? 'text-amber-900' : 'text-amber-100'}`}>
+              <p className="font-semibold">O Mestre não respondeu desta vez</p>
+              <p className="opacity-90">Você pode seguir sozinho por esta tela ou pedir sugestões de novo.</p>
+            </div>
+            <button type="button" onClick={abrirConversa} className={`shrink-0 font-modern text-sm font-semibold cursor-pointer ${isLight ? 'text-amber-800' : 'text-amber-200'}`}>Abrir conversa</button>
+          </div>
+        )}
         {tela === 'nome' && (
           <NomeStage
             rascunho={rascunhoNome.valor}
@@ -528,6 +556,16 @@ const WizardView = (props: WizardViewProps) => {
         )}
       </StageFrame>
 
+      {tela !== 'legado' && enviando && <MestrePensando isLight={isLight} />}
+      {recusa && (
+        <MestreFalaCard
+          fala={String(recusa.content ?? '')}
+          onAbrirConversa={abrirConversa}
+          onFechar={() => setTentativa(null)}
+          isLight={isLight}
+        />
+      )}
+
       <WizardFooter
         etapaIndex={etapaIndex}
         etapasTotal={etapas.length}
@@ -535,7 +573,7 @@ const WizardView = (props: WizardViewProps) => {
         podeContinuar={podeContinuar}
         enviando={enviando}
         onVoltar={onVoltar}
-        onContinuar={tela === 'legado' ? undefined : tela === 'nome' ? continuarNome : () => avancarComMestre()}
+        onContinuar={tela === 'legado' ? undefined : tela === 'nome' ? continuarNome : () => tentarAvancar(() => avancarComMestre())}
         isLight={isLight}
       />
 

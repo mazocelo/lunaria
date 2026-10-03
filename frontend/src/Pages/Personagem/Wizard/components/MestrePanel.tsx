@@ -3,6 +3,7 @@ import { RefreshCw, Send, Sparkles, X } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer';
 import type { WizardMessage, WizardSuggestion } from '../hooks/useChatState';
 import { getStageConfig } from '../stages/stageConfig';
+import MestrePensando from './MestrePensando';
 import '../wizard-motion.css';
 
 export interface MestrePanelProps {
@@ -84,6 +85,8 @@ const MestrePanel = (props: MestrePanelProps) => {
               })}
             </div>
           )}
+
+          {enviando && <MestrePensando isLight={isLight} />}
 
           {config.allowRefresh && (
             <button type="button" disabled={enviando} onClick={() => onEnviar(config.refreshPrompt ?? 'Me dê outras opções', { manterEtapa: true })} className={`inline-flex items-center gap-2 font-modern text-sm cursor-pointer disabled:opacity-50 text-[var(--primary)]`}>

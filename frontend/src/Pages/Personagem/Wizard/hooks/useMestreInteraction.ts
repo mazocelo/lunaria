@@ -310,6 +310,7 @@ export const useMestreInteraction = ({
         role: 'sistema',
         content: 'Nao foi possivel contatar o Mestre Criador. Continue normalmente ou envie uma mensagem.',
         etapa: info.etapa,
+        falha: true,
         timestamp: new Date(),
       }]);
     } finally {

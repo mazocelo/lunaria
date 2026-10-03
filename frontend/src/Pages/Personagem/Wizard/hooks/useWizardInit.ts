@@ -174,6 +174,7 @@ export const useWizardInit = ({
         role: 'sistema',
         content: 'Nao foi possivel reabrir a fala do Mestre para esta etapa. Voce ainda pode seguir normalmente pelo painel da etapa.',
         etapa,
+        falha: true,
         timestamp: new Date(),
       }]);
       setSugestoes([]);

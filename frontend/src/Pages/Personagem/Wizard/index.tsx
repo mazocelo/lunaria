@@ -7,11 +7,7 @@ import TresDetFichaLivre from './TresDetFichaLivre/index';
 function WizardWithSystem({ sistema }: { sistema: string }) {
   const navigate = useNavigate();
   const props = useWizardModel({ navigate, sistema });
-  return (
-    <div className="-m-6 h-[calc(100vh-3.5rem)] overflow-hidden">
-      <WizardView {...props} />
-    </div>
-  );
+  return <WizardView {...props} />;
 }
 
 export default function PersonagemWizardPage() {

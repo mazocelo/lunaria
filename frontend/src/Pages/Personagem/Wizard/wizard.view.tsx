@@ -1,29 +1,42 @@
 import { useMemo, useState } from 'react';
-import {
-  AlertCircle,
-  AlertTriangle,
-  Trash2,
-  X,
-  Check,
-  Sparkles,
-  Hammer,
-  Loader2,
-} from 'lucide-react';
+import { AlertCircle, AlertTriangle, Loader2, RotateCcw, Sparkles, Trash2, Users, X } from 'lucide-react';
 import { useTheme } from '../../../contexts/theme';
-import './wizard-theme.css';
-import WizardProgressBar from './components/WizardProgressBar';
-import WizardChat from './components/WizardChat';
-import WizardCreationResultModal from './components/WizardCreationResultModal';
+import { PageHeader } from '../../../components/shared';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard';
-import {
-  getProgressItems,
-  getTooltipMap,
-  getReadinessState,
-  canCreate,
-} from './stages/stageSelectors';
+import { parseRacaClasseBonus } from '../../../utils/personagemBonus';
+import WizardCreationResultModal from './components/WizardCreationResultModal';
+import HeroStrip from './components/HeroStrip';
+import Stepper from './components/Stepper';
+import StageFrame from './components/StageFrame';
+import WizardFooter from './components/WizardFooter';
+import MestrePanel from './components/MestrePanel';
+import LegacyStageAdapter from './components/LegacyStageAdapter';
+import NomeStage from './stages/NomeStage';
+import CatalogStage, { type CatalogItem } from './stages/CatalogStage';
+import { telaDaEtapa } from './stages/stageScreen';
+import { getStageConfig } from './stages/stageConfig';
+import { getProgressItems, getReadinessState, canCreate } from './stages/stageSelectors';
+import type { WizardSuggestion } from './hooks/useChatState';
 import type { WizardModel } from './wizard.model';
 
 type WizardViewProps = WizardModel;
+type WizardChatProps = Parameters<typeof LegacyStageAdapter>[0];
+
+const SIGLAS: Array<{ chave: string; sigla: string }> = [
+  { chave: 'forca', sigla: 'FOR' }, { chave: 'inteligencia', sigla: 'INT' }, { chave: 'constituicao', sigla: 'CON' },
+  { chave: 'agilidade', sigla: 'AGI' }, { chave: 'destreza', sigla: 'DES' }, { chave: 'carisma', sigla: 'CAR' },
+];
+
+const NOME_SISTEMA: Record<string, string> = { lunaria: 'Lunaria RPG', dnd5e: 'D&D 5e', tresdet: '3D&T Alpha' };
+
+interface ItemDeCatalogo {
+  id?: number | string | null;
+  nome?: string | null;
+  descricao?: string | null;
+  imagem?: string | null;
+  custo?: number | null;
+  bonus?: unknown;
+}
 
 const WizardView = (props: WizardViewProps) => {
   const {
@@ -52,7 +65,6 @@ const WizardView = (props: WizardViewProps) => {
     vantagensDisponiveis,
     enviarMensagem,
     selecionarSugestao,
-    removerSelecao,
     aplicarAtributosSugeridos,
     setAtributo,
     confirmarAtributos,
@@ -88,13 +100,11 @@ const WizardView = (props: WizardViewProps) => {
     comboPreviewLoading,
     comboPreviewErro,
     comboPreviewTentativa,
-    comboPreviewBuildKey: _comboPreviewBuildKey,
     recarregarComboPreview,
     regenerarComboPreview,
     creationFlowStatus,
     creationResultModalOpen,
     creationResultData,
-    fecharResultadoCriacao: _fecharResultadoCriacao,
     irParaPersonagens,
     verFichaCriada,
     imageUrl,
@@ -109,7 +119,6 @@ const WizardView = (props: WizardViewProps) => {
     grimorioSelecionado,
     toggleGrimorioMagia,
     confirmarGrimorio,
-    navigate,
     sistema,
     isTresdet,
     tresdetCaracteristicas,
@@ -141,8 +150,16 @@ const WizardView = (props: WizardViewProps) => {
 
   const { theme } = useTheme();
   const isLight = theme === 'light';
-
   const [fichaAberta, setFichaAberta] = useState(false);
+  const [mestreAberto, setMestreAberto] = useState(false);
+
+  // Sentido da transição de etapa: estado derivado do índice anterior (padrão do React,
+  // em vez de ref escrita no render, que o StrictMode renderiza duas vezes).
+  const [transicao, setTransicao] = useState<{ indice: number; direcao: 1 | -1 }>({ indice: etapaIndex, direcao: 1 });
+  if (transicao.indice !== etapaIndex) {
+    setTransicao({ indice: etapaIndex, direcao: etapaIndex > transicao.indice ? 1 : -1 });
+  }
+  const { direcao } = transicao;
 
   const allSelecoes = useMemo(() => [...vantagensIds, ...desvantagensIds], [vantagensIds, desvantagensIds]);
 
@@ -155,7 +172,6 @@ const WizardView = (props: WizardViewProps) => {
     () => classesDisponiveis.find(item => String(item.id) === String(classeId)),
     [classesDisponiveis, classeId],
   );
-
 
   const buildState = useMemo(() => ({
     nome, racaId, classeId, background,
@@ -189,347 +205,338 @@ const WizardView = (props: WizardViewProps) => {
 
   const podeCriar = useMemo(() => canCreate(buildState, sistema), [buildState, sistema]);
   const progressoItems = useMemo(() => getProgressItems(buildState, sistema), [buildState, sistema]);
-  const tooltipMap = useMemo(() => getTooltipMap({ ...buildState, podeCriar }, sistema), [buildState, podeCriar, sistema]);
   const readinessState = useMemo(() => getReadinessState(buildState, sistema), [buildState, sistema]);
   const creationStatusLabel = useMemo(() => {
     switch (creationFlowStatus) {
       case 'creating_character':
-        return 'Selando a ficha';
+        return 'Criando a ficha';
       case 'generating_background':
-        return 'Tecendo o background final';
+        return 'Escrevendo o background';
       case 'opening_result':
-        return 'Registrando a resolutiva do Mestre';
+        return 'Registrando a leitura do Mestre';
       default:
         return '';
     }
   }, [creationFlowStatus]);
 
+  const config = getStageConfig(etapaAtual, sistema);
+  const etapaProxima = etapas[etapaIndex + 1] ?? null;
+  const concluidasCount = progressoItems.filter((i) => i.done).length;
+  const tela = telaDaEtapa(etapaAtual, sistema);
+  // canContinueStage não cobre Nome/Raça/Classe; nessas telas basta o campo do modelo estar preenchido.
+  const podeContinuar = tela === 'nome' ? Boolean(nome.trim())
+    : tela === 'catalogo-raca' ? racaId != null
+    : tela === 'catalogo-classe' ? classeId != null
+    : false;
+
+  const sugestoesDaUltima = useMemo(() => {
+    const ultima = [...mensagens].reverse().find((m) => m.role === 'mestre');
+    return (ultima?.sugestoes ?? []) as WizardSuggestion[];
+  }, [mensagens]);
+  const nomesSugeridos = sugestoesDaUltima.filter((s) => s.tipo === 'nome').map((s) => String(s.nome ?? '')).filter(Boolean);
+  // Filtra por tipo: ids de raça e de classe podem coincidir.
+  const idsSugeridos = (tipo: 'raca' | 'classe') => sugestoesDaUltima
+    .filter((s) => s.tipo === tipo)
+    .map((s) => s.id)
+    .filter((id): id is string | number => id != null);
+
+  const paraItem = (x: ItemDeCatalogo): CatalogItem | null =>
+    x.id == null ? null : {
+      id: x.id,
+      nome: x.nome ?? '',
+      descricao: x.descricao ?? null,
+      imagem: x.imagem ?? null,
+      custo: typeof x.custo === 'number' ? x.custo : null,
+      detalhe: descreverBonus(x.bonus),
+    };
+
+  const escolherDoCatalogo = (tipo: 'raca' | 'classe', item: CatalogItem) => {
+    const sugestao: WizardSuggestion = { tipo, id: item.id, nome: item.nome, descricao: item.descricao, custo: item.custo ?? 0 };
+    selecionarSugestao(sugestao);
+    if (tipo === 'raca') avancarComMestre({ raca_id: item.id, raca_nome: item.nome });
+    else avancarComMestre({ classe_id: item.id, classe_nome: item.nome });
+  };
+
+  const escolherSugestaoDoMestre = (s: WizardSuggestion) => {
+    selecionarSugestao(s);
+    if (s.tipo === 'raca') avancarComMestre({ raca_id: s.id, raca_nome: s.nome });
+    else if (s.tipo === 'classe') avancarComMestre({ classe_id: s.id, classe_nome: s.nome });
+    setMestreAberto(false);
+  };
+
+  const onVoltar = () => {
+    const anterior = etapas[etapaIndex - 1];
+    if (anterior) navegarParaEtapa(anterior.id);
+  };
+
+  const atributosStrip = SIGLAS.map(({ chave, sigla }) => ({ chave, sigla, valor: Number(atributosFinal[chave] ?? 0) }));
+
   return (
-    <div className={`wizard-atelier ${isLight ? 'light' : ''} ${theme === 'gothic' ? 'gothic' : ''} relative flex h-full min-h-0 flex-col overflow-hidden`}>
-      <div className="relative z-[1] flex h-full min-h-0 flex-col">
-        {fichaAberta && (
-          <div className="mx-4 mt-3 shrink-0 xl:hidden md:mx-5">
-            <div className="wa-sidebar-panel rounded-[24px] p-4">
-              <PersonagemPreviewCard
-                nome={nome}
-                raca={racaId}
-                classe={classeId}
-                atributos={atributosFinal}
-                vantagensSelecionadas={allSelecoes}
-                vantagensDisponiveis={vantagensDisponiveis}
-                racasDisponiveis={racasDisponiveis}
-                classesDisponiveis={classesDisponiveis}
-                bonusJaAplicado={true}
-                mostrarPendencias={true}
-                bonusAplicados={bonusAplicados}
-                skipVantagens={skipVantagens}
-                skipDesvantagens={skipDesvantagens}
-                variant="wizard"
-                readinessState={readinessState}
-              />
+    <div className="animate-fade-in mx-auto max-w-5xl space-y-6">
+      <PageHeader
+        title="Novo personagem"
+        subtitle={`${NOME_SISTEMA[sistema] ?? sistema} · etapa ${etapaIndex + 1} de ${etapas.length}`}
+        icon={Users}
+        actions={
+          <button type="button" onClick={() => setMestreAberto(true)} className="btn-rpg-secondary inline-flex items-center gap-2 cursor-pointer">
+            <Sparkles size={16} />
+            <span className="hidden sm:inline">Pedir sugestão ao Mestre</span>
+            <span className="sm:hidden">Mestre</span>
+          </button>
+        }
+      />
+
+      <HeroStrip
+        nome={nome}
+        racaNome={racaAtual?.nome ?? null}
+        classeNome={classeAtual?.nome ?? null}
+        imageUrl={imageUrl}
+        atributos={atributosStrip}
+        etapasConcluidas={concluidasCount}
+        etapasTotal={progressoItems.length}
+        pontosRestantes={sistema === 'lunaria' ? pontosCriacaoRestantes : null}
+        expandida={fichaAberta}
+        onToggle={() => setFichaAberta((v) => !v)}
+        isLight={isLight}
+      >
+        <PersonagemPreviewCard
+          nome={nome}
+          raca={racaId}
+          classe={classeId}
+          atributos={atributosFinal}
+          vantagensSelecionadas={allSelecoes}
+          vantagensDisponiveis={vantagensDisponiveis}
+          racasDisponiveis={racasDisponiveis}
+          classesDisponiveis={classesDisponiveis}
+          bonusJaAplicado={true}
+          mostrarPendencias={true}
+          bonusAplicados={bonusAplicados}
+          skipVantagens={skipVantagens}
+          skipDesvantagens={skipDesvantagens}
+          variant="wizard"
+          readinessState={readinessState}
+        />
+      </HeroStrip>
+
+      <Stepper
+        etapas={etapas}
+        etapaIndex={etapaIndex}
+        etapasConcluidas={etapasConcluidas}
+        etapasVisitadas={etapasVisitadas}
+        puladas={[...(skipVantagens ? ['vantagens'] : []), ...(skipDesvantagens ? ['desvantagens'] : [])]}
+        onEtapaClick={navegarParaEtapa}
+        isLight={isLight}
+      />
+
+      {(error || bonusInvalidado || draftRestaurado) && (
+        <div className="space-y-3">
+          {error && (
+            <div className="card-rpg flex items-center gap-3 border border-red-500/30 bg-red-500/10 !py-3">
+              <AlertCircle size={16} className="shrink-0 text-red-400" />
+              <span className={`flex-1 font-modern text-sm ${isLight ? 'text-red-700' : 'text-red-200'}`}>{error}</span>
+              <button type="button" onClick={clearError} aria-label="Fechar aviso" className="cursor-pointer opacity-70 hover:opacity-100"><X size={16} /></button>
             </div>
-          </div>
-        )}
-
-        <div className="flex min-h-0 flex-1 gap-4 px-4 pb-4 pt-4 md:px-5 md:pb-5 xl:gap-5">
-          <div className="wa-main-shell flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] border">
-            <div className="shrink-0">
-              <WizardProgressBar
-                etapas={etapas}
-                etapaIndex={etapaIndex}
-                isLight={isLight}
-                onEtapaClick={navegarParaEtapa}
-                etapasConcluidas={etapasConcluidas}
-                etapasVisitadas={etapasVisitadas}
-                tooltipMap={tooltipMap}
-                onBack={() => navigate('/personagens')}
-                onToggleFicha={() => setFichaAberta(prev => !prev)}
-                fichaAberta={fichaAberta}
-                pontosCriacaoRestantes={pontosCriacaoRestantes}
-                pontosCriacaoTotal={pontosCriacaoTotal}
-                pontosDistribuidos={pontosDistribuidos}
-                pontosTotais={pontosTotais}
-                pontosRestantes={pontosRestantes}
-                sistema={sistema}
-                embedded
-              />
-            </div>
-
-            {(error || bonusInvalidado || draftRestaurado) && (
-              <div className="shrink-0 space-y-3 border-t border-[var(--wa-border)] px-5 py-4 md:px-6">
-                {error && (
-                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-red-700' : 'text-red-300'}`}>
-                    <div className="flex items-center gap-3">
-                      <AlertCircle size={16} className="shrink-0" />
-                      <span className="flex-1 text-sm font-modern">{error}</span>
-                      <button onClick={clearError} className="cursor-pointer opacity-70 transition-opacity hover:opacity-100">
-                        <X size={16} />
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {bonusInvalidado && (
-                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-purple-200' : 'text-purple-200'}`}>
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[var(--wa-ember)]" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-ember)]">Leitura mecanica em revisao</p>
-                        <p className="mt-1 text-sm font-modern">Os bonus foram invalidados por uma mudanca estrutural. Reconfirme os atributos antes de selar a ficha.</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {draftRestaurado && (
-                  <div className={`wa-panel rounded-2xl px-4 py-3 ${isLight ? 'text-purple-200' : 'text-purple-200'}`}>
-                    <div className="flex items-center gap-3">
-                      <Hammer size={16} className="shrink-0 text-[var(--wa-info)]" />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-info)]">Forja retomada</p>
-                        <p className="mt-1 text-sm font-modern">O rascunho anterior foi reaberto e o estado atual da ficha foi restaurado.</p>
-                      </div>
-                      <button
-                        onClick={descartarDraft}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-modern font-semibold transition-colors cursor-pointer ${
-                          isLight ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-red-500/12 text-red-300 hover:bg-red-500/18'
-                        }`}
-                      >
-                        <Trash2 size={12} />
-                        Descartar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="min-h-0 flex-1 border-t border-[var(--wa-border)]">
-              <WizardChat
-                mensagens={mensagens}
-                inputTexto={inputTexto}
-                setInputTexto={setInputTexto}
-                enviando={enviando}
-                onEnviar={enviarMensagem}
-                onSelecionarSugestao={selecionarSugestao}
-                onAvancarComMestre={avancarComMestre}
-                onPularEtapa={pularEtapa}
-                vantagensIds={vantagensIds}
-                desvantagensIds={desvantagensIds}
-                etapaAtual={etapaAtual}
-                racasDisponiveis={racasDisponiveis as unknown as Parameters<typeof WizardChat>[0]['racasDisponiveis']}
-                classesDisponiveis={classesDisponiveis as unknown as Parameters<typeof WizardChat>[0]['classesDisponiveis']}
-                vantagensDisponiveis={vantagensDisponiveis as unknown as Parameters<typeof WizardChat>[0]['vantagensDisponiveis']}
-                chatEndRef={chatEndRef}
-                isLight={isLight}
-                podeCriar={podeCriar}
-                atributos={atributosBase}
-                atributosFinal={atributosFinal}
-                setAtributo={setAtributo}
-                pontosDistribuidos={pontosDistribuidos}
-                pontosRestantes={pontosRestantes}
-                pontosTotais={pontosTotais}
-                atributosSugeridos={atributosSugeridos}
-                aplicarAtributosSugeridos={aplicarAtributosSugeridos}
-                bonusAplicados={bonusAplicados}
-                bonusDetalhes={bonusDetalhes}
-                bonusFontes={bonusFontes}
-                pontosCriacaoTotal={pontosCriacaoTotal}
-                pontosCriacaoRestantes={pontosCriacaoRestantes}
-                pontosGastos={pontosGastos}
-                pontosVantagem={pontosVantagem}
-                 pontosDesvantagem={pontosDesvantagem}
-                 custoRaca={custoRaca}
-                 custoClasse={custoClasse}
-                 maxCustoDesvantagem={maxCustoDesvantagem}
-                 skipVantagens={skipVantagens}
-                 skipDesvantagens={skipDesvantagens}
-                 attrMin={attrMin}
-                 attrMax={attrMax}
-                onConfirmarAtributos={confirmarAtributos}
-                onSalvarPersonagem={salvarPersonagem}
-                salvando={salvando}
-                comboPreviewData={comboPreviewData}
-                comboPreviewLoading={comboPreviewLoading}
-                comboPreviewErro={comboPreviewErro}
-                comboPreviewTentativa={comboPreviewTentativa}
-                onRegenerarComboPreview={regenerarComboPreview}
-                onRecarregarComboPreview={recarregarComboPreview}
-                creationFlowStatus={creationFlowStatus}
-                sugestoes={sugestoes}
-                imageUrl={imageUrl}
-                imageLoading={imageLoading}
-                imageError={imageError}
-                grimorioMagias={grimorioMagias}
-                grimorioSlots={grimorioSlots}
-                grimorioSelecionadas={grimorioSelecionadas}
-                grimorioLoading={grimorioLoading}
-                grimorioError={grimorioError}
-                onToggleGrimorioMagia={toggleGrimorioMagia}
-                onConfirmarGrimorio={confirmarGrimorio}
-                onGerarImagem={() => gerarImagem({
-                  nome,
-                  racaNome: racaAtual?.nome,
-                  classeNome: classeAtual?.nome,
-                  background,
-                  vantagensNomes: vantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter((n): n is string => Boolean(n)),
-                  desvantagensNomes: desvantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter((n): n is string => Boolean(n)),
-                })}
-                sistema={sistema}
-                isTresdet={isTresdet}
-                tresdetCaracteristicas={tresdetCaracteristicas}
-                tresdetCaracteristicasConfirmadas={tresdetCaracteristicasConfirmadas}
-                tresdetPontosTotais={tresdetPontosTotais}
-                onSetTresdetCaracteristica={setTresdetCaracteristica}
-                onConfirmarTresdetCaracteristicas={confirmarTresdetCaracteristicas}
-                tresdetVantagensIds={tresdetVantagensIds}
-                tresdetVantagensConfirmadas={tresdetVantagensConfirmadas}
-                onToggleTresdetVantagem={toggleTresdetVantagem}
-                onConfirmarTresdetVantagens={confirmarTresdetVantagens}
-                tresdetDesvantagensIds={tresdetDesvantagensIds}
-                tresdetDesvantagensConfirmadas={tresdetDesvantagensConfirmadas}
-                onToggleTresdetDesvantagem={toggleTresdetDesvantagem}
-                onConfirmarTresdetDesvantagens={confirmarTresdetDesvantagens}
-                isDnd5e={isDnd5e}
-                classeNome={classeNome}
-                dndAbilityScores={dndAbilityScores}
-                dndAbilitiesConfirmed={dndAbilitiesConfirmed}
-                onSetDndAbilityScore={setDndAbilityScore}
-                onResetDndAbilityScores={resetDndAbilityScores}
-                onConfirmarDndAbilities={confirmarDndAbilities}
-                dndSkillProficiencies={dndSkillProficiencies}
-                dndSkillsConfirmed={dndSkillsConfirmed}
-                onToggleDndSkill={toggleDndSkill}
-                onConfirmarDndSkills={confirmarDndSkills}
-                /* TODO E-1: dndRacialBonuses fixo em {} — bonus racial e divida do epico. */
-                dndRacialBonuses={{}}
-                onAvancarEtapa={avancarEtapa}
-                embedded
-              />
-            </div>
-
-          </div>
-
-          <aside className="hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:flex-col">
-            <div className="wa-sidebar-panel flex h-full min-h-0 flex-col rounded-[28px] p-4">
-              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-                <PersonagemPreviewCard
-                  nome={nome}
-                  raca={racaId}
-                  classe={classeId}
-                  atributos={atributosFinal}
-                  vantagensSelecionadas={allSelecoes}
-                  vantagensDisponiveis={vantagensDisponiveis}
-                  racasDisponiveis={racasDisponiveis}
-                  classesDisponiveis={classesDisponiveis}
-                  bonusJaAplicado={true}
-                  mostrarPendencias={true}
-                  bonusAplicados={bonusAplicados}
-                  skipVantagens={skipVantagens}
-                  skipDesvantagens={skipDesvantagens}
-                  variant="wizard"
-                  readinessState={readinessState}
-                />
-
-                <div className="wa-panel-soft rounded-2xl p-3.5">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-                      Integridade da montagem
-                    </span>
-                    <span className="wa-emerald-chip rounded-full px-2 py-1 text-[10px] font-modern font-semibold">
-                      {progressoItems.filter(item => item.done).length}/{progressoItems.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {progressoItems.map(({ label, done, skipped }) => (
-                      <div key={label} className="flex items-center gap-2">
-                        <span className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
-                          done
-                            ? skipped
-                              ? isLight ? 'border-slate-300 text-slate-400' : 'border-slate-700 text-slate-500'
-                              : 'border-emerald-400/50 text-emerald-400'
-                            : isLight ? 'border-slate-300 text-slate-400' : 'border-slate-700 text-slate-500'
-                        }`}>
-                          {done ? <Check size={11} /> : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
-                        </span>
-                        <span className={`text-xs font-modern ${
-                          done
-                            ? skipped
-                              ? isLight ? 'text-slate-500' : 'text-slate-500'
-                              : isLight ? 'text-slate-800' : 'text-slate-200'
-                            : isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'
-                        }`}>
-                          {label}{skipped ? ' (pulado)' : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {(vantagensIds.length > 0 || desvantagensIds.length > 0) && (
-                  <div className="wa-panel-soft rounded-2xl p-3.5">
-                    <div className="mb-3 flex items-center gap-2">
-                      <Sparkles size={14} className="text-[var(--wa-accent)]" />
-                      <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-                        Selos fixados
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {vantagensIds.map(id => {
-                        const item = vantagensDisponiveis.find(v => String(v.id) === String(id));
-                        if (!item) return null;
-                        return (
-                          <button
-                            key={`sv-${id}`}
-                            onClick={() => removerSelecao('vantagem', id)}
-                            className="wa-emerald-chip inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold transition-all hover:opacity-85 cursor-pointer"
-                            title="Clique para remover"
-                          >
-                            {item.nome} x
-                          </button>
-                        );
-                      })}
-
-                      {desvantagensIds.map(id => {
-                        const item = vantagensDisponiveis.find(d => String(d.id) === String(id));
-                        if (!item) return null;
-                        return (
-                          <button
-                            key={`sd-${id}`}
-                            onClick={() => removerSelecao('desvantagem', id)}
-                            className="wa-ember-chip inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold transition-all hover:opacity-85 cursor-pointer"
-                            title="Clique para remover"
-                          >
-                            {item.nome} x
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+          )}
+          {bonusInvalidado && (
+            <div className="card-rpg flex items-start gap-3 border border-amber-500/30 bg-amber-500/10 !py-3">
+              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-400" />
+              <div className="font-modern text-sm">
+                <p className="font-semibold">Bônus precisam de reconfirmação</p>
+                <p className="opacity-80">Você mudou raça ou classe. Reconfirme os atributos antes de finalizar.</p>
               </div>
             </div>
-          </aside>
+          )}
+          {draftRestaurado && (
+            <div className="card-rpg flex items-center gap-3 !py-3">
+              <RotateCcw size={16} className="shrink-0 text-[var(--primary)]" />
+              <div className="flex-1 font-modern text-sm">
+                <p className="font-semibold">Rascunho restaurado</p>
+                <p className="opacity-80">Continuamos de onde você parou.</p>
+              </div>
+              <button type="button" onClick={descartarDraft} className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/15 px-3 py-1.5 font-modern text-xs font-semibold text-red-400 hover:bg-red-500/25 cursor-pointer">
+                <Trash2 size={12} /> Descartar
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+      )}
+
+      <StageFrame etapaId={etapaAtual} titulo={config.label} flavor={config.flavor} direcao={direcao} isLight={isLight}>
+        {tela === 'nome' && (
+          <NomeStage
+            key={nome}
+            nomeAtual={nome}
+            sugestoes={nomesSugeridos}
+            enviando={enviando}
+            onConfirmar={(n) => enviarMensagem(n, { aceitarNome: true })}
+            onPedirSugestoes={() => enviarMensagem(config.refreshPrompt ?? 'Sugira nomes para o meu herói', { manterEtapa: true })}
+            isLight={isLight}
+          />
+        )}
+        {tela === 'catalogo-raca' && (
+          <CatalogStage
+            itens={racasDisponiveis.map(paraItem).filter((i): i is CatalogItem => i !== null)}
+            selecionados={racaId != null ? [racaId] : []}
+            modo="unica"
+            sugeridos={idsSugeridos('raca')}
+            enviando={enviando}
+            onSelecionar={(item) => escolherDoCatalogo('raca', item)}
+            catalogoHref="/racas"
+            rotuloBusca="Buscar raça..."
+            isLight={isLight}
+          />
+        )}
+        {tela === 'catalogo-classe' && (
+          <CatalogStage
+            itens={classesDisponiveis.map(paraItem).filter((i): i is CatalogItem => i !== null)}
+            selecionados={classeId != null ? [classeId] : []}
+            modo="unica"
+            sugeridos={idsSugeridos('classe')}
+            enviando={enviando}
+            onSelecionar={(item) => escolherDoCatalogo('classe', item)}
+            catalogoHref="/classes"
+            rotuloBusca="Buscar classe..."
+            isLight={isLight}
+          />
+        )}
+        {tela === 'legado' && (
+          <LegacyStageAdapter
+            theme={theme}
+            mensagens={mensagens}
+            inputTexto={inputTexto}
+            setInputTexto={setInputTexto}
+            enviando={enviando}
+            onEnviar={enviarMensagem}
+            onSelecionarSugestao={selecionarSugestao}
+            onAvancarComMestre={avancarComMestre}
+            onPularEtapa={pularEtapa}
+            vantagensIds={vantagensIds}
+            desvantagensIds={desvantagensIds}
+            etapaAtual={etapaAtual}
+            racasDisponiveis={racasDisponiveis as unknown as WizardChatProps['racasDisponiveis']}
+            classesDisponiveis={classesDisponiveis as unknown as WizardChatProps['classesDisponiveis']}
+            vantagensDisponiveis={vantagensDisponiveis as unknown as WizardChatProps['vantagensDisponiveis']}
+            chatEndRef={chatEndRef}
+            isLight={isLight}
+            podeCriar={podeCriar}
+            atributos={atributosBase}
+            atributosFinal={atributosFinal}
+            setAtributo={setAtributo}
+            pontosDistribuidos={pontosDistribuidos}
+            pontosRestantes={pontosRestantes}
+            pontosTotais={pontosTotais}
+            atributosSugeridos={atributosSugeridos}
+            aplicarAtributosSugeridos={aplicarAtributosSugeridos}
+            bonusAplicados={bonusAplicados}
+            bonusDetalhes={bonusDetalhes}
+            bonusFontes={bonusFontes}
+            pontosCriacaoTotal={pontosCriacaoTotal}
+            pontosCriacaoRestantes={pontosCriacaoRestantes}
+            pontosGastos={pontosGastos}
+            pontosVantagem={pontosVantagem}
+            pontosDesvantagem={pontosDesvantagem}
+            custoRaca={custoRaca}
+            custoClasse={custoClasse}
+            maxCustoDesvantagem={maxCustoDesvantagem}
+            skipVantagens={skipVantagens}
+            skipDesvantagens={skipDesvantagens}
+            attrMin={attrMin}
+            attrMax={attrMax}
+            onConfirmarAtributos={confirmarAtributos}
+            onSalvarPersonagem={salvarPersonagem}
+            salvando={salvando}
+            comboPreviewData={comboPreviewData}
+            comboPreviewLoading={comboPreviewLoading}
+            comboPreviewErro={comboPreviewErro}
+            comboPreviewTentativa={comboPreviewTentativa}
+            onRegenerarComboPreview={regenerarComboPreview}
+            onRecarregarComboPreview={recarregarComboPreview}
+            creationFlowStatus={creationFlowStatus}
+            sugestoes={sugestoes}
+            imageUrl={imageUrl}
+            imageLoading={imageLoading}
+            imageError={imageError}
+            grimorioMagias={grimorioMagias}
+            grimorioSlots={grimorioSlots}
+            grimorioSelecionadas={grimorioSelecionadas}
+            grimorioLoading={grimorioLoading}
+            grimorioError={grimorioError}
+            onToggleGrimorioMagia={toggleGrimorioMagia}
+            onConfirmarGrimorio={confirmarGrimorio}
+            onGerarImagem={() => gerarImagem({
+              nome,
+              racaNome: racaAtual?.nome,
+              classeNome: classeAtual?.nome,
+              background,
+              vantagensNomes: vantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter((n): n is string => Boolean(n)),
+              desvantagensNomes: desvantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter((n): n is string => Boolean(n)),
+            })}
+            sistema={sistema}
+            isTresdet={isTresdet}
+            tresdetCaracteristicas={tresdetCaracteristicas}
+            tresdetCaracteristicasConfirmadas={tresdetCaracteristicasConfirmadas}
+            tresdetPontosTotais={tresdetPontosTotais}
+            onSetTresdetCaracteristica={setTresdetCaracteristica}
+            onConfirmarTresdetCaracteristicas={confirmarTresdetCaracteristicas}
+            tresdetVantagensIds={tresdetVantagensIds}
+            tresdetVantagensConfirmadas={tresdetVantagensConfirmadas}
+            onToggleTresdetVantagem={toggleTresdetVantagem}
+            onConfirmarTresdetVantagens={confirmarTresdetVantagens}
+            tresdetDesvantagensIds={tresdetDesvantagensIds}
+            tresdetDesvantagensConfirmadas={tresdetDesvantagensConfirmadas}
+            onToggleTresdetDesvantagem={toggleTresdetDesvantagem}
+            onConfirmarTresdetDesvantagens={confirmarTresdetDesvantagens}
+            isDnd5e={isDnd5e}
+            classeNome={classeNome}
+            dndAbilityScores={dndAbilityScores}
+            dndAbilitiesConfirmed={dndAbilitiesConfirmed}
+            onSetDndAbilityScore={setDndAbilityScore}
+            onResetDndAbilityScores={resetDndAbilityScores}
+            onConfirmarDndAbilities={confirmarDndAbilities}
+            dndSkillProficiencies={dndSkillProficiencies}
+            dndSkillsConfirmed={dndSkillsConfirmed}
+            onToggleDndSkill={toggleDndSkill}
+            onConfirmarDndSkills={confirmarDndSkills}
+            /* TODO E-1: dndRacialBonuses fixo em {} — bonus racial e divida do epico. */
+            dndRacialBonuses={{}}
+            onAvancarEtapa={avancarEtapa}
+          />
+        )}
+      </StageFrame>
+
+      {tela !== 'legado' && (
+        <WizardFooter
+          etapaIndex={etapaIndex}
+          etapasTotal={etapas.length}
+          proximaLabel={etapaProxima?.label ?? null}
+          podeContinuar={podeContinuar}
+          enviando={enviando}
+          onVoltar={onVoltar}
+          onContinuar={() => avancarComMestre()}
+          isLight={isLight}
+        />
+      )}
+
+      <MestrePanel
+        aberto={mestreAberto}
+        onFechar={() => setMestreAberto(false)}
+        mensagens={mensagens}
+        enviando={enviando}
+        inputTexto={inputTexto}
+        setInputTexto={setInputTexto}
+        etapaAtual={etapaAtual}
+        sistema={sistema}
+        onEnviar={enviarMensagem}
+        onEscolherSugestao={escolherSugestaoDoMestre}
+        isLight={isLight}
+      />
 
       {creationFlowStatus !== 'idle' && !creationResultModalOpen && (
-        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-slate-950/72 px-4 backdrop-blur-md">
-          <div className="wa-combo-block max-w-xl rounded-[28px] p-6 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--wa-accent)]/12 text-[var(--wa-accent)]">
-              <Loader2 size={24} className="animate-spin" />
-            </div>
-            <p className="mt-4 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
-              Fechamento da criacao
-            </p>
-            <h2 className={`mt-2 text-2xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-              {creationStatusLabel}
-            </h2>
-            <p className={`mt-3 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-              O wizard continua na mesma tela enquanto a ficha, o background e a resolutiva final sao consolidados.
-            </p>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-md">
+          <div className="card-rpg max-w-md text-center">
+            <Loader2 size={28} className="mx-auto animate-spin text-[var(--primary)]" />
+            <h2 className={`mt-4 font-fantasy text-2xl font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{creationStatusLabel}</h2>
+            <p className={`mt-2 font-modern text-sm ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>A ficha, o background e a leitura final do Mestre estão sendo consolidados.</p>
           </div>
         </div>
       )}
@@ -545,7 +552,14 @@ const WizardView = (props: WizardViewProps) => {
   );
 };
 
+/** "+1 Destreza, +1 Agilidade" a partir do bonus do catálogo; null quando vazio. */
+function descreverBonus(bonus: unknown): string | null {
+  const mapa = parseRacaClasseBonus(bonus);
+  if (!mapa) return null;
+  const partes = Object.entries(mapa)
+    .filter(([, v]) => v !== 0)
+    .map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${k.charAt(0).toUpperCase()}${k.slice(1)}`);
+  return partes.length ? partes.join(', ') : null;
+}
+
 export default WizardView;
-
-
-

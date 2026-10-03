@@ -1,15 +1,13 @@
-import { ArrowLeft, Dices, Sparkles, Swords, Shield } from 'lucide-react';
+import { ArrowLeft, Sparkles, Swords, Shield, Users } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useTheme } from '../../../../contexts/theme';
+import { PageHeader } from '../../../../components/shared';
 
 type IconComponent = ComponentType<{ size?: number; className?: string }>;
 
 interface SystemColor {
-  active: string;
   hover: string;
   icon: string;
-  label: string;
-  labelLight: string;
 }
 
 interface SystemDef {
@@ -27,11 +25,8 @@ const SYSTEMS: SystemDef[] = [
     desc: 'Sistema original com raças, classes, vantagens e atributos',
     icon: Sparkles,
     color: {
-      active: 'border-purple-500 bg-purple-500/10 ring-2 ring-purple-500/30',
-      hover: 'hover:border-purple-400/60',
-      icon: 'text-purple-400',
-      label: 'text-purple-300',
-      labelLight: 'text-purple-700',
+      hover: 'hover:border-[var(--primary)]/60',
+      icon: 'text-[var(--primary)]',
     },
   },
   {
@@ -40,11 +35,8 @@ const SYSTEMS: SystemDef[] = [
     desc: 'Simples e versátil — baseado em conceito, sem raças ou classes',
     icon: Swords,
     color: {
-      active: 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30',
       hover: 'hover:border-amber-400/60',
       icon: 'text-amber-400',
-      label: 'text-amber-300',
-      labelLight: 'text-amber-700',
     },
   },
   {
@@ -53,11 +45,8 @@ const SYSTEMS: SystemDef[] = [
     desc: 'Clássico e completo — raça, classe, background e ability scores',
     icon: Shield,
     color: {
-      active: 'border-red-500 bg-red-500/10 ring-2 ring-red-500/30',
       hover: 'hover:border-red-400/60',
       icon: 'text-red-400',
-      label: 'text-red-300',
-      labelLight: 'text-red-700',
     },
   },
 ];
@@ -72,63 +61,30 @@ export default function WizardSystemPicker({ onSelect, onBack }: WizardSystemPic
   const isLight = theme === 'light';
 
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className={`w-full max-w-lg rounded-2xl border p-8 ${
-        isLight
-          ? 'border-slate-200 bg-white shadow-lg'
-          : 'border-slate-700/60 bg-slate-900/80 shadow-2xl'
-      }`}>
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={onBack}
-            className={`p-2 rounded-lg transition-colors cursor-pointer ${
-              isLight ? 'hover:bg-slate-100 text-slate-500' : 'hover:bg-slate-800 text-slate-400'
-            }`}
-          >
-            <ArrowLeft size={20} />
+    <div className="animate-fade-in mx-auto max-w-3xl space-y-6">
+      <PageHeader
+        title="Novo personagem"
+        subtitle="Escolha o sistema de regras"
+        icon={Users}
+        actions={
+          <button type="button" onClick={onBack} className="btn-rpg-secondary inline-flex items-center gap-2 cursor-pointer">
+            <ArrowLeft size={16} /> Voltar
           </button>
-          <div className="flex items-center gap-2">
-            <Dices size={22} className="text-amber-400" />
-            <h2 className={`text-xl font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>
-              Escolha o Sistema
-            </h2>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          {SYSTEMS.map((sys) => {
-            const Icon = sys.icon;
-            return (
-              <button
-                key={sys.id}
-                onClick={() => onSelect(sys.id)}
-                className={`flex items-center gap-4 p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                  isLight
-                    ? `border-slate-200 bg-slate-50 hover:bg-slate-100 ${sys.color.hover}`
-                    : `border-slate-700/60 bg-slate-800/50 hover:bg-slate-800 ${sys.color.hover}`
-                }`}
-              >
-                <div className={`shrink-0 p-3 rounded-lg ${
-                  isLight ? 'bg-slate-100' : 'bg-slate-700/50'
-                }`}>
-                  <Icon size={24} className={sys.color.icon} />
-                </div>
-                <div className="min-w-0">
-                  <p className={`text-base font-bold font-fantasy ${
-                    isLight ? sys.color.labelLight : sys.color.label
-                  }`}>
-                    {sys.label}
-                  </p>
-                  <p className={`text-sm mt-0.5 ${
-                    isLight ? 'text-slate-500' : 'text-slate-400'
-                  }`}>
-                    {sys.desc}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        }
+      />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {SYSTEMS.map(({ id, label, desc, icon: Icon, color }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onSelect(id)}
+            className={`card-rpg hover-lift flex h-full flex-col items-start gap-3 text-left cursor-pointer ${color.hover}`}
+          >
+            <span className={`flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary)]/10 ${color.icon}`}><Icon size={22} /></span>
+            <span className={`font-fantasy text-xl font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>{label}</span>
+            <span className={`font-modern text-sm ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{desc}</span>
+          </button>
+        ))}
       </div>
     </div>
   );

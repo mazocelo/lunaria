@@ -147,6 +147,7 @@ const WizardView = (props: WizardViewProps) => {
     confirmarDndSkills,
     avancarEtapa,
     navigate,
+    definirNome,
   } = props;
 
   const { theme } = useTheme();
@@ -166,6 +167,11 @@ const WizardView = (props: WizardViewProps) => {
   useEffect(() => {
     document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
   }, [etapaIndex]);
+
+  // Rascunho do nome: o Continuar do rodapé confirma o que está digitado. Volta ao nome do
+  // modelo quando ele muda por fora (chip do Mestre, rascunho descartado).
+  const [rascunhoNome, setRascunhoNome] = useState({ base: nome, valor: nome });
+  if (rascunhoNome.base !== nome) setRascunhoNome({ base: nome, valor: nome });
 
   const allSelecoes = useMemo(() => [...vantagensIds, ...desvantagensIds], [vantagensIds, desvantagensIds]);
 
@@ -229,7 +235,7 @@ const WizardView = (props: WizardViewProps) => {
   const concluidasCount = progressoItems.filter((i) => i.done).length;
   const tela = telaDaEtapa(etapaAtual, sistema);
   // canContinueStage não cobre Nome/Raça/Classe; nessas telas basta o campo do modelo estar preenchido.
-  const podeContinuar = tela === 'nome' ? Boolean(nome.trim())
+  const podeContinuar = tela === 'nome' ? Boolean(rascunhoNome.valor.trim())
     : tela === 'catalogo-raca' ? racaId != null
     : tela === 'catalogo-classe' ? classeId != null
     : false;
@@ -267,6 +273,13 @@ const WizardView = (props: WizardViewProps) => {
     if (s.tipo === 'raca') avancarComMestre({ raca_id: s.id, raca_nome: s.nome });
     else if (s.tipo === 'classe') avancarComMestre({ classe_id: s.id, classe_nome: s.nome });
     setMestreAberto(false);
+  };
+
+  const continuarNome = () => {
+    const valor = rascunhoNome.valor.trim();
+    if (!valor) return;
+    if (valor !== nome) definirNome(valor);
+    avancarComMestre({ nome: valor });
   };
 
   const onVoltar = () => {
@@ -374,12 +387,13 @@ const WizardView = (props: WizardViewProps) => {
       <StageFrame etapaId={etapaAtual} titulo={config.label} flavor={config.flavor} direcao={direcao} isLight={isLight}>
         {tela === 'nome' && (
           <NomeStage
-            key={nome}
-            nomeAtual={nome}
+            rascunho={rascunhoNome.valor}
+            onRascunhoChange={(valor) => setRascunhoNome({ base: nome, valor })}
             sugestoes={nomesSugeridos}
             enviando={enviando}
-            onConfirmar={(n) => enviarMensagem(n, { aceitarNome: true })}
+            onConfirmar={continuarNome}
             onPedirSugestoes={() => enviarMensagem(config.refreshPrompt ?? 'Sugira nomes para o meu herói', { manterEtapa: true })}
+            nomeSistema={NOME_SISTEMA[sistema] ?? sistema}
             isLight={isLight}
           />
         )}
@@ -521,7 +535,7 @@ const WizardView = (props: WizardViewProps) => {
         podeContinuar={podeContinuar}
         enviando={enviando}
         onVoltar={onVoltar}
-        onContinuar={tela === 'legado' ? undefined : () => avancarComMestre()}
+        onContinuar={tela === 'legado' ? undefined : tela === 'nome' ? continuarNome : () => avancarComMestre()}
         isLight={isLight}
       />
 

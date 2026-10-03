@@ -488,6 +488,8 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     // Personagem
     // classeNome: slug em ingles quando D&D 5e (casa com CLASS_SKILL_OPTIONS).
     nome, racaId, racaNome, classeId, classeNome: classeNomeExposto, background,
+    /** Grava o nome digitado na etapa Nome (o Continuar confirma o rascunho). */
+    definirNome: setNome,
     vantagensIds: pointSystem.vantagensIds, vantagensNomes: pointSystem.vantagensNomes,
     desvantagensIds: pointSystem.desvantagensIds, desvantagensNomes: pointSystem.desvantagensNomes,
     skipVantagens: pointSystem.skipVantagens, setSkipVantagens: pointSystem.setSkipVantagens,

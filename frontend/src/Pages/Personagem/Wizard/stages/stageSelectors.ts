@@ -93,6 +93,8 @@ export function isStageSkipped(stageId: string, buildState: BuildState): boolean
   return false;
 }
 
+const contagem = (n: number, singular: string, plural: string) => `${n} ${n === 1 ? singular : plural}`;
+
 /**
  * Retorna tooltip contextual de uma etapa.
  */
@@ -123,36 +125,36 @@ export function getStageTooltip(stageId: string, buildState: BuildState, sistema
   if (sistema === 'dnd5e') {
     switch (stageId) {
       case 'boas_vindas': return nome?.trim() || 'Nome pendente';
-      case 'raca': return racaAtual?.nome || 'Raca pendente';
+      case 'raca': return racaAtual?.nome || 'Raça pendente';
       case 'classe': return classeAtual?.nome || 'Classe pendente';
       case 'background': return background?.trim() ? 'Antecedente definido' : 'Antecedente pendente';
       case 'atributos': return buildState.dndAbilitiesConfirmed ? 'Atributos confirmados' : 'Atributos pendentes';
-      case 'skills': return buildState.dndSkillsConfirmed ? 'Pericias confirmadas' : 'Pericias pendentes';
-      case 'resumo': return podeCriar ? 'Pronto para selar' : 'Em preparo';
+      case 'skills': return buildState.dndSkillsConfirmed ? 'Perícias confirmadas' : 'Perícias pendentes';
+      case 'resumo': return podeCriar ? 'Pronto para finalizar' : 'Em preparo';
       default: return '';
     }
   }
 
   switch (stageId) {
     case 'boas_vindas': return nome?.trim() || 'Nome pendente';
-    case 'raca': return racaAtual?.nome || 'Linhagem pendente';
-    case 'classe': return classeAtual?.nome || 'Vocacao pendente';
-    case 'background': return background?.trim() ? 'Origem definida' : 'Origem pendente';
+    case 'raca': return racaAtual?.nome || 'Raça pendente';
+    case 'classe': return classeAtual?.nome || 'Classe pendente';
+    case 'background': return background?.trim() ? 'Background definido' : 'Background pendente';
     case 'desvantagens':
-      if ((desvantagensIds?.length ?? 0) > 0) return `${desvantagensIds!.length} marcas fixadas`;
+      if ((desvantagensIds?.length ?? 0) > 0) return contagem(desvantagensIds!.length, 'desvantagem escolhida', 'desvantagens escolhidas');
       if (skipDesvantagens) return 'Etapa pulada';
-      return 'Marcas pendentes';
+      return 'Desvantagens pendentes';
     case 'vantagens':
-      if ((vantagensIds?.length ?? 0) > 0) return `${vantagensIds!.length} dons fixados`;
+      if ((vantagensIds?.length ?? 0) > 0) return contagem(vantagensIds!.length, 'vantagem escolhida', 'vantagens escolhidas');
       if (skipVantagens) return 'Etapa pulada';
-      return 'Dons pendentes';
+      return 'Vantagens pendentes';
     case 'atributos':
-      if (bonusAplicados) return 'Calibrados e confirmados';
-      if (bonusInvalidado) return 'Revisao necessaria';
-      return 'Leitura pendente';
-    case 'equipamentos': return buildState.comboPreviewData ? 'Arsenal definido' : 'Arsenal pendente';
+      if (bonusAplicados) return 'Atributos confirmados';
+      if (bonusInvalidado) return 'Bônus precisam de reconfirmação';
+      return 'Atributos pendentes';
+    case 'equipamentos': return buildState.comboPreviewData ? 'Equipamentos definidos' : 'Equipamentos pendentes';
     case 'grimorio': return buildState.grimorioSelecionado ? 'Magias selecionadas' : 'Magias pendentes';
-    case 'resumo': return podeCriar ? 'Resolutiva pronta para selar' : 'Resolutiva em preparo';
+    case 'resumo': return podeCriar ? 'Pronto para finalizar' : 'Em preparo';
     default: return '';
   }
 }

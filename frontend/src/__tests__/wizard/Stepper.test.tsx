@@ -24,7 +24,8 @@ describe('Stepper', () => {
       <Stepper etapas={etapas} etapaIndex={1} etapasConcluidas={['boas_vindas']} etapasVisitadas={['boas_vindas', 'raca']} onEtapaClick={() => {}} isLight={false} />,
     );
     expect(html).toContain('data-estado="concluida"');
-    expect(html).toMatch(/data-etapa="classe"[^>]*disabled/);
+    expect(html).toMatch(/data-etapa="classe"[^>]*\sdisabled=""/);
+    expect(html).not.toMatch(/data-etapa="boas_vindas"[^>]*\sdisabled=""/);
   });
 
   it('etapa pulada ganha o sufixo (pulada)', () => {

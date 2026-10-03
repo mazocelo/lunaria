@@ -34,8 +34,10 @@ describe('WizardFooter', () => {
   it('desabilita Continuar quando não pode continuar ou está enviando', () => {
     const a = renderToStaticMarkup(<WizardFooter {...base} etapaIndex={1} proximaLabel="Classe" podeContinuar={false} />);
     const b = renderToStaticMarkup(<WizardFooter {...base} etapaIndex={1} proximaLabel="Classe" enviando={true} />);
-    expect(a).toMatch(/data-acao="continuar"[^>]*disabled/);
-    expect(b).toMatch(/data-acao="continuar"[^>]*disabled/);
+    const ok = renderToStaticMarkup(<WizardFooter {...base} etapaIndex={1} proximaLabel="Classe" />);
+    expect(a).toMatch(/data-acao="continuar"[^>]*\sdisabled=""/);
+    expect(b).toMatch(/data-acao="continuar"[^>]*\sdisabled=""/);
+    expect(ok).not.toMatch(/data-acao="continuar"[^>]*\sdisabled=""/);
   });
 
   it('mostra Pular etapa só quando onPular existe', () => {

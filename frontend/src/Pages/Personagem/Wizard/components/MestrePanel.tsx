@@ -1,4 +1,5 @@
 // src/Pages/Personagem/Wizard/components/MestrePanel.tsx
+import { useEffect, useRef, type RefObject } from 'react';
 import { RefreshCw, Send, Sparkles, X } from 'lucide-react';
 import MarkdownRenderer from '../../../../components/MarkdownRenderer';
 import type { WizardMessage, WizardSuggestion } from '../hooks/useChatState';
@@ -17,13 +18,35 @@ export interface MestrePanelProps {
   sistema: string;
   onEnviar: (texto: string, options?: { manterEtapa?: boolean; aceitarNome?: boolean }) => void;
   onEscolherSugestao: (s: WizardSuggestion) => void;
+  /** Recebe o foco quando o painel fecha (o botão do cabeçalho que o abriu). */
+  focoAoFechar?: RefObject<HTMLElement | null>;
   isLight: boolean;
 }
 
 const tipoDe = (s: WizardSuggestion) => String(s.tipo ?? '');
 
 const MestrePanel = (props: MestrePanelProps) => {
-  const { aberto, onFechar, mensagens, enviando, inputTexto, setInputTexto, etapaAtual, sistema, onEnviar, onEscolherSugestao, isLight } = props;
+  const { aberto, onFechar, mensagens, enviando, inputTexto, setInputTexto, etapaAtual, sistema, onEnviar, onEscolherSugestao, focoAoFechar, isLight } = props;
+  const campoRef = useRef<HTMLTextAreaElement>(null);
+  // Ref para o Esc sempre chamar o onFechar atual sem refazer o efeito (e o foco) a cada render.
+  const onFecharRef = useRef(onFechar);
+  useEffect(() => { onFecharRef.current = onFechar; });
+
+  // Ao abrir: foco no campo e Esc fecha. Ao fechar: foco volta ao botão do cabeçalho
+  // (ou a quem tinha o foco antes de abrir).
+  useEffect(() => {
+    if (!aberto) return;
+    const anterior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const destino = focoAoFechar;
+    campoRef.current?.focus();
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') onFecharRef.current(); };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      (destino?.current ?? anterior)?.focus();
+    };
+  }, [aberto, focoAoFechar]);
+
   if (!aberto) return null;
 
   const config = getStageConfig(etapaAtual, sistema);
@@ -44,6 +67,7 @@ const MestrePanel = (props: MestrePanelProps) => {
     <div className="fixed inset-0 z-40 flex justify-end bg-slate-950/40 md:bg-transparent md:pointer-events-none" onClick={onFechar}>
       <aside
         role="dialog"
+        aria-modal="true"
         aria-label="Mestre Criador"
         onClick={(e) => e.stopPropagation()}
         className={`wz-sheet-in pointer-events-auto flex h-[85vh] w-full flex-col self-end rounded-t-2xl border shadow-2xl md:h-full md:w-[26rem] md:self-stretch md:rounded-none md:border-y-0 md:border-r-0 ${isLight ? 'border-slate-200 bg-white' : 'border-slate-700/60 bg-slate-900'}`}
@@ -98,6 +122,7 @@ const MestrePanel = (props: MestrePanelProps) => {
         <form className={`flex items-end gap-2 border-t px-4 py-3 ${isLight ? 'border-slate-200' : 'border-slate-700/60'}`} onSubmit={(e) => { e.preventDefault(); enviar(); }}>
           <textarea
             id="mestre-input"
+            ref={campoRef}
             rows={2}
             value={inputTexto}
             disabled={enviando}

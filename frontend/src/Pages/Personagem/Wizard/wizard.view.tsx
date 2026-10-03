@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, AlertTriangle, ArrowLeft, Loader2, RotateCcw, Sparkles, Trash2, Users, X } from 'lucide-react';
 import { useTheme } from '../../../contexts/theme';
 import { PageHeader } from '../../../components/shared';
@@ -160,6 +160,7 @@ const WizardView = (props: WizardViewProps) => {
   const isLight = theme === 'light';
   const [fichaAberta, setFichaAberta] = useState(false);
   const [mestreAberto, setMestreAberto] = useState(false);
+  const botaoMestreRef = useRef<HTMLButtonElement>(null);
 
   // Sentido da transição de etapa: estado derivado do índice anterior (padrão do React,
   // em vez de ref escrita no render, que o StrictMode renderiza duas vezes).
@@ -322,7 +323,7 @@ const WizardView = (props: WizardViewProps) => {
               <ArrowLeft size={16} />
               <span>Sair</span>
             </button>
-            <button type="button" onClick={() => setMestreAberto(true)} className="btn-rpg-secondary inline-flex items-center gap-2 cursor-pointer">
+            <button type="button" ref={botaoMestreRef} data-acao="abrir-mestre" onClick={() => setMestreAberto(true)} className="btn-rpg-secondary inline-flex items-center gap-2 cursor-pointer">
               <Sparkles size={16} />
               <span className="hidden sm:inline">Pedir sugestão ao Mestre</span>
               <span className="sm:hidden">Mestre</span>
@@ -601,6 +602,7 @@ const WizardView = (props: WizardViewProps) => {
         sistema={sistema}
         onEnviar={enviarMensagem}
         onEscolherSugestao={escolherSugestaoDoMestre}
+        focoAoFechar={botaoMestreRef}
         isLight={isLight}
       />
 

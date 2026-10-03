@@ -6,7 +6,7 @@ import { ThemeProvider } from '../../contexts/theme';
 import WizardView from '../../Pages/Personagem/Wizard/wizard.view';
 import WizardFooter from '../../Pages/Personagem/Wizard/components/WizardFooter';
 import { criarPropsDaView } from './wizardViewFixture';
-import { montar, clicar, digitar } from '../helpers/montar';
+import { montar, clicar, digitar, tecla } from '../helpers/montar';
 import type { WizardMessage } from '../../Pages/Personagem/Wizard/hooks/useChatState';
 
 const render = (el: ReactElement) => renderToStaticMarkup(<ThemeProvider>{el}</ThemeProvider>);
@@ -179,5 +179,20 @@ describe('WizardView: estados do catálogo (A04)', () => {
   it('nenhuma raça cadastrada', () => {
     const html = render(<WizardView {...criarPropsDaView({ etapaAtual: 'raca', etapaIndex: 1 })} />);
     expect(html).toContain('Nenhuma raça cadastrada para este sistema');
+  });
+});
+
+describe('WizardView: painel do Mestre (M1)', () => {
+  it('abre pelo cabeçalho, fecha com Esc e devolve o foco ao botão', () => {
+    const { container, desmontar } = montar(<ThemeProvider><WizardView {...criarPropsDaView()} /></ThemeProvider>);
+    const botao = container.querySelector<HTMLButtonElement>('[data-acao="abrir-mestre"]');
+    act(() => { botao?.focus(); });
+    clicar(botao);
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(document.activeElement?.id).toBe('mestre-input');
+    tecla(document, 'Escape');
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(botao);
+    desmontar();
   });
 });

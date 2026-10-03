@@ -4,7 +4,7 @@ import { act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import MestrePanel from '../../Pages/Personagem/Wizard/components/MestrePanel';
 import type { WizardMessage } from '../../Pages/Personagem/Wizard/hooks/useChatState';
-import { montar, clicar } from '../helpers/montar';
+import { montar, clicar, tecla } from '../helpers/montar';
 
 const mensagens: WizardMessage[] = [
   { role: 'mestre', content: 'Diga-me o nome do herói.', sugestoes: [{ tipo: 'nome', nome: 'Kaelen' }, { tipo: 'nome', nome: 'Runa' }] },
@@ -87,5 +87,34 @@ describe('MestrePanel: Mestre pensando (M2)', () => {
   it('parado não mostra o indicador', () => {
     const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={mensagens} />);
     expect(html).not.toContain('O Mestre está pensando');
+  });
+});
+
+describe('MestrePanel: diálogo acessível (M1)', () => {
+  it('é modal', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={mensagens} />);
+    expect(html).toMatch(/role="dialog"[^>]*aria-modal="true"|aria-modal="true"[^>]*role="dialog"/);
+  });
+
+  it('ao abrir foca o campo, Esc fecha e ao fechar o foco volta ao botão do cabeçalho', () => {
+    const botao = document.createElement('button');
+    document.body.appendChild(botao);
+    const focoAoFechar = { current: botao };
+    const onFechar = vi.fn();
+    const ui = (aberto: boolean) => <MestrePanel {...base} aberto={aberto} mensagens={mensagens} onFechar={onFechar} focoAoFechar={focoAoFechar} />;
+
+    const { rerender, desmontar } = montar(ui(true));
+    expect(document.activeElement?.id).toBe('mestre-input');
+
+    tecla(document, 'Escape');
+    expect(onFechar).toHaveBeenCalledTimes(1);
+
+    rerender(ui(false));
+    expect(document.activeElement).toBe(botao);
+
+    tecla(document, 'Escape');
+    expect(onFechar).toHaveBeenCalledTimes(1);
+    desmontar();
+    botao.remove();
   });
 });

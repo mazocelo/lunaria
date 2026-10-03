@@ -215,6 +215,19 @@
   background: rgba(20, 10, 12, 0.5);
 }
 
+/* Tema claro: o .btn-rpg-secondary base (purple-300 sobre purple-900/30) some no fundo
+   claro (1,01:1). O gótico também leva .dark, então só o claro cai aqui. */
+:root:not(.dark) .btn-rpg-secondary {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, white);
+  border-color: color-mix(in srgb, var(--primary) 60%, white);
+}
+
+:root:not(.dark) .btn-rpg-secondary:hover {
+  background: color-mix(in srgb, var(--primary) 14%, white);
+  border-color: var(--primary);
+}
+
 /* Gothic btn overrides — kill purple */
 .gothic .btn-rpg-secondary {
   color: #f87171;

@@ -1,7 +1,8 @@
 // src/Pages/Personagem/Wizard/stages/CatalogStage.tsx
 import { useMemo, useState, type CSSProperties } from 'react';
-import { AlertCircle, Check, ExternalLink, RotateCcw, Search, Sparkles } from 'lucide-react';
+import { AlertCircle, Check, ExternalLink, Lock, RotateCcw, Search, Sparkles } from 'lucide-react';
 import { CatalogCard, CatalogCardSkeleton, EmptyState } from '../../../../components/shared';
+import { formatarCustoTraco } from './custoTraco';
 import '../wizard-motion.css';
 
 export interface CatalogItem {
@@ -31,6 +32,12 @@ export interface CatalogStageProps {
   textoVazio: string;
   /** Título do estado de erro, ex.: "Não conseguimos carregar as raças". */
   textoErro: string;
+  /** 'raca' (Fase 1: "N pts"/"Gratuita") ou 'traco' (vantagem/desvantagem: "Custa"/"Devolve"). */
+  formatoCusto?: 'raca' | 'traco';
+  /** id → motivo; carta bloqueada não seleciona. Não vale para as já selecionadas (clicar nelas remove). */
+  bloqueios?: Record<string, string>;
+  /** id → aviso que não bloqueia, ex.: "Seu saldo ficaria −2". */
+  avisoPorItem?: Record<string, string>;
   isLight: boolean;
 }
 
@@ -39,7 +46,7 @@ const POR_LOTE = 12;
 
 const normalizar = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-const CatalogStage = ({ itens, selecionados, modo, sugeridos = [], enviando, onSelecionar, catalogoHref, rotuloBusca, carregando = false, erro = null, onTentarDeNovo, textoVazio, textoErro, isLight }: CatalogStageProps) => {
+const CatalogStage = ({ itens, selecionados, modo, sugeridos = [], enviando, onSelecionar, catalogoHref, rotuloBusca, carregando = false, erro = null, onTentarDeNovo, textoVazio, textoErro, formatoCusto = 'raca', bloqueios = {}, avisoPorItem = {}, isLight }: CatalogStageProps) => {
   const [busca, setBusca] = useState('');
   const [limite, setLimite] = useState(POR_LOTE);
   const visiveis = useMemo(() => {
@@ -67,7 +74,7 @@ const CatalogStage = ({ itens, selecionados, modo, sugeridos = [], enviando, onS
           </a>
         )}
         {modo === 'multipla' && (
-          <span className={`font-modern text-xs ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>{selecionados.length} selecionado(s)</span>
+          <span role="status" aria-live="polite" className="font-modern text-xs tabular-nums text-[var(--muted-foreground)]">{selecionados.length} {selecionados.length === 1 ? 'escolhida' : 'escolhidas'}</span>
         )}
       </div>
 
@@ -94,20 +101,28 @@ const CatalogStage = ({ itens, selecionados, modo, sugeridos = [], enviando, onS
         <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${enviando ? 'pointer-events-none opacity-70' : ''}`} aria-busy={enviando ? 'true' : 'false'}>
           {exibidos.map((item, i) => {
             const selecionada = estaSelecionado(item.id);
-            const badge = typeof item.custo === 'number'
+            const motivo = selecionada ? undefined : bloqueios[String(item.id)];
+            const aviso = motivo ? undefined : avisoPorItem[String(item.id)];
+            const badge = formatoCusto === 'traco'
+              ? <span className={formatarCustoTraco(item.custo).classe}>{formatarCustoTraco(item.custo).texto}</span>
+              : typeof item.custo === 'number'
               ? <span className={`rounded-full px-2 py-0.5 font-modern text-[11px] font-semibold tabular-nums ${item.custo === 0 ? 'bg-emerald-500/15 text-emerald-500' : 'bg-amber-400/20 text-amber-500'}`}>{item.custo === 0 ? 'Gratuita' : `${item.custo} pts`}</span>
               : undefined;
             return (
-              <div key={String(item.id)} data-item={String(item.id)} data-selecionada={selecionada ? 'true' : 'false'} className="wz-card-in wz-select rounded-2xl" style={{ '--wz-i': Math.min(i, 11) } as CSSProperties}>
+              <div key={String(item.id)} data-item={String(item.id)} data-selecionada={selecionada ? 'true' : 'false'} data-bloqueada={motivo ? 'true' : 'false'} className={`wz-card-in wz-select rounded-2xl ${motivo ? 'opacity-60' : ''}`} style={{ '--wz-i': Math.min(i, 11) } as CSSProperties}>
                 <CatalogCard
                   image={item.imagem || undefined}
                   icon={item.imagem ? undefined : Sparkles}
-                  title={<span className="inline-flex items-center gap-2">{item.nome}{selecionada ? <Check size={14} className="text-[var(--primary)]" /> : null}</span>}
+                  title={<span className="inline-flex items-center gap-2">{item.nome}{selecionada ? <span className="inline-flex items-center gap-1 rounded-full bg-[var(--primary)] px-2 py-0.5 font-modern text-xs font-semibold text-[var(--primary-foreground)]"><Check size={12} aria-hidden="true" /> Escolhida</span> : null}</span>}
                   subtitle={item.detalhe ?? undefined}
                   headerBadge={badge}
-                  onClick={() => { if (!enviando) onSelecionar(item); }}
+                  pressionavel
+                  selecionada={selecionada}
+                  onClick={motivo || enviando ? undefined : () => onSelecionar(item)}
                   className="h-full"
                 >
+                  {motivo && <span className="mb-1 inline-flex items-center gap-1 font-modern text-xs font-semibold text-red-600 dark:text-red-400"><Lock size={12} aria-hidden="true" /> {motivo}</span>}
+                  {aviso && <span className="mb-1 block font-modern text-xs font-semibold text-amber-700 dark:text-amber-400">{aviso}</span>}
                   {foiSugerido(item.id) && (
                     <span className={`mb-1 inline-flex items-center gap-1 font-modern text-[11px] font-semibold text-[var(--primary)]`}><Sparkles size={11} /> Sugestão do Mestre</span>
                   )}

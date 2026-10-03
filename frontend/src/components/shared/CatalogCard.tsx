@@ -1,7 +1,8 @@
-import { useState, type CSSProperties, type ComponentType, type MouseEvent, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ComponentType, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
 import { useTheme } from '../../contexts/theme';
 import { Maximize2 } from 'lucide-react';
 import ImageLightbox from '../ImageLightbox';
+import { FOCO } from './foco';
 
 interface LucideLikeIconProps {
   size?: number | string;
@@ -38,6 +39,9 @@ interface CatalogCardProps {
   onImageClick?: () => void;
   delay?: number;
   className?: string;
+  selecionada?: boolean;
+  /** Raiz vira botão de alternar (wizard): Tab, Enter/Espaço, aria-pressed; sem onClick fica aria-disabled. */
+  pressionavel?: boolean;
 }
 
 const CatalogCard = ({
@@ -53,6 +57,8 @@ const CatalogCard = ({
   onImageClick,
   delay = 0,
   className = '',
+  selecionada = false,
+  pressionavel = false,
 }: CatalogCardProps) => {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const handleImageClick = (e: MouseEvent<HTMLButtonElement>) => {
@@ -77,8 +83,18 @@ const CatalogCard = ({
   return (
     <div
       onClick={onClick}
+      {...(pressionavel ? {
+        role: 'button',
+        tabIndex: 0,
+        'aria-pressed': selecionada,
+        'aria-disabled': onClick ? undefined : true,
+        onKeyDown: (e: KeyboardEvent<HTMLDivElement>) => {
+          if (e.target !== e.currentTarget) return; // o botão "Ver imagem" interno trata o próprio teclado
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); }
+        },
+      } : {})}
       className={`
-        group relative overflow-hidden rounded-xl cursor-pointer
+        group relative overflow-hidden rounded-xl ${pressionavel && !onClick ? 'cursor-not-allowed' : 'cursor-pointer'}
         transition-all duration-300 ease-out
         hover:-translate-y-1.5
         animate-card-reveal
@@ -86,6 +102,8 @@ const CatalogCard = ({
           ? 'bg-white/95 border border-slate-200 shadow-sm hover:shadow-xl hover:border-purple-300/60'
           : 'bg-slate-800/80 border border-slate-700/50 backdrop-blur-sm hover:shadow-2xl hover:shadow-purple-500/20 hover:border-purple-500/40'
         }
+        ${pressionavel ? FOCO : ''}
+        ${selecionada ? 'ring-2 ring-[var(--primary)]' : ''}
         ${className}
       `}
       style={cardStyle}

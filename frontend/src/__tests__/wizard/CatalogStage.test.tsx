@@ -4,7 +4,7 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ThemeProvider } from '../../contexts/theme';
 import CatalogStage from '../../Pages/Personagem/Wizard/stages/CatalogStage';
-import { montar, clicar, digitar } from '../helpers/montar';
+import { montar, clicar, digitar, tecla } from '../helpers/montar';
 
 // CatalogCard e EmptyState leem useTheme(), que lança fora do provider.
 const render = (el: ReactElement) => renderToStaticMarkup(<ThemeProvider>{el}</ThemeProvider>);
@@ -106,6 +106,49 @@ describe('CatalogStage: carregando, erro e vazio (A04)', () => {
     expect(container.textContent).not.toContain('Nenhum item com esse nome');
     digitar(container.querySelector('#catalog-busca'), 'zzz');
     expect(container.textContent).toContain('Nenhum item com esse nome');
+    desmontar();
+  });
+});
+
+describe('CatalogStage: seleção acessível e bloqueio', () => {
+  const itens = [
+    { id: 10, nome: 'Sentidos Aguçados', descricao: 'Percebe.', imagem: null, custo: 1 },
+    { id: 11, nome: 'Riqueza', descricao: 'Recursos.', imagem: null, custo: 4 },
+  ];
+  const multi = { ...base, modo: 'multipla' as const, rotuloBusca: 'Buscar vantagem...', itens, formatoCusto: 'traco' as const };
+
+  it('carta é botão com aria-pressed e estado Escolhida', () => {
+    const html = render(<CatalogStage {...multi} selecionados={[10]} />);
+    expect(html).toMatch(/data-item="10"[\s\S]*?role="button"[^>]*tabindex="0"[^>]*aria-pressed="true"/);
+    expect(html).toMatch(/data-item="11"[\s\S]*?aria-pressed="false"/);
+    expect(html).toContain('Escolhida');
+  });
+  it('bloqueio mostra o motivo e não vale para a selecionada', () => {
+    const html = render(<CatalogStage {...multi} selecionados={[]} bloqueios={{ 11: 'Saldo insuficiente (faltam 1 pt)' }} />);
+    expect(html).toMatch(/data-item="11"[^>]*data-bloqueada="true"/);
+    expect(html).toContain('Saldo insuficiente (faltam 1 pt)');
+    expect(html).toMatch(/aria-disabled="true"/);
+    expect(render(<CatalogStage {...multi} selecionados={[11]} bloqueios={{ 11: 'x' }} />)).toMatch(/data-item="11"[^>]*data-bloqueada="false"/);
+  });
+  it('custo no formato único e aviso de saldo', () => {
+    const html = render(<CatalogStage {...multi} selecionados={[]} avisoPorItem={{ 11: 'Seu saldo ficaria −1' }} />);
+    expect(html).toContain('Custa 4 pts');
+    expect(html).toContain('Seu saldo ficaria −1');
+  });
+  it('contador de escolhidas é anunciado', () => {
+    expect(render(<CatalogStage {...multi} selecionados={[10]} />)).toMatch(/role="status"[^>]*aria-live="polite"[^>]*>1 escolhida</);
+  });
+  it('Enter e Espaço selecionam; carta bloqueada não chama onSelecionar', () => {
+    const onSelecionar = vi.fn();
+    const { container, desmontar } = montar(<ThemeProvider><CatalogStage {...multi} selecionados={[]} bloqueios={{ 11: 'Saldo insuficiente (faltam 1 pt)' }} onSelecionar={onSelecionar} /></ThemeProvider>);
+    const carta = (id: number) => container.querySelector(`[data-item="${id}"] [role="button"]`) as HTMLElement;
+    tecla(carta(10), 'Enter');
+    tecla(carta(10), ' ');
+    expect(onSelecionar).toHaveBeenCalledTimes(2);
+    expect(onSelecionar).toHaveBeenCalledWith(expect.objectContaining({ id: 10 }));
+    tecla(carta(11), 'Enter');
+    clicar(carta(11));
+    expect(onSelecionar).toHaveBeenCalledTimes(2);
     desmontar();
   });
 });

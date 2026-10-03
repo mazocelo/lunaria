@@ -1,4 +1,7 @@
 import { useMemo } from 'react';
+import { FOCO } from '../../../../components/shared';
+import { ATRIBUTOS_LUNARIA } from '../stages/atributos';
+import { mensagemDeErro } from '../stages/mensagemDeErro';
 import {
   AlertTriangle,
   BookOpen,
@@ -60,37 +63,28 @@ const PERFIL_LABELS: Record<string, string> = {
   amplo: 'Combo amplo',
 };
 
-const ATTR_LABELS: Record<string, string> = {
-  forca: 'FOR',
-  destreza: 'DES',
-  constituicao: 'CON',
-  inteligencia: 'INT',
-  agilidade: 'AGI',
-  carisma: 'CAR',
-};
-
 function buildItensCombo(combo: Combo = {}): ComboItemEnriched[] {
   return [
     ...(combo.equipamentos || []).map((item) => ({
       ...item,
       grupo: 'Equipamento',
       badge: 'Inventario',
-      badgeClass: 'wa-forge-chip',
-      barClass: 'border-[var(--wa-accent)]/35',
+      badgeClass: 'bg-amber-400/15 text-amber-600',
+      barClass: 'border-[var(--primary)]/35',
     })),
     ...(combo.habilidades || []).map((item) => ({
       ...item,
       grupo: 'Habilidade',
       badge: 'Recomendacao',
-      badgeClass: 'wa-teal-chip',
-      barClass: 'border-[var(--wa-teal)]/35',
+      badgeClass: 'bg-emerald-500/15 text-emerald-500',
+      barClass: 'border-emerald-500/35',
     })),
     ...(combo.magias || []).map((item) => ({
       ...item,
       grupo: 'Magia',
       badge: 'Recomendacao',
-      badgeClass: 'wa-accent-chip',
-      barClass: 'border-[var(--wa-accent-bright)]/35',
+      badgeClass: 'bg-[var(--primary)]/15 text-[var(--primary)]',
+      barClass: 'border-[var(--primary)]/35',
     })),
   ];
 }
@@ -100,16 +94,12 @@ interface DestinoResolutivaBlockProps {
   loading?: boolean;
   error?: string | null;
   onRetry?: () => void;
-  onCriar?: () => void;
-  podeCriar?: boolean;
-  salvando?: boolean;
-  creationFlowStatus?: string;
   imageUrl?: string | null;
   imageLoading?: boolean;
   imageError?: string | null;
   onGerarImagem?: () => void;
+  /** Mantido por compatibilidade com quem passa o tema; as cores vêm dos tokens. */
   isLight?: boolean;
-  exigeComboPreview?: boolean;
 }
 
 const DestinoResolutivaBlock = ({
@@ -117,41 +107,29 @@ const DestinoResolutivaBlock = ({
   loading = false,
   error = null,
   onRetry,
-  onCriar,
-  podeCriar = false,
-  salvando = false,
-  creationFlowStatus = 'idle',
   imageUrl = null,
   imageLoading = false,
   imageError = null,
   onGerarImagem,
-  isLight = false,
-  exigeComboPreview = true,
 }: DestinoResolutivaBlockProps) => {
   const itensCombo = useMemo(() => buildItensCombo(data?.combo), [data]);
   const snapshot = data?.snapshot || {};
   const meta = data?.meta || {};
-  const criando = salvando || creationFlowStatus !== 'idle';
-  // O combo-preview (`data`) so e pre-requisito de criacao em sistemas que o usam (Lunaria).
-  // D&D 5e nao tem etapa de equipamentos, logo nunca carrega `data` — o gate dependeria
-  // apenas de `podeCriar`.
-  const criacaoBloqueada = !podeCriar || criando || loading || (exigeComboPreview && !data);
-
   if (loading && !data) {
     return (
-      <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
+      <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
         <div className="flex items-start gap-3">
-          <div className="wa-accent-chip inline-flex h-11 w-11 items-center justify-center rounded-2xl">
+          <div className="bg-[var(--primary)]/15 text-[var(--primary)] inline-flex h-11 w-11 items-center justify-center rounded-2xl">
             <Loader2 size={18} className="animate-spin" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+            <p className="text-[11px] font-modern font-semibold text-[var(--muted-foreground)]">
               Resolutiva do Mestre
             </p>
-            <h3 className={`mt-2 text-2xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            <h3 className="mt-2 text-2xl font-fantasy font-bold text-[var(--foreground)]">
               Selando o destino da ficha
             </h3>
-            <p className={`mt-2 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+            <p className="mt-2 text-sm font-modern text-[var(--muted-foreground)]">
               O Mestre esta cruzando a build, o saldo de criacao e os catalogos elegiveis para montar um combo final coerente.
             </p>
           </div>
@@ -161,69 +139,50 @@ const DestinoResolutivaBlock = ({
   }
 
   return (
-    <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
+    <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+              <span className="bg-[var(--primary)]/15 text-[var(--primary)] inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold">
                 <Sparkles size={12} />
                 Resolutiva do Mestre
               </span>
-              <span className="wa-teal-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+              <span className="bg-emerald-500/15 text-emerald-500 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold">
                 <Shield size={12} />
                 {PERFIL_LABELS[String(meta.perfil_combo ?? '')] || 'Combo equilibrado'}
               </span>
             </div>
-            <h3 className={`mt-3 text-2xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            <h3 className="mt-3 text-2xl font-fantasy font-bold text-[var(--foreground)]">
               Esta e a leitura final usada para selar a ficha
             </h3>
-            <p className={`mt-2 max-w-3xl text-sm font-modern leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+            <p className="mt-2 max-w-3xl text-sm font-modern leading-relaxed text-[var(--muted-foreground)]">
               O combo abaixo nasce da sua build atual. Equipamentos entram na criacao; habilidades e magias continuam como recomendacao de leitura e postura.
             </p>
           </div>
 
         </div>
 
-        {/* --- Secondary create button at top (always visible) --- */}
-        {data && !error && (
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={onCriar}
-              disabled={criacaoBloqueada}
-              className={`inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3 text-sm font-modern font-semibold transition-all ${
-                criacaoBloqueada
-                  ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
-                  : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
-              }`}
-            >
-              {criando ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              {criando ? 'Selando...' : 'Criar personagem'}
-            </button>
-          </div>
-        )}
-
         {error && (
-          <div className="wa-panel-soft flex items-start gap-3 rounded-2xl border border-[var(--wa-ember)]/30 px-4 py-3">
-            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[var(--wa-ember)]" />
+          <div role="alert" className="bg-[var(--muted)]/40 flex items-start gap-3 rounded-2xl border border-amber-500/30 px-4 py-3">
+            <AlertTriangle size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-amber-500" />
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-ember)]">
-                Resolutiva indisponivel
+              <p className="text-xs font-modern font-semibold text-amber-600 dark:text-amber-400">
+                Resolutiva indisponível
               </p>
-              <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-                {error}
+              <p className="mt-1 text-sm font-modern text-[var(--foreground)]">
+                {mensagemDeErro(error)}
               </p>
             </div>
             {onRetry && (
               <button
                 type="button"
-                onClick={onRetry}
                 disabled={loading}
-                className="wa-panel-soft inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-modern font-semibold hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={onRetry}
+                className={`bg-[var(--muted)]/40 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-modern font-semibold text-[var(--foreground)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer ${FOCO}`}
               >
-                {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                Tentar novamente
+                {loading ? <Loader2 size={12} aria-hidden="true" className="animate-spin" /> : <RefreshCw size={12} aria-hidden="true" />}
+                Tentar de novo
               </button>
             )}
           </div>
@@ -231,76 +190,76 @@ const DestinoResolutivaBlock = ({
 
         <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-4">
-            <div className="wa-panel-soft rounded-2xl p-4">
+            <div className="bg-[var(--muted)]/40 rounded-2xl p-4">
               <div className="flex items-center gap-2">
-                <CheckCircle2 size={14} className="text-[var(--wa-accent)]" />
-                <span className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+                <CheckCircle2 size={14} className="text-[var(--primary)]" />
+                <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                   Resumo da ficha
                 </span>
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">Nome</p>
-                  <p className={`mt-1 text-base font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{snapshot.nome || 'Sem nome'}</p>
+                  <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">Nome</p>
+                  <p className="mt-1 text-base font-fantasy font-bold text-[var(--foreground)]">{snapshot.nome || 'Sem nome'}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">Leitura base</p>
-                  <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+                  <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">Leitura base</p>
+                  <p className="mt-1 text-sm font-modern text-[var(--foreground)]">
                     {[snapshot.raca, snapshot.classe].filter(Boolean).join(' • ')}
                   </p>
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="wa-forge-chip rounded-full px-3 py-1 text-[11px] font-modern font-semibold">
+                <span className="bg-amber-400/15 text-amber-600 rounded-full px-3 py-1 text-[11px] font-modern font-semibold">
                   Saldo de criacao {String(meta.pontos_restantes ?? 0)}
                 </span>
-                <span className="wa-accent-chip rounded-full px-3 py-1 text-[11px] font-modern font-semibold">
+                <span className="bg-[var(--primary)]/15 text-[var(--primary)] rounded-full px-3 py-1 text-[11px] font-modern font-semibold">
                   Nivel {String(meta.nivel ?? 1)}
                 </span>
-                <span className="wa-teal-chip rounded-full px-3 py-1 text-[11px] font-modern font-semibold">
+                <span className="bg-emerald-500/15 text-emerald-500 rounded-full px-3 py-1 text-[11px] font-modern font-semibold">
                   Tier {String(meta.tier ?? 1)}
                 </span>
               </div>
             </div>
 
-            <div className="wa-panel-soft rounded-2xl p-4">
+            <div className="bg-[var(--muted)]/40 rounded-2xl p-4">
               <div className="flex items-center gap-2">
-                <ScrollText size={14} className="text-[var(--wa-accent)]" />
-                <span className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+                <ScrollText size={14} className="text-[var(--primary)]" />
+                <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                   Primeiras palavras
                 </span>
               </div>
-              <blockquote className={`mt-3 border-l-2 border-[var(--wa-accent)] pl-4 text-sm font-modern italic leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+              <blockquote className="mt-3 border-l-2 border-[var(--primary)] pl-4 text-sm font-modern italic leading-relaxed text-[var(--foreground)]">
                 {data?.fala_personagem || 'A fala do personagem ainda esta sendo preparada.'}
               </blockquote>
             </div>
 
-            <div className="wa-panel-soft rounded-2xl p-4">
+            <div className="bg-[var(--muted)]/40 rounded-2xl p-4">
               <div className="flex items-center gap-2">
-                <BookOpen size={14} className="text-[var(--wa-accent)]" />
-                <span className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+                <BookOpen size={14} className="text-[var(--primary)]" />
+                <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                   Leitura da ficha
                 </span>
               </div>
-              <p className={`mt-3 text-sm font-modern leading-relaxed ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+              <p className="mt-3 text-sm font-modern leading-relaxed text-[var(--foreground)]">
                 {data?.leitura_ficha || 'Leitura da build indisponivel.'}
               </p>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="wa-panel-soft rounded-2xl p-4">
+            <div className="bg-[var(--muted)]/40 rounded-2xl p-4">
               <div className="flex items-center gap-2">
-                <Swords size={14} className="text-[var(--wa-accent)]" />
-                <span className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+                <Swords size={14} className="text-[var(--primary)]" />
+                <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                   Atributos finais
                 </span>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2">
-                {Object.entries(ATTR_LABELS).map(([key, label]) => (
-                  <div key={key} className={`rounded-xl border px-3 py-2 text-center ${isLight ? 'border-slate-200 bg-white/70' : 'border-[var(--wa-border)] bg-black/15'}`}>
-                    <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.16em] text-[var(--wa-muted)]">{label}</p>
-                    <p className={`mt-1 text-lg font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                {ATRIBUTOS_LUNARIA.map(({ chave: key, abrev: label }) => (
+                  <div key={key} className="rounded-xl border px-3 py-2 text-center border-[var(--border)] bg-[var(--muted)]/30">
+                    <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">{label}</p>
+                    <p className="mt-1 text-lg tabular-nums font-bold text-[var(--foreground)]">
                       {snapshot.atributos?.[key] ?? '-'}
                     </p>
                   </div>
@@ -308,24 +267,24 @@ const DestinoResolutivaBlock = ({
               </div>
             </div>
 
-            <div className="wa-panel-soft rounded-2xl p-4">
+            <div className="bg-[var(--muted)]/40 rounded-2xl p-4">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+                  <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                     Combo unificado
                   </p>
-                  <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                  <p className="mt-1 text-sm font-modern text-[var(--muted-foreground)]">
                     Um unico pacote final para entrar no mundo.
                   </p>
                 </div>
-                <span className="wa-accent-chip rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+                <span className="bg-[var(--primary)]/15 text-[var(--primary)] rounded-full px-3 py-1 text-[10px] font-modern font-semibold">
                   {itensCombo.length} itens
                 </span>
               </div>
 
               <div className="mt-4 space-y-3">
                 {itensCombo.length === 0 && (
-                  <div className={`rounded-2xl border border-dashed p-4 text-sm font-modern ${isLight ? 'border-slate-300 text-slate-500' : 'border-[var(--wa-border)] text-[var(--wa-muted)]'}`}>
+                  <div className="rounded-2xl border border-dashed p-4 text-sm font-modern border-[var(--border)] text-[var(--muted-foreground)]">
                     Nenhum item elegivel foi encontrado para esta leitura.
                   </div>
                 )}
@@ -333,21 +292,21 @@ const DestinoResolutivaBlock = ({
                 {itensCombo.map((item, index) => (
                   <article
                     key={`${item.grupo}-${item.id}-${index}`}
-                    className={`rounded-2xl border border-l-4 p-4 ${item.barClass} ${isLight ? 'bg-white/70' : 'bg-black/15'}`}
+                    className={`rounded-2xl border border-l-4 p-4 ${item.barClass} bg-[var(--muted)]/30`}
                   >
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${item.badgeClass}`}>
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold ${item.badgeClass}`}>
                         {item.badge}
                       </span>
-                      <span className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+                      <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                         {item.grupo}
                       </span>
                     </div>
-                    <h4 className={`mt-3 text-base font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                    <h4 className="mt-3 text-base font-fantasy font-bold text-[var(--foreground)]">
                       {item.nome}
                     </h4>
                     {item.motivo && (
-                      <p className={`mt-2 text-sm font-modern leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                      <p className="mt-2 text-sm font-modern leading-relaxed text-[var(--muted-foreground)]">
                         {item.motivo}
                       </p>
                     )}
@@ -358,86 +317,61 @@ const DestinoResolutivaBlock = ({
           </div>
         </div>
 
-        <div className="wa-panel wa-etched rounded-[22px] p-4 md:p-5">
-          <div className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+        <div className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-4 md:p-5">
+          <div className="bg-[var(--primary)]/15 text-[var(--primary)] inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold">
             <ImageIcon size={11} />
             Retrato do heroi
           </div>
 
           {imageUrl ? (
             <div className="mt-3 flex justify-center">
-              <img src={imageUrl} alt={snapshot.nome || 'Retrato'} className="w-48 h-48 rounded-2xl object-cover border-2 border-purple-500/30 shadow-lg" />
+              <img src={imageUrl} alt={snapshot.nome || 'Retrato'} className="w-48 h-48 rounded-2xl object-cover border-2 border-[var(--primary)]/30 shadow-lg" />
             </div>
           ) : (
             <div className="mt-3">
               {imageLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 size={24} className="animate-spin text-purple-400" />
-                  <span className="ml-3 text-sm font-modern text-slate-400">Gerando retrato...</span>
+                  <Loader2 size={24} className="animate-spin text-[var(--primary)]" />
+                  <span role="status" className="ml-3 text-sm font-modern text-[var(--muted-foreground)]">Gerando retrato...</span>
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={onGerarImagem}
                   disabled={imageLoading}
-                  className="wa-panel-soft w-full flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
+                  className={`bg-[var(--muted)]/40 w-full flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-medium text-[var(--foreground)] transition-all hover:-translate-y-0.5 cursor-pointer ${FOCO}`}
                 >
-                  <Sparkles size={15} className="text-[var(--wa-forge-gold)]" />
+                  <Sparkles size={15} className="text-amber-500" />
                   Gerar retrato do personagem
                 </button>
               )}
               {imageError && (
-                <p className="mt-2 text-xs text-red-400 text-center">{imageError}</p>
+                <div role="alert" className="mt-2 flex flex-wrap items-center justify-center gap-2 font-modern text-xs text-red-600 dark:text-red-400">
+                  <span>{mensagemDeErro(imageError)}</span>
+                  {onGerarImagem && (
+                    <button type="button" onClick={onGerarImagem} className={`font-semibold underline-offset-2 hover:underline cursor-pointer ${FOCO}`}>
+                      Tentar de novo
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}
         </div>
 
-        <div className="border-t border-[var(--wa-border)] pt-4">
+        <div className="border-t border-[var(--border)] pt-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                 Pronto para a aventura?
               </p>
-              <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                Criar usa este combo exatamente como ele esta agora. Volte ao Arsenal para regenerar.
+              <p className="mt-1 text-sm font-modern text-[var(--muted-foreground)]">
+                Criar (no rodapé) usa este combo exatamente como ele está agora. Volte ao Arsenal para regenerar.
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={onCriar}
-              disabled={criacaoBloqueada}
-              className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-6 py-4 text-base font-modern font-semibold transition-all ${
-                criacaoBloqueada
-                  ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
-                  : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5 hover:shadow-xl'
-              } ${!criacaoBloqueada ? 'animate-pulse shadow-[0_0_20px_rgba(139,92,246,0.3)]' : ''}`}
-            >
-              {criando ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-              {criando ? 'Selando...' : 'Criar personagem'}
-            </button>
           </div>
         </div>
 
-        {/* --- Sticky bottom bar on mobile --- */}
-        {data && (
-          <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--wa-border)] bg-[var(--wa-surface,rgba(15,23,42,0.95))] p-3 backdrop-blur-md md:hidden">
-            <button
-              type="button"
-              onClick={onCriar}
-              disabled={criacaoBloqueada}
-              className={`flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-4 text-base font-modern font-semibold transition-all ${
-                criacaoBloqueada
-                  ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
-                  : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg'
-              } ${!criacaoBloqueada ? 'shadow-[0_0_20px_rgba(139,92,246,0.3)]' : ''}`}
-            >
-              {criando ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-              {criando ? 'Selando...' : 'Criar personagem'}
-            </button>
-          </div>
-        )}
       </div>
     </section>
   );

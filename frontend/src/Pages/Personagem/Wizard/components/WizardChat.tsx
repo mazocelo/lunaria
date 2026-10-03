@@ -170,7 +170,6 @@ const WizardChat = ({
   comboPreviewTentativa = 0,
   onRegenerarComboPreview,
   onRecarregarComboPreview,
-  creationFlowStatus = 'idle',
   imageUrl = null,
   imageLoading = false,
   imageError = null,
@@ -872,16 +871,11 @@ const WizardChat = ({
             loading={comboPreviewLoading}
             error={comboPreviewErro}
             onRetry={onRecarregarComboPreview}
-            onCriar={onSalvarPersonagem}
-            podeCriar={podeCriar}
-            salvando={salvando}
-            creationFlowStatus={creationFlowStatus}
             imageUrl={imageUrl}
             imageLoading={imageLoading}
             imageError={imageError}
             onGerarImagem={onGerarImagem}
             isLight={isLight}
-            exigeComboPreview={sistema !== 'dnd5e'}
           />
         )}
 

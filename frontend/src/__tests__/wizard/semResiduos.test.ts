@@ -22,6 +22,8 @@ const ARQUIVOS_LIMPOS = [
   'components/GrimorioBlock.tsx',
   'components/DnDAbilityScoreBlock.tsx',
   'components/DnDSkillsBlock.tsx',
+  'components/DestinoResolutivaBlock.tsx',
+  'stages/ResumoStage.tsx',
 ];
 
 const PROIBIDOS: Array<[string, RegExp]> = [

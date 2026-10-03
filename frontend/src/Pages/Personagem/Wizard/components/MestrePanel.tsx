@@ -34,7 +34,8 @@ const MestrePanel = (props: MestrePanelProps) => {
 
   const enviar = () => {
     if (!inputTexto.trim() || enviando) return;
-    onEnviar(inputTexto);
+    // Conversar nunca grava nome/background nem avança: isso só pelos chips e pelas telas da etapa.
+    onEnviar(inputTexto, { manterEtapa: true });
     setInputTexto('');
   };
 

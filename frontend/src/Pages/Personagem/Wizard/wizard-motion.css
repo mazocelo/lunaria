@@ -1,0 +1,27 @@
+/* src/Pages/Personagem/Wizard/wizard-motion.css
+   Movimento do wizard (spec seção 9). Só tempo e transformação; cores vêm dos tokens globais. */
+.wz-expand { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 240ms cubic-bezier(.16,1,.3,1); }
+.wz-expand[data-aberta="true"] { grid-template-rows: 1fr; }
+.wz-expand > * { overflow: hidden; min-height: 0; }
+
+@keyframes wz-stage-in { from { opacity: 0; transform: translateX(calc(16px * var(--wz-dir, 1))); } to { opacity: 1; transform: none; } }
+.wz-stage-in { animation: wz-stage-in 200ms cubic-bezier(.16,1,.3,1) both; }
+
+@keyframes wz-card-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.wz-card-in { animation: wz-card-in 220ms cubic-bezier(.16,1,.3,1) both; animation-delay: calc(var(--wz-i, 0) * 40ms); }
+
+.wz-select { transition: box-shadow 160ms ease-out, transform 160ms ease-out, border-color 160ms ease-out; }
+.wz-select[data-selecionada="true"] { box-shadow: 0 0 0 2px var(--primary); transform: scale(1.02); }
+
+@keyframes wz-sheet-in { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+.wz-sheet-in { animation: wz-sheet-in 200ms cubic-bezier(.16,1,.3,1) both; }
+@media (max-width: 767px) {
+  @keyframes wz-sheet-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wz-expand { transition: none; }
+  .wz-stage-in, .wz-card-in, .wz-sheet-in { animation-duration: 120ms; animation-name: wz-fade; }
+  .wz-select, .wz-select[data-selecionada="true"] { transform: none; transition: none; }
+}
+@keyframes wz-fade { from { opacity: 0; } to { opacity: 1; } }

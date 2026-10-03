@@ -23,6 +23,7 @@ export const criarPropsDaView = (over: Partial<Record<keyof WizardModel, unknown
   skipVantagens: false, setSkipVantagens: noop, skipDesvantagens: false, setSkipDesvantagens: noop,
   pontosCriacaoTotal: 10, pontosCriacaoRestantes: 10, pontosGastos: 0, pontosVantagem: 0, pontosDesvantagem: 0, custoRaca: 0, custoClasse: 0, maxCustoDesvantagem: 0,
   racasDisponiveis: [], classesDisponiveis: [], vantagensDisponiveis: [],
+  catalogoCarregando: { raca: false, classe: false }, catalogoErro: { raca: null, classe: null }, recarregarCatalogo: noop,
   enviarMensagem: noop, selecionarSugestao: noop, removerSelecao: noop, salvarPersonagem: noop, clearError: noop,
   draftRestaurado: false, descartarDraft: noop, salvando: false, error: null,
   comboPreviewData: null, comboPreviewLoading: false, comboPreviewErro: null, comboPreviewTentativa: 0, comboPreviewBuildKey: '', podeGerarPreview: false,

@@ -151,6 +151,9 @@ const WizardView = (props: WizardViewProps) => {
     avancarEtapa,
     navigate,
     definirNome,
+    catalogoCarregando,
+    catalogoErro,
+    recarregarCatalogo,
   } = props;
 
   const { theme } = useTheme();
@@ -433,6 +436,11 @@ const WizardView = (props: WizardViewProps) => {
             sugeridos={idsSugeridos('raca')}
             enviando={enviando}
             onSelecionar={(item) => escolherDoCatalogo('raca', item)}
+            carregando={catalogoCarregando.raca}
+            erro={catalogoErro.raca}
+            onTentarDeNovo={() => recarregarCatalogo('raca')}
+            textoVazio="Nenhuma raça cadastrada para este sistema"
+            textoErro="Não conseguimos carregar as raças"
             catalogoHref="/racas"
             rotuloBusca="Buscar raça..."
             isLight={isLight}
@@ -446,6 +454,11 @@ const WizardView = (props: WizardViewProps) => {
             sugeridos={idsSugeridos('classe')}
             enviando={enviando}
             onSelecionar={(item) => escolherDoCatalogo('classe', item)}
+            carregando={catalogoCarregando.classe}
+            erro={catalogoErro.classe}
+            onTentarDeNovo={() => recarregarCatalogo('classe')}
+            textoVazio="Nenhuma classe cadastrada para este sistema"
+            textoErro="Não conseguimos carregar as classes"
             catalogoHref="/classes"
             rotuloBusca="Buscar classe..."
             isLight={isLight}

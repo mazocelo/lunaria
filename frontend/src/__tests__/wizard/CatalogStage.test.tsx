@@ -1,9 +1,10 @@
 // src/__tests__/wizard/CatalogStage.test.tsx
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ThemeProvider } from '../../contexts/theme';
 import CatalogStage from '../../Pages/Personagem/Wizard/stages/CatalogStage';
+import { montar, clicar, digitar } from '../helpers/montar';
 
 // CatalogCard e EmptyState leem useTheme(), que lança fora do provider.
 const render = (el: ReactElement) => renderToStaticMarkup(<ThemeProvider>{el}</ThemeProvider>);
@@ -13,7 +14,10 @@ const itens = [
   { id: 2, nome: 'Humano', descricao: 'Versáteis.', imagem: null, custo: 0 },
   { id: 3, nome: 'Tiefling', descricao: 'Linhagem infernal.', imagem: 'https://img/tief.png', custo: 2 },
 ];
-const base = { modo: 'unica' as const, enviando: false, onSelecionar: () => {}, rotuloBusca: 'Buscar raça...', isLight: false };
+const base = {
+  modo: 'unica' as const, enviando: false, onSelecionar: () => {}, rotuloBusca: 'Buscar raça...', isLight: false,
+  textoVazio: 'Nenhuma raça cadastrada para este sistema', textoErro: 'Não conseguimos carregar as raças',
+};
 
 describe('CatalogStage', () => {
   it('renderiza uma carta por item, com custo, Gratuita e detalhe', () => {
@@ -69,5 +73,39 @@ describe('CatalogStage: limite de cartas', () => {
   it('com até 12 itens não mostra Mostrar mais', () => {
     const html = render(<CatalogStage {...base} itens={itens} selecionados={[]} />);
     expect(html).not.toContain('Mostrar mais');
+  });
+});
+
+describe('CatalogStage: carregando, erro e vazio (A04)', () => {
+  it('carregando mostra a grade de esqueletos, sem cartas nem estado vazio', () => {
+    const html = render(<CatalogStage {...base} itens={[]} selecionados={[]} carregando={true} />);
+    expect(html).toContain('data-estado="carregando"');
+    expect(html).toContain('animate-pulse');
+    expect(html).not.toContain('data-item=');
+    expect(html).not.toContain('Nenhum');
+  });
+
+  it('erro mostra a mensagem e Tentar de novo, que chama onTentarDeNovo', () => {
+    const onTentarDeNovo = vi.fn();
+    const { container, desmontar } = montar(<ThemeProvider><CatalogStage {...base} itens={[]} selecionados={[]} erro="Network Error" onTentarDeNovo={onTentarDeNovo} /></ThemeProvider>);
+    expect(container.textContent).toContain('Não conseguimos carregar as raças');
+    expect(container.textContent).not.toContain('Nenhum item com esse nome');
+    clicar(container.querySelector('[data-acao="tentar-de-novo"]'));
+    expect(onTentarDeNovo).toHaveBeenCalled();
+    desmontar();
+  });
+
+  it('lista vazia sem busca diz que não há nada cadastrado', () => {
+    const html = render(<CatalogStage {...base} itens={[]} selecionados={[]} />);
+    expect(html).toContain('Nenhuma raça cadastrada para este sistema');
+    expect(html).not.toContain('Nenhum item com esse nome');
+  });
+
+  it('"Nenhum item com esse nome" só aparece quando há busca', () => {
+    const { container, desmontar } = montar(<ThemeProvider><CatalogStage {...base} itens={itens} selecionados={[]} /></ThemeProvider>);
+    expect(container.textContent).not.toContain('Nenhum item com esse nome');
+    digitar(container.querySelector('#catalog-busca'), 'zzz');
+    expect(container.textContent).toContain('Nenhum item com esse nome');
+    desmontar();
   });
 });

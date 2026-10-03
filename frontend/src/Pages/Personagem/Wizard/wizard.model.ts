@@ -30,8 +30,14 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
 
   // --- Zustand store subscriptions ---
   const racas = useRacaStore(s => s.racas);
+  const racasCarregadas = useRacaStore(s => s.racasCarregadas);
+  const racasLoading = useRacaStore(s => s.loading);
+  const racasErro = useRacaStore(s => s.error);
   const carregarRacas = useRacaStore(s => s.carregarRacas);
   const classes = useClasseStore(s => s.classes);
+  const classesCarregadas = useClasseStore(s => s.classesCarregadas);
+  const classesLoading = useClasseStore(s => s.loading);
+  const classesErro = useClasseStore(s => s.error);
   const carregarClasses = useClasseStore(s => s.carregarClasses);
   const vantagens = useVantagemStore(s => s.vantagens);
   const vantagensCarregadas = useVantagemStore(s => s.vantagensCarregadas);
@@ -375,8 +381,21 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
       }
       await Promise.all(promises);
     };
-    loadAll();
+    // O erro fica na store (catalogoErro); aqui só evita a rejeição não tratada.
+    loadAll().catch(() => {});
   }, [isTresdet, isDnd5e]);
+
+  // Estado do catálogo de raça/classe para a tela: antes da 1ª carga conta como carregando.
+  const catalogoCarregando = {
+    raca: racasLoading || (!racasCarregadas && !racasErro),
+    classe: classesLoading || (!classesCarregadas && !classesErro),
+  };
+  const catalogoErro = { raca: racasErro, classe: classesErro };
+  const recarregarCatalogo = useCallback((tipo: 'raca' | 'classe') => {
+    const sistemaCatalogo = isDnd5e ? 'dnd5e' : null;
+    const carga = tipo === 'raca' ? carregarRacas(true, sistemaCatalogo) : carregarClasses(true, sistemaCatalogo);
+    carga.catch(() => {});
+  }, [isDnd5e, carregarRacas, carregarClasses]);
 
   // Draft save
   useEffect(() => {
@@ -503,6 +522,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     maxCustoDesvantagem: pointSystem.maxCustoDesvantagem,
     // Catálogos
     racasDisponiveis, classesDisponiveis, vantagensDisponiveis,
+    catalogoCarregando, catalogoErro, recarregarCatalogo,
     // Actions
     enviarMensagem: mestreInteraction.enviarMensagem,
     selecionarSugestao: mestreInteraction.selecionarSugestao,

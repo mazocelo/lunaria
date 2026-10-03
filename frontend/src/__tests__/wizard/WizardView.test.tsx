@@ -159,3 +159,25 @@ describe('WizardView: feedback do Mestre nas telas novas (A06/A07/A10)', () => {
     expect(html).not.toContain('data-mestre="falha"');
   });
 });
+
+describe('WizardView: estados do catálogo (A04)', () => {
+  it('raças carregando mostram esqueletos', () => {
+    const html = render(<WizardView {...criarPropsDaView({ etapaAtual: 'raca', etapaIndex: 1, catalogoCarregando: { raca: true, classe: false } })} />);
+    expect(html).toContain('data-estado="carregando"');
+  });
+
+  it('erro nas classes: mensagem própria e Tentar de novo recarrega as classes', () => {
+    const recarregarCatalogo = vi.fn();
+    const props = criarPropsDaView({ etapaAtual: 'classe', etapaIndex: 2, catalogoErro: { raca: null, classe: 'Network Error' }, recarregarCatalogo });
+    const { container, desmontar } = montar(<ThemeProvider><WizardView {...props} /></ThemeProvider>);
+    expect(container.textContent).toContain('Não conseguimos carregar as classes');
+    clicar(container.querySelector('[data-acao="tentar-de-novo"]'));
+    expect(recarregarCatalogo).toHaveBeenCalledWith('classe');
+    desmontar();
+  });
+
+  it('nenhuma raça cadastrada', () => {
+    const html = render(<WizardView {...criarPropsDaView({ etapaAtual: 'raca', etapaIndex: 1 })} />);
+    expect(html).toContain('Nenhuma raça cadastrada para este sistema');
+  });
+});

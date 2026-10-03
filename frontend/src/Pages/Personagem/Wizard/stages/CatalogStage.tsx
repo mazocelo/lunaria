@@ -1,7 +1,7 @@
 // src/Pages/Personagem/Wizard/stages/CatalogStage.tsx
 import { useMemo, useState, type CSSProperties } from 'react';
-import { Check, ExternalLink, Search, Sparkles } from 'lucide-react';
-import { CatalogCard, EmptyState } from '../../../../components/shared';
+import { AlertCircle, Check, ExternalLink, RotateCcw, Search, Sparkles } from 'lucide-react';
+import { CatalogCard, CatalogCardSkeleton, EmptyState } from '../../../../components/shared';
 import '../wizard-motion.css';
 
 export interface CatalogItem {
@@ -22,6 +22,15 @@ export interface CatalogStageProps {
   onSelecionar: (item: CatalogItem) => void;
   catalogoHref?: string;
   rotuloBusca: string;
+  /** Catálogo ainda chegando da API: grade de esqueletos no lugar das cartas. */
+  carregando?: boolean;
+  /** Falha ao carregar o catálogo (mensagem da store). Só vira estado de erro se não houver itens. */
+  erro?: string | null;
+  onTentarDeNovo?: () => void;
+  /** Lista vazia sem busca, ex.: "Nenhuma raça cadastrada para este sistema". */
+  textoVazio: string;
+  /** Título do estado de erro, ex.: "Não conseguimos carregar as raças". */
+  textoErro: string;
   isLight: boolean;
 }
 
@@ -30,7 +39,7 @@ const POR_LOTE = 12;
 
 const normalizar = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-const CatalogStage = ({ itens, selecionados, modo, sugeridos = [], enviando, onSelecionar, catalogoHref, rotuloBusca, isLight }: CatalogStageProps) => {
+const CatalogStage = ({ itens, selecionados, modo, sugeridos = [], enviando, onSelecionar, catalogoHref, rotuloBusca, carregando = false, erro = null, onTentarDeNovo, textoVazio, textoErro, isLight }: CatalogStageProps) => {
   const [busca, setBusca] = useState('');
   const [limite, setLimite] = useState(POR_LOTE);
   const visiveis = useMemo(() => {
@@ -62,7 +71,24 @@ const CatalogStage = ({ itens, selecionados, modo, sugeridos = [], enviando, onS
         )}
       </div>
 
-      {visiveis.length === 0 ? (
+      {carregando ? (
+        <div data-estado="carregando" aria-busy="true" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => <CatalogCardSkeleton key={i} />)}
+        </div>
+      ) : erro && itens.length === 0 ? (
+        <EmptyState
+          icon={AlertCircle}
+          title={textoErro}
+          description="Verifique a conexão e tente de novo."
+          action={onTentarDeNovo ? (
+            <button type="button" data-acao="tentar-de-novo" onClick={onTentarDeNovo} className="btn-rpg-secondary inline-flex items-center gap-2 cursor-pointer">
+              <RotateCcw size={14} /> Tentar de novo
+            </button>
+          ) : null}
+        />
+      ) : itens.length === 0 ? (
+        <EmptyState title={textoVazio} />
+      ) : visiveis.length === 0 ? (
         <EmptyState title="Nenhum item com esse nome" description="Tente outro termo ou limpe a busca." />
       ) : (
         <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${enviando ? 'pointer-events-none opacity-70' : ''}`} aria-busy={enviando ? 'true' : 'false'}>

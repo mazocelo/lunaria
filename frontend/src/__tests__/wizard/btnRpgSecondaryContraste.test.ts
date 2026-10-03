@@ -2,9 +2,9 @@
 // G2: .btn-rpg-secondary tinha texto purple-300 sobre fundo claro (1,01:1) no tema claro.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 
-const css = readFileSync(resolve(__dirname, '../../index.css'), 'utf8');
+// Lido do disco: no vitest o import de .css (mesmo ?raw) chega vazio.
+const css = readFileSync('src/index.css', 'utf8'); // o vitest roda da raiz do projeto
 
 const bloco = (seletor: string) => {
   const i = css.indexOf(`${seletor} {`);

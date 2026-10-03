@@ -8,7 +8,8 @@ export interface WizardFooterProps {
   podeContinuar: boolean;
   enviando: boolean;
   onVoltar: () => void;
-  onContinuar: () => void;
+  /** Ausente nas etapas legado: lá o chat continua dono do avanço e o rodapé só oferece Voltar. */
+  onContinuar?: () => void;
   onPular?: () => void;
   isLight: boolean;
 }
@@ -34,11 +35,13 @@ const WizardFooter = ({ etapaIndex, etapasTotal, proximaLabel = null, podeContin
             <SkipForward size={14} /> Pular etapa
           </button>
         )}
-        <button type="button" data-acao="continuar" onClick={onContinuar} disabled={desabilitado} className="btn-rpg inline-flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50">
-          {enviando ? <Loader2 size={16} className="animate-spin" /> : null}
-          <span>{rotulo}</span>
-          {!enviando && !ultima ? <ArrowRight size={16} /> : null}
-        </button>
+        {onContinuar && (
+          <button type="button" data-acao="continuar" onClick={onContinuar} disabled={desabilitado} className="btn-rpg inline-flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50">
+            {enviando ? <Loader2 size={16} className="animate-spin" /> : null}
+            <span>{rotulo}</span>
+            {!enviando && !ultima ? <ArrowRight size={16} /> : null}
+          </button>
+        )}
       </div>
     </footer>
   );

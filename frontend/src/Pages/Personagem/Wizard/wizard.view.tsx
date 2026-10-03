@@ -507,18 +507,16 @@ const WizardView = (props: WizardViewProps) => {
         )}
       </StageFrame>
 
-      {tela !== 'legado' && (
-        <WizardFooter
-          etapaIndex={etapaIndex}
-          etapasTotal={etapas.length}
-          proximaLabel={etapaProxima?.label ?? null}
-          podeContinuar={podeContinuar}
-          enviando={enviando}
-          onVoltar={onVoltar}
-          onContinuar={() => avancarComMestre()}
-          isLight={isLight}
-        />
-      )}
+      <WizardFooter
+        etapaIndex={etapaIndex}
+        etapasTotal={etapas.length}
+        proximaLabel={etapaProxima?.label ?? null}
+        podeContinuar={podeContinuar}
+        enviando={enviando}
+        onVoltar={onVoltar}
+        onContinuar={tela === 'legado' ? undefined : () => avancarComMestre()}
+        isLight={isLight}
+      />
 
       <MestrePanel
         aberto={mestreAberto}

@@ -17,6 +17,7 @@ const ARQUIVOS_LIMPOS = [
   'stages/BackgroundStage.tsx',
   'components/AtributoTile.tsx',
   'components/AttributeDistributor.tsx',
+  'stages/AtributosStage.tsx',
 ];
 
 const PROIBIDOS: Array<[string, RegExp]> = [

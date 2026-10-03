@@ -48,3 +48,26 @@ describe('CatalogStage', () => {
     expect(html).toContain('aria-busy="true"');
   });
 });
+
+describe('CatalogStage: limite de cartas', () => {
+  const muitos = Array.from({ length: 40 }, (_, i) => ({ id: i + 1, nome: 'Raça ' + (i + 1), imagem: 'https://img/' + (i + 1) + '.png', custo: 1 }));
+
+  it('com 40 itens renderiza só 12 cartas e o botão Mostrar mais', () => {
+    const html = render(<CatalogStage {...base} itens={muitos} selecionados={[]} />);
+    expect((html.match(/data-item=/g) ?? []).length).toBe(12);
+    expect(html).toContain('Mostrar mais');
+    expect(html).toContain('12 de 40');
+  });
+
+  it('selecionado e sugeridos vêm primeiro mesmo fora dos 12 iniciais', () => {
+    const html = render(<CatalogStage {...base} itens={muitos} selecionados={[35]} sugeridos={[30]} />);
+    const ordem = [...html.matchAll(/data-item="([0-9]+)"/g)].map((m) => m[1]);
+    expect(ordem.slice(0, 2)).toEqual(['35', '30']);
+    expect(ordem.length).toBe(12);
+  });
+
+  it('com até 12 itens não mostra Mostrar mais', () => {
+    const html = render(<CatalogStage {...base} itens={itens} selecionados={[]} />);
+    expect(html).not.toContain('Mostrar mais');
+  });
+});

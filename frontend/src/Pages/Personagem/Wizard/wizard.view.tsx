@@ -15,7 +15,7 @@ import NomeStage from './stages/NomeStage';
 import CatalogStage, { type CatalogItem } from './stages/CatalogStage';
 import { telaDaEtapa } from './stages/stageScreen';
 import { getStageConfig } from './stages/stageConfig';
-import { getProgressItems, getReadinessState, canCreate } from './stages/stageSelectors';
+import { getProgressItems, canCreate } from './stages/stageSelectors';
 import type { WizardSuggestion } from './hooks/useChatState';
 import type { WizardModel } from './wizard.model';
 
@@ -205,7 +205,6 @@ const WizardView = (props: WizardViewProps) => {
 
   const podeCriar = useMemo(() => canCreate(buildState, sistema), [buildState, sistema]);
   const progressoItems = useMemo(() => getProgressItems(buildState, sistema), [buildState, sistema]);
-  const readinessState = useMemo(() => getReadinessState(buildState, sistema), [buildState, sistema]);
   const creationStatusLabel = useMemo(() => {
     switch (creationFlowStatus) {
       case 'creating_character':
@@ -299,6 +298,7 @@ const WizardView = (props: WizardViewProps) => {
         onToggle={() => setFichaAberta((v) => !v)}
         isLight={isLight}
       >
+        {/* variant default: a "wizard" depende de .wizard-atelier, que só existe dentro do LegacyStageAdapter. */}
         <PersonagemPreviewCard
           nome={nome}
           raca={racaId}
@@ -313,8 +313,6 @@ const WizardView = (props: WizardViewProps) => {
           bonusAplicados={bonusAplicados}
           skipVantagens={skipVantagens}
           skipDesvantagens={skipDesvantagens}
-          variant="wizard"
-          readinessState={readinessState}
         />
       </HeroStrip>
 

@@ -78,6 +78,16 @@ describe('MestrePanel: conversar não grava nem avança (A14/A15)', () => {
 });
 
 describe('MestrePanel: Mestre pensando (M2)', () => {
+  it('custo do chip no formato único: custa ou devolve', () => {
+    const msgs = [{ role: 'mestre', content: 'Opções', sugestoes: [
+      { tipo: 'vantagem', nome: 'Riqueza', custo: 2 },
+      { tipo: 'desvantagem', nome: 'Fobia', custo: -1 },
+    ] }] as WizardMessage[];
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} etapaAtual="vantagens" mensagens={msgs} />);
+    expect(html).toContain('Custa 2 pts');
+    expect(html).toContain('Devolve 1 pt');
+  });
+
   it('enviando mostra o indicador no fim da conversa', () => {
     const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={mensagens} enviando={true} />);
     expect(html).toContain('O Mestre está pensando…');

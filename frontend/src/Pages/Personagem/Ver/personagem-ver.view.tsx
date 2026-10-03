@@ -6,6 +6,7 @@ import ImageLightbox from '../../../components/ImageLightbox';
 import { Badge } from '../../../components/shared';
 import { BONUS_ATTR_KEYS, parseBonusMap } from '../../../utils/personagemBonus';
 import { isSpellAction } from '../../../utils/isSpellAction';
+import { formatarCustoTraco } from '../Wizard/stages/custoTraco';
 import {
   User, ArrowLeft, BarChart3, Star, ScrollText,
   Swords, Brain, ShieldCheck, Zap, Target, Sparkles, ChevronUp,
@@ -481,7 +482,7 @@ const VerPersonagemView = ({
                           {origemBadge(item.id, true)}
                           {item.custo != null && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-cyan-500/15 text-cyan-400">
-                              {item.custo > 0 ? `+${item.custo}` : item.custo} pts
+                              {formatarCustoTraco(item.custo).texto}
                             </span>
                           )}
                           {item.tipo && <Badge variant="purple">{item.tipo}</Badge>}
@@ -512,7 +513,7 @@ const VerPersonagemView = ({
                           {origemBadge(item.id, false)}
                           {item.custo != null && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded font-mono bg-red-500/15 text-red-400">
-                              {item.custo > 0 ? `+${item.custo}` : item.custo} pts
+                              {formatarCustoTraco(item.custo).texto}
                             </span>
                           )}
                           {item.tipo && <Badge variant="red">{item.tipo}</Badge>}

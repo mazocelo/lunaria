@@ -64,7 +64,13 @@ describe('OrcamentoBar', () => {
 
   it('desvantagem mostra o custo como pontos devolvidos', () => {
     const html = renderToStaticMarkup(<OrcamentoBar {...base} tipo="desvantagem" escolhidas={[{ id: 3, nome: 'Fobia', custo: -2 }]} />);
-    expect(html).toMatch(/>\+2<\/span>/);
+    expect(html).toContain('Devolve 2 pts');
+  });
+
+  it('saldo anunciado e custo no formato único', () => {
+    const html = renderToStaticMarkup(<OrcamentoBar {...base} />);
+    expect(html).toMatch(/role="status"[^>]*aria-live="polite"/);
+    expect(html).toContain('Custa 4 pts');
   });
 
   it('enviando desabilita a remoção', () => {

@@ -5,6 +5,7 @@ import MarkdownRenderer from '../../../../components/MarkdownRenderer';
 import type { WizardMessage, WizardSuggestion } from '../hooks/useChatState';
 import { getStageConfig } from '../stages/stageConfig';
 import MestrePensando from './MestrePensando';
+import { formatarCustoTraco } from '../stages/custoTraco';
 import '../wizard-motion.css';
 
 export interface MestrePanelProps {
@@ -103,7 +104,7 @@ const MestrePanel = (props: MestrePanelProps) => {
                   : () => onEscolherSugestao(s);
                 return (
                   <button key={`${tipo}-${i}`} type="button" data-sugestao={tipo} disabled={enviando} onClick={onClick} title={String(s.descricao ?? '')} className={chip}>
-                    {nome}{typeof s.custo === 'number' ? <span className="ml-1 opacity-70 tabular-nums">{s.custo} pts</span> : null}
+                    {nome}{typeof s.custo === 'number' ? <span className={`ml-1 ${formatarCustoTraco(s.custo).classe}`}>{formatarCustoTraco(s.custo).texto}</span> : null}
                   </button>
                 );
               })}

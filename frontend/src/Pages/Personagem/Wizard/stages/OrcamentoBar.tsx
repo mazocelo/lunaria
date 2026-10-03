@@ -1,6 +1,7 @@
 // src/Pages/Personagem/Wizard/stages/OrcamentoBar.tsx
 import { X } from 'lucide-react';
 import { FOCO } from '../../../../components/shared/foco';
+import { formatarCustoTraco } from './custoTraco';
 
 export interface SelecaoEscolhida {
   id: number | string;
@@ -34,7 +35,7 @@ const OrcamentoBar = ({ tipo, total, gastos, restantes, custoRaca, custoClasse, 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="font-fantasy text-base font-bold text-[var(--foreground)]">Pontos de criação</p>
-          <p role="status" className="font-modern text-sm text-[var(--muted-foreground)]">
+          <p role="status" aria-live="polite" className="font-modern text-sm text-[var(--muted-foreground)]">
             <span data-saldo={restantes} className={`font-modern text-2xl font-bold tabular-nums ${excedido ? erro : 'text-[var(--foreground)]'}`}>{restantes}</span>
             {' '}de {total} restantes · {gastos} gastos
           </p>
@@ -57,14 +58,14 @@ const OrcamentoBar = ({ tipo, total, gastos, restantes, custoRaca, custoClasse, 
         ) : escolhidas.map((e) => (
           <span key={String(e.id)} className="inline-flex items-center gap-1.5 rounded-full border border-[var(--primary)]/30 bg-[var(--primary)]/10 py-1 pl-3 pr-1 font-modern text-sm">
             <span className="text-[var(--foreground)]">{e.nome}</span>
-            <span className="tabular-nums text-[var(--muted-foreground)]">{tipo === 'desvantagem' ? `+${Math.abs(e.custo)}` : e.custo}</span>
+            <span className={formatarCustoTraco(e.custo).classe}>{formatarCustoTraco(e.custo).texto}</span>
             <button
               type="button"
               data-remover={String(e.id)}
               aria-label={`Remover ${e.nome}`}
               disabled={enviando}
               onClick={() => onRemover(e.id)}
-              className={`rounded-full p-1 text-[var(--foreground)] cursor-pointer hover:bg-[var(--primary)]/20 disabled:cursor-not-allowed disabled:opacity-50 ${FOCO}`}
+              className={`rounded-full p-1.5 text-[var(--foreground)] cursor-pointer hover:bg-[var(--primary)]/20 disabled:cursor-not-allowed disabled:opacity-50 ${FOCO}`}
             >
               <X size={12} aria-hidden="true" />
             </button>

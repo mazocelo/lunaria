@@ -70,6 +70,12 @@ export const useGrimorio = ({ racaId, racasDisponiveis, selecionadasIniciais, co
     }
   }, [racaPodeMagia]);
 
+  /** "Tentar de novo" depois de erro: força a carga mesmo para a classe já carregada (B13). */
+  const recarregarGrimorio = useCallback((classeId: number | string) => {
+    loadedClasseRef.current = null;
+    void carregarGrimorio(classeId);
+  }, [carregarGrimorio]);
+
   const toggleMagia = useCallback((magiaId: number | string) => {
     const id = String(magiaId);
     setSelecionadas(prev => {
@@ -101,6 +107,7 @@ export const useGrimorio = ({ racaId, racasDisponiveis, selecionadasIniciais, co
     toggleGrimorioMagia: toggleMagia,
     confirmarGrimorio,
     carregarGrimorio,
+    recarregarGrimorio,
     resetGrimorio,
     devePularGrimorio: !racaPodeMagia,
     racaPodeMagia,

@@ -17,6 +17,8 @@ import { useCharacterImage } from './hooks/useCharacterImage';
 import { useGrimorio } from './hooks/useGrimorio';
 import { useWizardInit } from './hooks/useWizardInit';
 import { tierDesbloqueado } from '../../../utils/evolucaoHelper';
+import { etapasAfetadas } from './stages/invalidacao';
+import { bonusRacialDnd } from './stages/dnd';
 
 interface UseWizardModelParams {
   navigate: (path: string) => void;
@@ -53,6 +55,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
   // Catálogos combinados
   const racasDisponiveis = racas || [];
   const classesDisponiveis = classes || [];
+  const racaPorId = (id: number | string | null) => racasDisponiveis.find((r) => String(r.id) === String(id)) ?? null;
   const tierCriacao = tierDesbloqueado(1);
   const vantagensDisponiveis = useMemo(() => {
     const todas = [...(vantagens || []), ...(desvantagens || [])];
@@ -70,6 +73,8 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
   const [classeId, setClasseId] = useState<number | string | null>((draftAny?.classeId as number | string | null | undefined) || null);
   const [classeNome, setClasseNome] = useState<string>((draftAny?.classeNome as string | undefined) || '');
   const [background, setBackground] = useState<string>((draftAny?.background as string | undefined) || '');
+  /** Etapas concluídas que uma troca de raça/classe/traço derrubou; o aviso some quando cada uma é refeita. */
+  const [etapasInvalidadas, setEtapasInvalidadas] = useState<string[]>([]);
 
   // --- 3D&T-specific state ---
   const [tresdetCaracteristicas, setTresdetCaracteristicas] = useState<Record<string, number>>(
@@ -303,38 +308,70 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
 
   // --- Orchestration effects ---
 
-  // Invalidate bonusAplicados when build changes (Lunaria only)
+  // Etapa refeita sai da lista de invalidadas. Declarado antes do efeito que invalida, para que
+  // no mesmo commit o filtro rode primeiro e não apague uma invalidação recém-registrada.
+  useEffect(() => {
+    setEtapasInvalidadas((v) => {
+      const restantes = v.filter((id) => !(
+        (id === 'atributos' && (isDnd5e ? dndAbilitiesConfirmed : bonusCalc.bonusAplicados))
+        || (id === 'skills' && dndSkillsConfirmed)
+        || (id === 'equipamentos' && comboPreview.comboPreviewData)
+        || (id === 'grimorio' && grimorio.grimorioSelecionado)));
+      return restantes.length === v.length ? v : restantes;
+    });
+  }, [bonusCalc.bonusAplicados, dndAbilitiesConfirmed, dndSkillsConfirmed, comboPreview.comboPreviewData,
+      grimorio.grimorioSelecionado, isDnd5e]);
+
+  // Troca de raça/classe/traço derruba o que dependia dela e registra as etapas afetadas (A19, A21),
+  // em qualquer etapa. O combo e o grimório se zeram nos próprios hooks; aqui só se registram.
   const buildDepsRef = useRef({ racaId, classeId,
     vantagensIds: pointSystem.vantagensIds, desvantagensIds: pointSystem.desvantagensIds });
   useEffect(() => {
-    if (isTresdet || isDnd5e) return;
+    if (isTresdet) return;
     const prev = buildDepsRef.current;
-    const changed = prev.racaId !== racaId || prev.classeId !== classeId
-      || prev.vantagensIds !== pointSystem.vantagensIds
-      || prev.desvantagensIds !== pointSystem.desvantagensIds;
-    buildDepsRef.current = { racaId, classeId,
-      vantagensIds: pointSystem.vantagensIds, desvantagensIds: pointSystem.desvantagensIds };
-    if (!changed || navigation.etapaAtual === 'boas_vindas') return;
-    if (bonusCalc.bonusAplicados) {
-      bonusCalc.setBonusAplicados(false);
-      if (navigation.etapaAtual === 'resumo') bonusCalc.setBonusInvalidado(true);
+    const atual = { racaId, classeId, vantagensIds: pointSystem.vantagensIds, desvantagensIds: pointSystem.desvantagensIds };
+    buildDepsRef.current = atual;
+    if (navigation.etapaAtual === 'boas_vindas') return;
+    const afetadas = etapasAfetadas(prev, atual, {
+      bonusAplicados: bonusCalc.bonusAplicados,
+      comboPronto: Boolean(comboPreview.comboPreviewData),
+      grimorioSelecionado: grimorio.grimorioSelecionado,
+      dndAbilitiesConfirmed, dndSkillsConfirmed,
+      racaDaBonusDnd: isDnd5e && (Object.keys(bonusRacialDnd(racaPorId(prev.racaId))).length > 0
+        || Object.keys(bonusRacialDnd(racaPorId(racaId))).length > 0),
+    }, isDnd5e ? 'dnd5e' : 'lunaria');
+    if (afetadas.length === 0) return;
+    if (afetadas.includes('atributos')) {
+      if (isDnd5e) setDndAbilitiesConfirmed(false); else bonusCalc.setBonusAplicados(false);
     }
+    if (afetadas.includes('skills')) { setDndSkillsConfirmed(false); setDndSkillProficiencies([]); }
+    setEtapasInvalidadas((v) => [...new Set([...v, ...afetadas])]);
   }, [racaId, classeId, pointSystem.vantagensIds, pointSystem.desvantagensIds,
-      navigation.etapaAtual, bonusCalc.bonusAplicados, isTresdet, isDnd5e]);
+      navigation.etapaAtual, isTresdet, isDnd5e]);
 
-  // Auto-load combo preview on equipamentos stage
+  // Auto-load combo preview em Equipamentos e em Finalizar (troca feita depois do combo o zera; A30)
   useEffect(() => {
-    if (navigation.etapaAtual !== 'equipamentos') return;
+    if (isDnd5e) return;
+    if (navigation.etapaAtual !== 'equipamentos' && navigation.etapaAtual !== 'resumo') return;
     if (!comboPreview.podeGerarPreview || comboPreview.comboPreviewLoading) return;
     if (comboPreview.jaCarregouBuildAtual()) return;
     comboPreview.carregarComboPreview(0, []);
   }, [navigation.etapaAtual, comboPreview.podeGerarPreview,
       comboPreview.comboPreviewLoading, comboPreview.comboPreviewData,
       comboPreview.comboPreviewBuildKey, comboPreview.carregarComboPreview,
-      comboPreview.jaCarregouBuildAtual]);
+      comboPreview.jaCarregouBuildAtual, isDnd5e]);
 
-  // Auto-load grimorio na etapa grimorio (Lunaria) / magias (3D&T); auto-pula se nao usa magia
+  // Auto-load grimorio na etapa grimorio (Lunaria) / magias (3D&T); auto-pula se nao usa magia.
+  // O auto-pulo acontece uma vez por classe: na revisita (Voltar a partir de Finalizar) a etapa
+  // fica parada, senão o jogador quicaria de volta e não conseguiria passar dela para trás.
   const grimorioStageId = isTresdet ? 'magias' : 'grimorio';
+  const grimorioPuladoRef = useRef<string | null>(null);
+  const pularGrimorioUmaVez = () => {
+    if (grimorioPuladoRef.current === String(classeId)) return;
+    grimorioPuladoRef.current = String(classeId);
+    grimorio.confirmarGrimorio();
+    navigation.avancarEtapa();
+  };
   useEffect(() => {
     if (navigation.etapaAtual !== grimorioStageId) return;
     if (isTresdet) {
@@ -348,8 +385,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     }
     if (!classeId) return;
     if (grimorio.devePularGrimorio) {
-      grimorio.confirmarGrimorio();
-      navigation.avancarEtapa();
+      pularGrimorioUmaVez();
       return;
     }
     grimorio.carregarGrimorio(classeId);
@@ -360,17 +396,15 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
   // guarda, o effect rodaria no mount com slots=0 inicial e pularia indevidamente.
   // O skip depende de grimorioCarregado, nao de !grimorioSelecionado, porque
   // carregarGrimorio ja marca grimorioSelecionado quando ha 0 slots.
+  // Com erro na carga não pula (B13): a tela mostra o erro com "Tentar de novo".
   useEffect(() => {
     if (isTresdet) return;
     if (navigation.etapaAtual !== 'grimorio') return;
     if (grimorio.grimorioLoading) return;
-    if (!grimorio.grimorioCarregado) return;
-    if (grimorio.grimorioSlots === 0) {
-      grimorio.confirmarGrimorio();
-      navigation.avancarEtapa();
-    }
+    if (!grimorio.grimorioCarregado || grimorio.grimorioError) return;
+    if (grimorio.grimorioSlots === 0) pularGrimorioUmaVez();
   }, [navigation.etapaAtual, grimorio.grimorioLoading, grimorio.grimorioCarregado,
-      grimorio.grimorioSlots, isTresdet]);
+      grimorio.grimorioError, grimorio.grimorioSlots, isTresdet]);
 
   // Reset grimorio when class changes (Lunaria only)
   useEffect(() => {
@@ -509,6 +543,19 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     navigation.avancarEtapa();
   }, [grimorio.confirmarGrimorio, navigation.avancarEtapa]);
 
+  const definirBackground = useCallback((texto: string) => setBackground(texto.slice(0, 2000)), []);
+  /** Lunaria: volta a distribuição para edição (B03); o bônus reaparece ao confirmar de novo. */
+  const { setBonusAplicados } = bonusCalc;
+  const redistribuirAtributos = useCallback(() => setBonusAplicados(false), [setBonusAplicados]);
+  const editarDndAtributos = useCallback(() => setDndAbilitiesConfirmed(false), []);
+  const editarDndPericias = useCallback(() => setDndSkillsConfirmed(false), []);
+  const limparInvalidadas = useCallback(() => setEtapasInvalidadas([]), []);
+  const { recarregarGrimorio: recarregarGrimorioDaClasse } = grimorio;
+  const recarregarGrimorio = useCallback(() => {
+    if (classeId) recarregarGrimorioDaClasse(classeId);
+  }, [classeId, recarregarGrimorioDaClasse]);
+  const multRaca = typeof racaSelecionada?.mult_raca === 'number' ? racaSelecionada.mult_raca : null;
+
   // D&D 5e: o slug em ingles da classe (ex.: wizard, barbarian) casa com as
   // chaves de CLASS_SKILL_OPTIONS consumidas pelo DnDSkillsBlock. As classes
   // D&D ja sao cadastradas com nome em ingles, entao o slug e o nome normalizado.
@@ -537,7 +584,9 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     atributosBase: bonusCalc.atributosBase, atributosFinal: bonusCalc.atributosFinal,
     atributosSugeridos: bonusCalc.atributosSugeridos,
     bonusAplicados: bonusCalc.bonusAplicados, bonusDetalhes: bonusCalc.bonusDetalhes,
-    bonusFontes: bonusCalc.bonusFontes, bonusInvalidado: bonusCalc.bonusInvalidado,
+    // Ponte até a view usar etapasInvalidadas (Task 20): o aviso de atributos vale em qualquer etapa.
+    bonusFontes: bonusCalc.bonusFontes, bonusInvalidado: etapasInvalidadas.includes('atributos'),
+    etapasInvalidadas, limparInvalidadas, redistribuirAtributos, multRaca,
     pontosDistribuidos: bonusCalc.pontosDistribuidos,
     pontosRestantes: bonusCalc.pontosRestantes, pontosTotais: bonusCalc.pontosTotais,
     attrMin: bonusCalc.attrMin, attrMax: bonusCalc.attrMax,
@@ -548,6 +597,8 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     nome, racaId, racaNome, classeId, classeNome: classeNomeExposto, background,
     /** Grava o nome digitado na etapa Nome (o Continuar confirma o rascunho). */
     definirNome: setNome,
+    /** Grava o texto da etapa Background sem chamar o Mestre (L-01). */
+    definirBackground,
     vantagensIds: pointSystem.vantagensIds, vantagensNomes: pointSystem.vantagensNomes,
     desvantagensIds: pointSystem.desvantagensIds, desvantagensNomes: pointSystem.desvantagensNomes,
     skipVantagens: pointSystem.skipVantagens, setSkipVantagens: pointSystem.setSkipVantagens,
@@ -602,6 +653,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     grimorioSelecionado: grimorio.grimorioSelecionado,
     toggleGrimorioMagia: grimorio.toggleGrimorioMagia,
     confirmarGrimorio: confirmarEAvancarGrimorio,
+    recarregarGrimorio,
     // 3D&T-specific
     tresdetCaracteristicas,
     tresdetCaracteristicasConfirmadas,
@@ -622,10 +674,12 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     setDndAbilityScore,
     resetDndAbilityScores,
     confirmarDndAbilities,
+    editarDndAtributos,
     dndSkillProficiencies,
     dndSkillsConfirmed,
     toggleDndSkill,
     confirmarDndSkills,
+    editarDndPericias,
     navigate,
   };
 };

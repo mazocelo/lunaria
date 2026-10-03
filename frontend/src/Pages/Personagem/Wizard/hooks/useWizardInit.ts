@@ -52,6 +52,10 @@ interface UseWizardInitParams {
   setDraftRestaurado: (v: boolean) => void;
   getEstado: () => Record<string, unknown>;
   comboPreview: ComboPreviewApi;
+  /** "Começar do zero" também zera D&D, grimório e retrato. */
+  resetarDnd: () => void;
+  resetGrimorio: () => void;
+  resetImage: () => void;
   sistema?: string;
 }
 
@@ -80,6 +84,7 @@ export const useWizardInit = ({
   getEstado,
   // Combo preview
   comboPreview,
+  resetarDnd, resetGrimorio, resetImage,
   // Sistema
   sistema,
 }: UseWizardInitParams) => {
@@ -220,8 +225,8 @@ export const useWizardInit = ({
     return () => window.removeEventListener('beforeunload', handler);
   }, [nome, racaId]);
 
-  // ---- descartarDraft ----
-  const descartarDraft = useCallback(() => {
+  // ---- resetarTudo ("Começar do zero") ----
+  const resetarTudo = useCallback(() => {
     limparDraft();
     navigation.resetarNavegacao();
     setNome('');
@@ -237,17 +242,22 @@ export const useWizardInit = ({
     setMensagens([]);
     setError(null);
     comboPreview.resetComboPreview();
+    resetarDnd();
+    resetGrimorio();
+    resetImage();
     creation.setCreationFlowStatus('idle');
     creation.setCreationResultModalOpen(false);
     creation.setCreationResultData(null);
     iniciarWizard();
   }, [iniciarWizard, limparDraft, navigation.resetarNavegacao,
       pointSystem.resetarSelecoes, bonusCalc.resetarAtributos,
-      comboPreview.resetComboPreview]);
+      comboPreview.resetComboPreview, resetarDnd, resetGrimorio, resetImage]);
 
   return {
     iniciarWizard,
     rehidratarEtapaAtual,
-    descartarDraft,
+    resetarTudo,
+    /** Alias de resetarTudo até a view migrar (Task 20). */
+    descartarDraft: resetarTudo,
   };
 };

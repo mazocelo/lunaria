@@ -10,8 +10,9 @@ interface GerarImagemParams {
   desvantagensNomes?: string[];
 }
 
-export const useCharacterImage = () => {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+/** `imageUrlInicial`: retrato do rascunho restaurado. */
+export const useCharacterImage = (imageUrlInicial: string | null = null) => {
+  const [imageUrl, setImageUrl] = useState<string | null>(imageUrlInicial);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
 

@@ -15,16 +15,19 @@ interface MagiaItem {
 interface UseGrimorioParams {
   racaId?: number | string | null;
   racasDisponiveis?: RacaItem[];
+  /** Rascunho restaurado: magias escolhidas e se já foram confirmadas. */
+  selecionadasIniciais?: Array<number | string>;
+  confirmadoInicial?: boolean;
 }
 
-export const useGrimorio = ({ racaId, racasDisponiveis }: UseGrimorioParams) => {
+export const useGrimorio = ({ racaId, racasDisponiveis, selecionadasIniciais, confirmadoInicial = false }: UseGrimorioParams) => {
   const [magias, setMagias] = useState<MagiaItem[]>([]);
   const [slots, setSlots] = useState(0);
-  const [selecionadas, setSelecionadas] = useState<string[]>([]);
+  const [selecionadas, setSelecionadas] = useState<string[]>(() => (selecionadasIniciais ?? []).map(String));
   const [loading, setLoading] = useState(false);
   const [carregado, setCarregado] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [grimorioSelecionado, setGrimorioSelecionado] = useState(false);
+  const [grimorioSelecionado, setGrimorioSelecionado] = useState(confirmadoInicial);
 
   const loadedClasseRef = useRef<number | string | null>(null);
 

@@ -5,7 +5,7 @@ import { useVantagemStore } from '../../../store/vantagem';
 import { useDesvantagemStore } from '../../../store/desvantagem';
 import { useRacaStore } from '../../../store/raca';
 import { useClasseStore } from '../../../store/classe';
-import { useDraftPersistence } from './hooks/useDraftPersistence';
+import { useDraftPersistence, saneamentoDoRascunho, type WizardDraft } from './hooks/useDraftPersistence';
 import { useWizardNavigation } from './hooks/useWizardNavigation';
 import { useBonusCalculation } from './hooks/useBonusCalculation';
 import { usePointSystem } from './hooks/usePointSystem';
@@ -33,11 +33,15 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
   const racasCarregadas = useRacaStore(s => s.racasCarregadas);
   const racasLoading = useRacaStore(s => s.loading);
   const racasErro = useRacaStore(s => s.error);
+  const racasSistema = useRacaStore(s => s.sistemaCarregado);
+  const racasIncompletas = useRacaStore(s => s.hasMore);
   const carregarRacas = useRacaStore(s => s.carregarRacas);
   const classes = useClasseStore(s => s.classes);
   const classesCarregadas = useClasseStore(s => s.classesCarregadas);
   const classesLoading = useClasseStore(s => s.loading);
   const classesErro = useClasseStore(s => s.error);
+  const classesSistema = useClasseStore(s => s.sistemaCarregado);
+  const classesIncompletas = useClasseStore(s => s.hasMore);
   const carregarClasses = useClasseStore(s => s.carregarClasses);
   const vantagens = useVantagemStore(s => s.vantagens);
   const vantagensCarregadas = useVantagemStore(s => s.vantagensCarregadas);
@@ -56,7 +60,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
   }, [vantagens, desvantagens]);
 
   // --- Draft ---
-  const { draftInicial, draftRestaurado, setDraftRestaurado, salvarDraft, limparDraft } = useDraftPersistence();
+  const { draftInicial, draftRestaurado, setDraftRestaurado, salvarDraft, limparDraft } = useDraftPersistence(sistema);
 
   const draftAny = draftInicial as Record<string, unknown> | null;
   // --- Personagem state ---
@@ -155,6 +159,14 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
   const resetDndAbilityScores = useCallback(() => {
     setDndAbilityScores({});
     setDndAbilitiesConfirmed(false);
+  }, []);
+
+  /** "Começar do zero": D&D volta ao estado inicial. */
+  const resetarDnd = useCallback(() => {
+    setDndAbilityScores({});
+    setDndAbilitiesConfirmed(false);
+    setDndSkillProficiencies([]);
+    setDndSkillsConfirmed(false);
   }, []);
 
   const confirmarDndAbilities = useCallback(() => {
@@ -257,7 +269,12 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     atributosBase: bonusCalc.atributosBase,
     estadoRef: estadoRef as unknown as Parameters<typeof useComboPreview>[0]['estadoRef'],
   });
-  const grimorio = useGrimorio({ racaId, racasDisponiveis });
+  const grimorio = useGrimorio({
+    racaId, racasDisponiveis,
+    selecionadasIniciais: draftInicial?.grimorioSelecionadas,
+    confirmadoInicial: draftInicial?.grimorioConfirmado ?? false,
+  });
+  const characterImage = useCharacterImage(draftInicial?.imageUrl ?? null);
 
   // Build navigation buildState com extras 3D&T e D&D 5e
   const navBuildState = useMemo(() => ({
@@ -397,9 +414,29 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     carga.catch(() => {});
   }, [isDnd5e, carregarRacas, carregarClasses]);
 
+  // Rascunho restaurado com raça/classe que não existe no catálogo do sistema: cai e volta à etapa.
+  // Espera o catálogo do próprio sistema carregar por inteiro (o cache pode ser do outro sistema).
+  const rascunhoSaneadoRef = useRef(!draftInicial || isTresdet);
+  useEffect(() => {
+    if (rascunhoSaneadoRef.current) return;
+    const sistemaCatalogo = isDnd5e ? 'dnd5e' : null;
+    const racasProntas = racasCarregadas && !racasLoading && !racasErro && racasSistema === sistemaCatalogo && !racasIncompletas;
+    const classesProntas = classesCarregadas && !classesLoading && !classesErro && classesSistema === sistemaCatalogo && !classesIncompletas;
+    if (!racasProntas || !classesProntas) return;
+    rascunhoSaneadoRef.current = true;
+    const s = saneamentoDoRascunho({ racaId, classeId }, racas.map(r => r.id), classes.map(c => c.id));
+    if (s.zerarRaca) { setRacaId(null); setRacaNome(''); }
+    if (s.zerarClasse) { setClasseId(null); setClasseNome(''); }
+    if (s.voltarPara) {
+      const ids = navigation.etapas.map(e => e.id);
+      if (ids.indexOf(navigation.etapaAtual) > ids.indexOf(s.voltarPara)) navigation.registrarVisita(s.voltarPara);
+    }
+  }, [racasCarregadas, racasLoading, racasErro, racasSistema, racasIncompletas,
+      classesCarregadas, classesLoading, classesErro, classesSistema, classesIncompletas, isDnd5e]);
+
   // Draft save
   useEffect(() => {
-    const draft: Record<string, unknown> = {
+    const draft: WizardDraft = {
       etapaAtual: navigation.etapaAtual,
       nome, racaId, racaNome, classeId, classeNome, background,
       vantagensIds: pointSystem.vantagensIds, vantagensNomes: pointSystem.vantagensNomes,
@@ -407,6 +444,8 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
       atributosBase: bonusCalc.atributosBase, bonusAplicados: bonusCalc.bonusAplicados,
       skipVantagens: pointSystem.skipVantagens, skipDesvantagens: pointSystem.skipDesvantagens,
       etapasVisitadas: navigation.etapasVisitadas, etapasConcluidas: navigation.etapasConcluidas,
+      grimorioSelecionadas: grimorio.grimorioSelecionadas, grimorioConfirmado: grimorio.grimorioSelecionado,
+      imageUrl: characterImage.imageUrl,
     };
     if (isTresdet) {
       draft.tresdetCaracteristicas = tresdetCaracteristicas;
@@ -422,7 +461,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
       draft.dndSkillProficiencies = dndSkillProficiencies;
       draft.dndSkillsConfirmed = dndSkillsConfirmed;
     }
-    salvarDraft(draft as unknown as Parameters<typeof salvarDraft>[0]);
+    salvarDraft(draft);
   }, [navigation.etapaAtual, nome, racaId, classeId, background,
       pointSystem.vantagensIds, pointSystem.desvantagensIds,
       bonusCalc.atributosBase, bonusCalc.bonusAplicados,
@@ -432,7 +471,8 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
       tresdetVantagensIds, tresdetVantagensConfirmadas,
       tresdetDesvantagensIds, tresdetDesvantagensConfirmadas, isTresdet,
       dndAbilityScores, dndAbilitiesConfirmed,
-      dndSkillProficiencies, dndSkillsConfirmed, isDnd5e]);
+      dndSkillProficiencies, dndSkillsConfirmed, isDnd5e,
+      grimorio.grimorioSelecionadas, grimorio.grimorioSelecionado, characterImage.imageUrl]);
 
   // --- Sub-hooks: mestre interaction, character creation, wizard init ---
   const mestreInteraction = useMestreInteraction({
@@ -443,7 +483,6 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     estadoRef: estadoRef as unknown as Parameters<typeof useMestreInteraction>[0]['estadoRef'],
     sistema,
   });
-  const characterImage = useCharacterImage();
   const characterCreation = useCharacterCreation({
     getEstado: getEstado as unknown as Parameters<typeof useCharacterCreation>[0]['getEstado'],
     navigate, comboPreviewData: comboPreview.comboPreviewData as Parameters<typeof useCharacterCreation>[0]['comboPreviewData'],
@@ -455,13 +494,13 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     grimorioSelecionadas: grimorio.grimorioSelecionadas,
     sistema,
   });
-  const { descartarDraft } = useWizardInit({
+  const { resetarTudo, descartarDraft } = useWizardInit({
     chat, navigation, nome, racaId: racaId as number | string | null,
     setNome, setRacaId, setRacaNome, setClasseId, setClasseNome, setBackground,
     pointSystem, bonusCalc, creation: characterCreation as unknown as Parameters<typeof useWizardInit>[0]['creation'],
     draftInicial, limparDraft, setDraftRestaurado,
     getEstado: getEstado as unknown as Parameters<typeof useWizardInit>[0]['getEstado'],
-    comboPreview, sistema,
+    comboPreview, resetarDnd, resetGrimorio: grimorio.resetGrimorio, resetImage: characterImage.resetImage, sistema,
   });
 
   // Grimorio: confirmar selecao e avancar
@@ -530,7 +569,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     salvarPersonagem: characterCreation.salvarPersonagem,
     clearError: chat.clearError,
     // Draft
-    draftRestaurado, descartarDraft,
+    draftRestaurado, resetarTudo, descartarDraft,
     // Async
     salvando: characterCreation.salvando, error,
     // Resolutiva / Criacao

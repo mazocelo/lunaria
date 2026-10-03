@@ -250,6 +250,8 @@ const WizardView = (props: WizardViewProps) => {
   const etapaProxima = etapas[etapaIndex + 1] ?? null;
   const concluidasCount = progressoItems.filter((i) => i.done).length;
   const tela = telaDaEtapa(etapaAtual, sistema);
+  // Até a Task 20, só Nome/Raça/Classe têm tela própria; o resto continua no LegacyStageAdapter.
+  const legado = tela !== 'nome' && tela !== 'catalogo-raca' && tela !== 'catalogo-classe';
   // canContinueStage não cobre Nome/Raça/Classe; nessas telas basta o campo do modelo estar preenchido.
   const podeContinuar = tela === 'nome' ? Boolean(rascunhoNome.valor.trim())
     : tela === 'catalogo-raca' ? racaId != null
@@ -300,8 +302,8 @@ const WizardView = (props: WizardViewProps) => {
     tentarAvancar(() => avancarComMestre({ nome: valor }));
   };
 
-  const recusa = tela === 'legado' ? null : falaDeRecusa(tentativa, etapaAtual, enviando, mensagens);
-  const falhaDoMestre = tela === 'legado' ? null : avisoDeFalha(mensagens, etapaAtual);
+  const recusa = legado ? null : falaDeRecusa(tentativa, etapaAtual, enviando, mensagens);
+  const falhaDoMestre = legado ? null : avisoDeFalha(mensagens, etapaAtual);
   const abrirConversa = () => { setTentativa(null); setMestreAberto(true); };
 
   const onVoltar = () => {
@@ -465,7 +467,7 @@ const WizardView = (props: WizardViewProps) => {
             isLight={isLight}
           />
         )}
-        {tela === 'legado' && (
+        {legado && (
           <LegacyStageAdapter
             theme={theme}
             mensagens={mensagens}
@@ -570,7 +572,7 @@ const WizardView = (props: WizardViewProps) => {
         )}
       </StageFrame>
 
-      {tela !== 'legado' && enviando && <MestrePensando isLight={isLight} />}
+      {!legado && enviando && <MestrePensando isLight={isLight} />}
       {recusa && (
         <MestreFalaCard
           fala={String(recusa.content ?? '')}
@@ -587,7 +589,7 @@ const WizardView = (props: WizardViewProps) => {
         podeContinuar={podeContinuar}
         enviando={enviando}
         onVoltar={onVoltar}
-        onContinuar={tela === 'legado' ? undefined : tela === 'nome' ? continuarNome : () => tentarAvancar(() => avancarComMestre())}
+        onContinuar={legado ? undefined : tela === 'nome' ? continuarNome : () => tentarAvancar(() => avancarComMestre())}
         isLight={isLight}
       />
 

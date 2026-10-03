@@ -47,3 +47,33 @@ describe('WizardFooter', () => {
     expect(com).toContain('Pular etapa');
   });
 });
+
+describe('WizardFooter: rótulo e motivo', () => {
+  const base = { etapaIndex: 6, etapasTotal: 10, proximaLabel: 'Equipamentos', podeContinuar: false, enviando: false, onVoltar: () => {}, onContinuar: () => {}, isLight: false };
+
+  it('desabilitado mostra o motivo ligado ao botão', () => {
+    const html = renderToStaticMarkup(<WizardFooter {...base} rotuloContinuar="Confirmar magias" motivoBloqueio="Distribua mais 3 pts" />);
+    expect(html).toContain('Confirmar magias');
+    expect(html).toMatch(/data-acao="continuar"[^>]*aria-describedby="rodape-motivo"/);
+    expect(html).toMatch(/id="rodape-motivo"[^>]*>Distribua mais 3 pts</);
+  });
+
+  it('habilitado não mostra motivo e usa o rótulo padrão', () => {
+    const html = renderToStaticMarkup(<WizardFooter {...base} podeContinuar motivoBloqueio="x" />);
+    expect(html).not.toContain('rodape-motivo');
+    expect(html).toContain('Continuar: Equipamentos');
+  });
+
+  it('enviando não mostra motivo', () => {
+    const html = renderToStaticMarkup(<WizardFooter {...base} enviando motivoBloqueio="Distribua mais 3 pts" />);
+    expect(html).not.toContain('rodape-motivo');
+  });
+});
+
+describe('StageFrame: título focável', () => {
+  it('h2 com id fixo e tabindex -1, e a seção rotulada por ele', () => {
+    const html = renderToStaticMarkup(<StageFrame etapaId="raca" titulo="Raça" flavor="" direcao={1} isLight={false}><p>x</p></StageFrame>);
+    expect(html).toMatch(/<h2[^>]*id="etapa-titulo"[^>]*tabindex="-1"|<h2[^>]*tabindex="-1"[^>]*id="etapa-titulo"/);
+    expect(html).toContain('aria-labelledby="etapa-titulo"');
+  });
+});

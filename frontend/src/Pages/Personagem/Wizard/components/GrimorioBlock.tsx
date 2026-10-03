@@ -147,6 +147,15 @@ const GrimorioBlock = ({
       </section>
     );
   }
+  // Classe sem magia no nível 1: chega aqui só na revisita (na primeira vez a etapa é pulada).
+  if (slots === 0) {
+    return (
+      <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
+        <p className={`font-fantasy text-lg font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>Sua classe não conjura magias no nível 1</p>
+        <p className="mt-1 font-modern text-sm text-[var(--muted-foreground)]">Não há magias para escolher nesta etapa. Continue para finalizar o personagem.</p>
+      </section>
+    );
+  }
 
   return (
     <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">

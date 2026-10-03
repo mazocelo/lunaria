@@ -7,6 +7,7 @@ import db from '../Model/index.js';
 import { ABILITY_IDS, SRD_CLASSES, SKILLS } from '../game-systems/dnd5e/constants.js';
 import { validarCriacao } from '../game-systems/dnd5e/characterEngine.js';
 import { sanitizeCharacterName, sanitizePromptInput } from '../helpers/sanitize.js';
+import { normalizarJsonCatalogo } from '../helpers/catalogJsonHelper.js';
 import { xpParaNivel } from '../helpers/evolucaoHelper.js';
 import { httpError } from '../helpers/httpError.js';
 import logger from '../helpers/logger.js';
@@ -30,6 +31,32 @@ function lerAbilityScores(body) {
     scores[sigla] = parseInt(fonte[sigla], 10) || 10;
   }
   return scores;
+}
+
+const TETO_ATRIBUTO = 20;
+
+/**
+ * Bonus racial fixo da raca D&D: `racas.bonus` (String JSON) guarda
+ * `{ abilityBonuses: { DEX: 2, ... } }` (ver prisma/seed_dnd5e_racas.js).
+ * A escolha livre (`abilityBonuses.choice`, ex.: Half-Elf) nao vem no payload
+ * e e ignorada.
+ */
+function lerBonusRacial(raca) {
+  const abilityBonuses = normalizarJsonCatalogo(raca?.bonus)?.abilityBonuses;
+  const bonus = {};
+  for (const sigla of ABILITY_IDS) {
+    const valor = parseInt(abilityBonuses?.[sigla], 10);
+    if (Number.isInteger(valor) && valor !== 0) bonus[sigla] = valor;
+  }
+  return bonus;
+}
+
+function aplicarBonusRacial(scores, bonus) {
+  const final = { ...scores };
+  for (const [sigla, valor] of Object.entries(bonus)) {
+    final[sigla] = Math.min(scores[sigla] + valor, TETO_ATRIBUTO);
+  }
+  return final;
 }
 
 const SKILL_IDS = new Set(SKILLS.map(s => s.id));
@@ -73,10 +100,14 @@ export async function criarPersonagemDnd5e(body, userId) {
   const racaId = raca_id ? parseInt(raca_id, 10) : null;
   const classeId = classe_id ? parseInt(classe_id, 10) : null;
 
+  let bonusRacial = {};
   if (racaId) {
     const raca = await db.prisma.racas.findFirst({ where: { id: racaId, sistema: 'dnd5e' } });
     if (!raca) throw httpError(400, `Raca D&D com ID ${racaId} nao encontrada`);
+    bonusRacial = lerBonusRacial(raca);
   }
+  // A validacao acima e sobre a distribuicao base; o bonus entra so na gravacao.
+  const scoresFinais = aplicarBonusRacial(scores, bonusRacial);
 
   let classeKey = null;
   if (classeId) {
@@ -125,7 +156,7 @@ export async function criarPersonagemDnd5e(body, userId) {
       data: ABILITY_IDS.map(sigla => ({
         personagem_id: created.id,
         nome: sigla,
-        valor: scores[sigla],
+        valor: scoresFinais[sigla],
       })),
     });
 

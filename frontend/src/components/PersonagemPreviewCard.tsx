@@ -3,6 +3,8 @@ import { useTheme } from '../contexts/theme';
 import { Heart, Shield, Eye, EyeOff, Sparkles, User, AlertTriangle, SkipForward, CheckCircle2, Clock3, ShieldCheck, ScrollText } from 'lucide-react';
 import WizardReadinessSeal from '../Pages/Personagem/Wizard/components/WizardReadinessSeal.jsx';
 import { BONUS_ATTR_KEYS, parseRacaClasseBonus, somarBonusAtributos, type BonusMap } from '../utils/personagemBonus';
+import { pvEstimado, siglasDaFaixa } from '../Pages/Personagem/Wizard/stages/atributos';
+import type { Pendencia } from '../Pages/Personagem/Wizard/stages/pendencias';
 
 type AttrKey = 'forca' | 'inteligencia' | 'constituicao' | 'agilidade' | 'destreza' | 'carisma';
 
@@ -25,11 +27,6 @@ const ATRIBUTOS_DEFAULT_SUM = 60;
 function calcMod(val: number | string | null | undefined): number {
   const v = Number(val) || 10;
   return Math.floor((v - 10) / 2);
-}
-
-function calcHP(con: number | string | null | undefined, nivel: number, multRaca = 5): number {
-  const mod = calcMod(con);
-  return multRaca * (nivel + Math.max(1, mod));
 }
 
 interface BadgeProps {
@@ -101,6 +98,14 @@ interface PersonagemPreviewCardProps {
   skipDesvantagens?: boolean;
   variant?: 'default' | 'wizard';
   readinessState?: ReadinessState;
+  /** D&D 5e: sem PV estimado, atributos FOR..CAR de `atributosDnd` (N-07). Padrão: Lunaria. */
+  sistema?: 'lunaria' | 'dnd5e';
+  /** Texto da etapa Background (L-01), resumido em 2 linhas. */
+  background?: string;
+  /** Lista "Antes de criar" (wizard): quando vem, decide o status no lugar da contagem própria. */
+  pendencias?: Pendencia[];
+  /** D&D 5e: valores a exibir por sigla (STR..CHA); null = ainda não atribuído. */
+  atributosDnd?: Record<string, number | null>;
 }
 
 const PersonagemPreviewCard = ({
@@ -120,7 +125,12 @@ const PersonagemPreviewCard = ({
   skipDesvantagens = false,
   variant = 'default',
   readinessState,
+  sistema = 'lunaria',
+  background,
+  pendencias,
+  atributosDnd = {},
 }: PersonagemPreviewCardProps) => {
+  const isDnd = sistema === 'dnd5e';
   const { theme } = useTheme();
   const isLight = theme === 'light';
   const [collapsed, setCollapsed] = useState(false);
@@ -158,9 +168,11 @@ const PersonagemPreviewCard = ({
     return result;
   }, [atributos, bonusJaAplicado, mergedAttrBonus]);
 
-  const hpEstimado = calcHP(atributosEfetivos.constituicao, 1, racaObj?.mult_raca ?? 5);
+  const hpEstimado = pvEstimado(atributosEfetivos.constituicao || 10, racaObj?.mult_raca);
 
-  const atributosPendentes = mostrarPendencias
+  const atributosPendentes = pendencias
+    ? pendencias.some((p) => p.etapa === 'atributos')
+    : mostrarPendencias
     ? !bonusAplicados
     : Object.values(atributos || {}).map((v) => Number(v) || 0).reduce((acc, curr) => acc + curr, 0) === ATRIBUTOS_DEFAULT_SUM;
 
@@ -178,7 +190,7 @@ const PersonagemPreviewCard = ({
   const temVantagens = vantagensNomes.some((item) => !item.isDesvantagem);
   const temDesvantagens = vantagensNomes.some((item) => item.isDesvantagem);
 
-  const pendingCount = [
+  const pendingCount = pendencias ? pendencias.length : [
     mostrarPendencias && !nome,
     mostrarPendencias && !raca,
     mostrarPendencias && !classe,
@@ -192,7 +204,7 @@ const PersonagemPreviewCard = ({
     ? null
     : pendingCount > 0
       ? { label: 'Em montagem', icon: Clock3, className: isLight ? 'bg-purple-100 text-purple-700' : 'bg-purple-500/15 text-purple-300' }
-      : { label: 'Pronto para fechar', icon: CheckCircle2, className: isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/15 text-emerald-300' };
+      : { label: pendencias ? 'Pronto para criar' : 'Pronto para fechar', icon: CheckCircle2, className: isLight ? 'bg-emerald-100 text-emerald-700' : 'bg-emerald-500/15 text-emerald-300' };
 
   const finalReadinessState = readinessState || getReadinessState({ pendingCount, bonusAplicados, nome, raca, classe });
 
@@ -235,6 +247,7 @@ const PersonagemPreviewCard = ({
             </div>
           </div>
 
+          {!isDnd && (
           <div className="flex items-center gap-2">
             <Heart size={14} className="shrink-0 text-red-400" />
             <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-700/50">
@@ -242,13 +255,36 @@ const PersonagemPreviewCard = ({
             </div>
             <span className="shrink-0 text-[11px] font-mono text-slate-300">{hpEstimado}/{hpEstimado}</span>
           </div>
+          )}
+
+          {background?.trim() && (
+            <div>
+              <span className="font-modern text-xs font-semibold text-[var(--muted-foreground)]">Background</span>
+              <p className="line-clamp-2 font-modern text-xs text-[var(--foreground)]">{background}</p>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
               <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>Atributos finais</span>
               {mostrarPendencias && atributosPendentes && <PendingBadge isLight={isLight}>Distribuicao pendente</PendingBadge>}
             </div>
-            {(Object.entries(ATTR_LABELS) as [AttrKey, AttrLabelConfig][]).map(([key, cfg]) => {
+            {isDnd && siglasDaFaixa('dnd5e', {}, atributosDnd).map(({ sigla, valor }) => {
+              const mod = valor == null ? null : calcMod(valor);
+              return (
+                <div key={sigla} className="flex items-center gap-2">
+                  <span className="w-7 font-modern text-[10px] text-[var(--muted-foreground)]">{sigla}</span>
+                  <div className="h-1.5 flex-1 rounded-full bg-[var(--muted)]">
+                    <div className="h-full rounded-full bg-[var(--primary)] transition-all duration-300" style={{ width: `${Math.min(100, ((valor ?? 0) / 20) * 100)}%` }} />
+                  </div>
+                  <span className="text-right font-modern text-[10px] tabular-nums text-[var(--muted-foreground)]">
+                    {valor ?? '—'}
+                    {mod != null && <span className={mod >= 0 ? ' text-emerald-600 dark:text-emerald-400' : ' text-red-600 dark:text-red-400'}>{` ${mod >= 0 ? '+' : ''}${mod}`}</span>}
+                  </span>
+                </div>
+              );
+            })}
+            {!isDnd && (Object.entries(ATTR_LABELS) as [AttrKey, AttrLabelConfig][]).map(([key, cfg]) => {
               const efetivo = atributosEfetivos[key];
               const bonusDisplay = mergedAttrBonus[key] || 0;
               const pct = Math.min(100, (efetivo / 20) * 100);

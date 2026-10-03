@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../contexts/theme';
 import type { PersonagemVerModel } from './personagem-ver.model';
+import { parseBonusVantagens } from '../../../utils/bonusTracos';
 
 type IconComponent = ComponentType<{ size?: number; className?: string }>;
 
@@ -126,20 +127,6 @@ const calcularBonusAtributos = (p: PersonagemRaw): Record<string, BonusItem[]> =
   ((p.desvantagens as Array<{ nome?: string; bonus?: unknown }>) || []).forEach(d => addBonus(d.nome || '', d.bonus));
 
   return result;
-};
-
-interface VantagemDesvantagemRef { id?: number | string; nome?: string; }
-
-const parseBonusVantagens = (bonus: unknown): { vantagens: VantagemDesvantagemRef[]; desvantagens: VantagemDesvantagemRef[] } => {
-  const obj = typeof bonus === 'string'
-    ? (() => { try { return JSON.parse(bonus); } catch { return null; } })()
-    : bonus;
-  if (!obj || typeof obj !== 'object') return { vantagens: [], desvantagens: [] };
-  const o = obj as { vantagens?: unknown; desvantagens?: unknown };
-  return {
-    vantagens: Array.isArray(o.vantagens) ? (o.vantagens as VantagemDesvantagemRef[]) : [],
-    desvantagens: Array.isArray(o.desvantagens) ? (o.desvantagens as VantagemDesvantagemRef[]) : [],
-  };
 };
 
 const BonusTraitTags = ({ bonus, isLight }: { bonus: unknown; isLight: boolean }) => {

@@ -20,16 +20,14 @@ import { getStageConfig } from './stages/stageConfig';
 import { getProgressItems, canCreate } from './stages/stageSelectors';
 import { falaDeRecusa, avisoDeFalha, type TentativaDeAvanco } from './stages/mestreFeedback';
 import { bonusRacialDnd } from './stages/dnd';
+import { siglasDaFaixa } from './stages/atributos';
+import { listarPendencias } from './stages/pendencias';
+import { parseBonusVantagens } from '../../../utils/bonusTracos';
 import type { WizardSuggestion } from './hooks/useChatState';
 import type { WizardModel } from './wizard.model';
 
 type WizardViewProps = WizardModel;
 type WizardChatProps = Parameters<typeof LegacyStageAdapter>[0];
-
-const SIGLAS: Array<{ chave: string; sigla: string }> = [
-  { chave: 'forca', sigla: 'FOR' }, { chave: 'inteligencia', sigla: 'INT' }, { chave: 'constituicao', sigla: 'CON' },
-  { chave: 'agilidade', sigla: 'AGI' }, { chave: 'destreza', sigla: 'DES' }, { chave: 'carisma', sigla: 'CAR' },
-];
 
 const NOME_SISTEMA: Record<string, string> = { lunaria: 'Lunaria RPG', dnd5e: 'D&D 5e', tresdet: '3D&T Alpha' };
 
@@ -279,6 +277,7 @@ const WizardView = (props: WizardViewProps) => {
       imagem: x.imagem ?? null,
       custo: typeof x.custo === 'number' ? x.custo : null,
       detalhe: descreverBonus(x.bonus),
+      tracos: tracosConcedidos(x.bonus),
     };
 
   const escolherDoCatalogo = (tipo: 'raca' | 'classe', item: CatalogItem) => {
@@ -313,7 +312,19 @@ const WizardView = (props: WizardViewProps) => {
     if (anterior) navegarParaEtapa(anterior.id);
   };
 
-  const atributosStrip = SIGLAS.map(({ chave, sigla }) => ({ chave, sigla, valor: Number(atributosFinal[chave] ?? 0) }));
+  // D&D: só exibição do bônus racial (L-14); o POST manda a distribuição sem ele.
+  const bonusRacial = isDnd5e ? bonusRacialDnd(racaAtual) : {};
+  const atributosDndExibidos: Record<string, number | null> = Object.fromEntries(
+    ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].map((k) => {
+      const v = dndAbilityScores?.[k];
+      return [k, typeof v === 'number' ? v + (bonusRacial[k] ?? 0) : null];
+    }),
+  );
+  const atributosStrip = siglasDaFaixa(sistema, atributosFinal, atributosDndExibidos);
+  const pendencias = listarPendencias({
+    sistema, nome, racaId, classeId, background, vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens,
+    bonusAplicados, comboPronto: Boolean(comboPreviewData), pontosCriacaoRestantes, dndAbilitiesConfirmed, dndSkillsConfirmed,
+  });
 
   return (
     <div className="animate-fade-in mx-auto max-w-5xl space-y-6">
@@ -364,6 +375,10 @@ const WizardView = (props: WizardViewProps) => {
           bonusAplicados={bonusAplicados}
           skipVantagens={skipVantagens}
           skipDesvantagens={skipDesvantagens}
+          sistema={isDnd5e ? 'dnd5e' : 'lunaria'}
+          background={background}
+          pendencias={isTresdet ? undefined : pendencias}
+          atributosDnd={atributosDndExibidos}
         />
       </HeroStrip>
 
@@ -631,6 +646,15 @@ const WizardView = (props: WizardViewProps) => {
     </div>
   );
 };
+
+/** Nomes das vantagens que a raça/classe concede e das desvantagens que impõe (G-05); undefined quando nenhuma. */
+function tracosConcedidos(bonus: unknown): CatalogItem['tracos'] {
+  const { vantagens, desvantagens } = parseBonusVantagens(bonus);
+  const nomes = (lista: Array<{ nome?: string }>) => lista.map((t) => t.nome).filter((n): n is string => Boolean(n));
+  const concede = nomes(vantagens);
+  const impoe = nomes(desvantagens);
+  return concede.length || impoe.length ? { concede, impoe } : undefined;
+}
 
 /** "+1 Destreza, +1 Agilidade" a partir do bonus do catálogo; null quando vazio. */
 function descreverBonus(bonus: unknown): string | null {

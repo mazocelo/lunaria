@@ -3,7 +3,8 @@ import type { ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import '../wizard-motion.css';
 
-export interface HeroStripAtributo { chave: string; sigla: string; valor: number }
+/** `valor` null = ainda não atribuído (D&D antes de distribuir); aparece como "—". */
+export interface HeroStripAtributo { chave?: string; sigla: string; valor: number | null }
 
 export interface HeroStripProps {
   nome: string;
@@ -48,8 +49,8 @@ const HeroStrip = ({
 
         <ul className="hidden items-center gap-1 lg:flex" aria-label="Atributos">
           {atributos.map((a) => (
-            <li key={a.chave} className={`rounded-md border px-2 py-1 font-modern text-[11px] tabular-nums ${isLight ? 'border-slate-200 text-slate-600' : 'border-slate-700 text-slate-300'}`}>
-              <span className="mr-1 opacity-70">{a.sigla}</span><b>{a.valor}</b>
+            <li key={a.chave ?? a.sigla} className={`rounded-md border px-2 py-1 font-modern text-[11px] tabular-nums ${isLight ? 'border-slate-200 text-slate-600' : 'border-slate-700 text-slate-300'}`}>
+              <span className="mr-1 opacity-70">{a.sigla}</span><b>{a.valor ?? '—'}</b>
             </li>
           ))}
         </ul>

@@ -12,6 +12,8 @@ export interface CatalogItem {
   imagem?: string | null;
   custo?: number | null;
   detalhe?: string | null;
+  /** Traços que a raça/classe concede ou impõe (G-05), pelos nomes. */
+  tracos?: { concede: string[]; impoe: string[] };
 }
 
 export interface CatalogStageProps {
@@ -127,6 +129,8 @@ const CatalogStage = ({ itens, selecionados, modo, sugeridos = [], enviando, onS
                     <span className={`mb-1 inline-flex items-center gap-1 font-modern text-[11px] font-semibold text-[var(--primary)]`}><Sparkles size={11} /> Sugestão do Mestre</span>
                   )}
                   {item.descricao ? <p className={`line-clamp-3 font-modern text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{item.descricao}</p> : null}
+                  {item.tracos?.concede.length ? <p className="mt-1 font-modern text-xs text-cyan-700 dark:text-cyan-300">Concede: {item.tracos.concede.join(', ')}</p> : null}
+                  {item.tracos?.impoe.length ? <p className="mt-1 font-modern text-xs text-red-600 dark:text-red-400">Impõe: {item.tracos.impoe.join(', ')}</p> : null}
                 </CatalogCard>
               </div>
             );

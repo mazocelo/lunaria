@@ -21,3 +21,11 @@ export function modificadorLunaria(valor: number): number {
 export function pvEstimado(constituicaoFinal: number, multRaca: number | null | undefined): number {
   return (multRaca ?? 5) * (1 + Math.max(1, modificadorLunaria(constituicaoFinal)));
 }
+
+const DND_FAIXA: Array<[string, string]> = [['STR', 'FOR'], ['DEX', 'DES'], ['CON', 'CON'], ['INT', 'INT'], ['WIS', 'SAB'], ['CHA', 'CAR']];
+
+/** Pílulas da faixa do herói (N-01): D&D com FOR..CAR do próprio sistema, "—" enquanto não atribuído. */
+export function siglasDaFaixa(sistema: string, lunaria: Record<string, number>, dnd: Record<string, number | null>): Array<{ sigla: string; valor: number | null }> {
+  if (sistema === 'dnd5e') return DND_FAIXA.map(([k, sigla]) => ({ sigla, valor: dnd[k] ?? null }));
+  return ATRIBUTOS_LUNARIA.map(({ chave, abrev }) => ({ sigla: abrev, valor: lunaria[chave] ?? null }));
+}

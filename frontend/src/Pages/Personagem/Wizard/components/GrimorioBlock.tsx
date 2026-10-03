@@ -39,14 +39,14 @@ const ESCOLA_LABELS: Record<string, string> = {
 };
 
 const ESCOLA_COLORS: Record<string, string> = {
-  evocacao: 'wa-ember-chip',
-  abjuracao: 'wa-teal-chip',
-  conjuracao: 'wa-accent-chip',
-  transmutacao: 'wa-forge-chip',
-  adivinhacao: 'wa-emerald-chip',
-  encantamento: 'wa-accent-chip',
-  ilusao: 'wa-forge-chip',
-  necromancia: 'wa-ember-chip',
+  evocacao: 'bg-amber-400/20 text-amber-500',
+  abjuracao: 'bg-emerald-500/15 text-emerald-500',
+  conjuracao: 'bg-[var(--primary)]/15 text-[var(--primary)]',
+  transmutacao: 'bg-amber-400/15 text-amber-600',
+  adivinhacao: 'bg-emerald-500/15 text-emerald-500',
+  encantamento: 'bg-[var(--primary)]/15 text-[var(--primary)]',
+  ilusao: 'bg-amber-400/15 text-amber-600',
+  necromancia: 'bg-amber-400/20 text-amber-500',
 };
 
 interface GrimorioBlockProps {
@@ -100,13 +100,13 @@ const GrimorioBlock = ({
 
   if (loading) {
     return (
-      <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
+      <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
         <div className="flex items-start gap-3">
-          <div className="wa-accent-chip inline-flex h-11 w-11 items-center justify-center rounded-2xl">
+          <div className="bg-[var(--primary)]/15 text-[var(--primary)] inline-flex h-11 w-11 items-center justify-center rounded-2xl">
             <Loader2 size={18} className="animate-spin" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+            <p className="text-[11px] font-modern font-semibold text-[var(--muted-foreground)]">
               Grimorio
             </p>
             <h3 className={`mt-2 text-2xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
@@ -123,11 +123,11 @@ const GrimorioBlock = ({
 
   if (error) {
     return (
-      <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
+      <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
         <div className="flex items-start gap-3">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[var(--wa-ember)]" />
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-500" />
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-ember)]">
+            <p className="text-xs font-modern font-semibold text-amber-500">
               Grimorio indisponivel
             </p>
             <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
@@ -140,17 +140,17 @@ const GrimorioBlock = ({
   }
 
   return (
-    <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
+    <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
       <div className="flex flex-col gap-5">
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+              <span className="bg-[var(--primary)]/15 text-[var(--primary)] inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold">
                 <BookOpen size={12} />
                 Grimorio
               </span>
-              <span className="wa-teal-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+              <span className="bg-emerald-500/15 text-emerald-500 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold">
                 <Sparkles size={12} />
                 {magias.length} magias disponiveis
               </span>
@@ -163,14 +163,14 @@ const GrimorioBlock = ({
             </p>
           </div>
 
-          <div className="wa-panel-soft flex shrink-0 flex-col gap-1 rounded-2xl px-4 py-3">
-            <span className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+          <div className="bg-[var(--muted)]/40 flex shrink-0 flex-col gap-1 rounded-2xl px-4 py-3">
+            <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
               Slots
             </span>
             <span className={`text-lg font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
               {selecionadas.length}/{slots}
             </span>
-            <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+            <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--muted-foreground)]'}`}>
               {slots - selecionadas.length} restantes
             </span>
           </div>
@@ -179,7 +179,7 @@ const GrimorioBlock = ({
         {/* Search + escola filters */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className={`flex flex-1 items-center gap-2 rounded-2xl border px-3 py-2.5 ${isLight ? 'border-slate-200 bg-white/90' : 'border-slate-700 bg-slate-950/70'}`}>
-            <Search size={14} className={isLight ? 'text-slate-400' : 'text-[var(--wa-muted)]'} />
+            <Search size={14} className={isLight ? 'text-slate-400' : 'text-[var(--muted-foreground)]'} />
             <input
               type="text"
               value={busca}
@@ -189,7 +189,7 @@ const GrimorioBlock = ({
             />
             {busca && (
               <button type="button" onClick={() => setBusca('')} className="cursor-pointer">
-                <X size={12} className={isLight ? 'text-slate-400' : 'text-[var(--wa-muted)]'} />
+                <X size={12} className={isLight ? 'text-slate-400' : 'text-[var(--muted-foreground)]'} />
               </button>
             )}
           </div>
@@ -200,10 +200,10 @@ const GrimorioBlock = ({
                   key={escola}
                   type="button"
                   onClick={() => setEscolaFiltro(prev => prev === escola ? null : escola)}
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em] transition-all cursor-pointer ${
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold transition-all cursor-pointer ${
                     escolaFiltro === escola
-                      ? (ESCOLA_COLORS[escola] || 'wa-accent-chip')
-                      : 'wa-panel-soft hover:opacity-80'
+                      ? (ESCOLA_COLORS[escola] || 'bg-[var(--primary)]/15 text-[var(--primary)]')
+                      : 'bg-[var(--muted)]/40 hover:opacity-80'
                   }`}
                 >
                   {ESCOLA_LABELS[escola] || escola}
@@ -214,18 +214,18 @@ const GrimorioBlock = ({
         </div>
 
         {/* Spell grid */}
-        <div className="wa-panel-soft rounded-2xl p-4">
+        <div className="bg-[var(--muted)]/40 rounded-2xl p-4">
           <div className="flex items-center justify-between gap-2 mb-4">
-            <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+            <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
               Magias elegiveis
             </p>
-            <span className="wa-accent-chip rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+            <span className="bg-[var(--primary)]/15 text-[var(--primary)] rounded-full px-3 py-1 text-[10px] font-modern font-semibold">
               {magiasFiltradas.length} resultados
             </span>
           </div>
 
           {magiasFiltradas.length === 0 ? (
-            <div className={`rounded-2xl border border-dashed p-4 text-sm font-modern text-center ${isLight ? 'border-slate-300 text-slate-500' : 'border-[var(--wa-border)] text-[var(--wa-muted)]'}`}>
+            <div className={`rounded-2xl border border-dashed p-4 text-sm font-modern text-center ${isLight ? 'border-slate-300 text-slate-500' : 'border-[var(--border)] text-[var(--muted-foreground)]'}`}>
               {busca || escolaFiltro ? 'Nenhuma magia encontrada com esses filtros.' : 'Nenhuma magia disponivel para esta vocacao.'}
             </div>
           ) : (
@@ -242,19 +242,19 @@ const GrimorioBlock = ({
                     disabled={disabled}
                     className={`group relative rounded-2xl border border-l-4 p-4 text-left transition-all cursor-pointer ${
                       selected
-                        ? 'border-[var(--wa-accent)]/60 bg-[var(--wa-accent)]/8'
+                        ? 'border-[var(--primary)]/60 bg-[var(--primary)]/8'
                         : disabled
-                          ? 'cursor-not-allowed opacity-50 border-[var(--wa-border)]'
+                          ? 'cursor-not-allowed opacity-50 border-[var(--border)]'
                           : isLight
-                            ? 'border-slate-200 bg-white/70 hover:border-[var(--wa-accent)]/40'
-                            : 'border-[var(--wa-border)] bg-black/15 hover:border-[var(--wa-accent)]/40'
+                            ? 'border-slate-200 bg-white/70 hover:border-[var(--primary)]/40'
+                            : 'border-[var(--border)] bg-black/15 hover:border-[var(--primary)]/40'
                     }`}
                   >
                     {/* Selection indicator */}
                     <div className="absolute right-3 top-3">
                       <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all ${
                         selected
-                          ? 'border-[var(--wa-accent)] bg-[var(--wa-accent)] text-white'
+                          ? 'border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]'
                           : isLight
                             ? 'border-slate-300'
                             : 'border-slate-600'
@@ -266,12 +266,12 @@ const GrimorioBlock = ({
                     {/* Badges */}
                     <div className="flex flex-wrap items-center gap-1.5 pr-8">
                       {magia.escola_magia && (
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${ESCOLA_COLORS[magia.escola_magia] || 'wa-accent-chip'}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-modern font-semibold ${ESCOLA_COLORS[magia.escola_magia] || 'bg-[var(--primary)]/15 text-[var(--primary)]'}`}>
                           {ESCOLA_LABELS[magia.escola_magia] || magia.escola_magia}
                         </span>
                       )}
                       {(magia.custo_mana ?? 0) > 0 && (
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-mono ${isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/15 text-blue-300'}`}>
+                        <span className={`rounded-full px-2 py-0.5 text-[10px] tabular-nums ${isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/15 text-blue-300'}`}>
                           {magia.custo_mana} mana
                         </span>
                       )}
@@ -320,10 +320,10 @@ const GrimorioBlock = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-[var(--wa-border)] pt-4">
+        <div className="border-t border-[var(--border)] pt-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                 Grimorio do personagem
               </p>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
@@ -340,8 +340,8 @@ const GrimorioBlock = ({
               disabled={selecionadas.length === 0}
               className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
                 selecionadas.length === 0
-                  ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
-                  : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
+                  ? 'cursor-not-allowed bg-[var(--muted)] text-[var(--muted-foreground)] opacity-70'
+                  : 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg hover:opacity-90'
               }`}
             >
               <ChevronRight size={16} />

@@ -37,8 +37,8 @@ function buildItensAgrupados(combo: Combo = {}) {
     ...item,
     grupo: 'Equipamento',
     badge: 'Inventario',
-    badgeClass: 'wa-forge-chip',
-    barClass: 'border-[var(--wa-accent)]/35',
+    badgeClass: 'bg-amber-400/15 text-amber-600',
+    barClass: 'border-[var(--primary)]/35',
   }));
 
   const recomendacoes = [
@@ -46,15 +46,15 @@ function buildItensAgrupados(combo: Combo = {}) {
       ...item,
       grupo: 'Habilidade',
       badge: 'Recomendacao',
-      badgeClass: 'wa-teal-chip',
-      barClass: 'border-[var(--wa-teal)]/35',
+      badgeClass: 'bg-emerald-500/15 text-emerald-500',
+      barClass: 'border-emerald-500/35',
     })),
     ...(combo.magias || []).map((item) => ({
       ...item,
       grupo: 'Magia',
       badge: 'Recomendacao',
-      badgeClass: 'wa-accent-chip',
-      barClass: 'border-[var(--wa-accent-bright)]/35',
+      badgeClass: 'bg-[var(--primary)]/15 text-[var(--primary)]',
+      barClass: 'border-[var(--primary)]/35',
     })),
   ];
 
@@ -88,13 +88,13 @@ const EquipamentosBlock = ({
 
   if (loading && !data) {
     return (
-      <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
+      <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
         <div className="flex items-start gap-3">
-          <div className="wa-accent-chip inline-flex h-11 w-11 items-center justify-center rounded-2xl">
+          <div className="bg-[var(--primary)]/15 text-[var(--primary)] inline-flex h-11 w-11 items-center justify-center rounded-2xl">
             <Loader2 size={18} className="animate-spin" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+            <p className="text-[11px] font-modern font-semibold text-[var(--muted-foreground)]">
               Arsenal do Mestre
             </p>
             <h3 className={`mt-2 text-2xl font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
@@ -110,16 +110,16 @@ const EquipamentosBlock = ({
   }
 
   return (
-    <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
+    <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+              <span className="bg-[var(--primary)]/15 text-[var(--primary)] inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold">
                 <Shield size={12} />
                 Arsenal do Mestre
               </span>
-              <span className="wa-teal-chip inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+              <span className="bg-emerald-500/15 text-emerald-500 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-modern font-semibold">
                 <Sparkles size={12} />
                 {PERFIL_LABELS[String(meta.perfil_combo ?? '')] || 'Combo equilibrado'}
               </span>
@@ -132,24 +132,24 @@ const EquipamentosBlock = ({
             </p>
           </div>
 
-          <div className="wa-panel-soft flex shrink-0 flex-col gap-1 rounded-2xl px-4 py-3">
-            <span className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+          <div className="bg-[var(--muted)]/40 flex shrink-0 flex-col gap-1 rounded-2xl px-4 py-3">
+            <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
               Regeneracoes
             </span>
             <span className={`text-lg font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
               {tentativasUsadas}/3
             </span>
-            <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+            <span className={`text-xs font-modern ${isLight ? 'text-slate-500' : 'text-[var(--muted-foreground)]'}`}>
               {tentativasRestantes} restantes
             </span>
           </div>
         </div>
 
         {error && (
-          <div className="wa-panel-soft flex items-start gap-3 rounded-2xl border border-[var(--wa-ember)]/30 px-4 py-3">
-            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-[var(--wa-ember)]" />
+          <div className="bg-[var(--muted)]/40 flex items-start gap-3 rounded-2xl border border-amber-500/30 px-4 py-3">
+            <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-500" />
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-ember)]">
+              <p className="text-xs font-modern font-semibold text-amber-500">
                 Arsenal indisponivel
               </p>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
@@ -161,7 +161,7 @@ const EquipamentosBlock = ({
                 type="button"
                 onClick={onRetry}
                 disabled={loading}
-                className="wa-panel-soft inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-modern font-semibold hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                className="bg-[var(--muted)]/40 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-modern font-semibold hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
                 Tentar novamente
@@ -171,24 +171,24 @@ const EquipamentosBlock = ({
         )}
 
         {/* Inventário — equipamentos que entram na criação */}
-        <div className="wa-panel-soft rounded-2xl p-4">
+        <div className="bg-[var(--muted)]/40 rounded-2xl p-4">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                 Inventario inicial
               </p>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
                 Estes equipamentos serao adicionados ao inventario na criacao.
               </p>
             </div>
-            <span className="wa-forge-chip rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+            <span className="bg-amber-400/15 text-amber-600 rounded-full px-3 py-1 text-[10px] font-modern font-semibold">
               {inventario.length} itens
             </span>
           </div>
 
           <div className="mt-4 space-y-3">
             {inventario.length === 0 && (
-              <div className={`rounded-2xl border border-dashed p-4 text-sm font-modern ${isLight ? 'border-slate-300 text-slate-500' : 'border-[var(--wa-border)] text-[var(--wa-muted)]'}`}>
+              <div className={`rounded-2xl border border-dashed p-4 text-sm font-modern ${isLight ? 'border-slate-300 text-slate-500' : 'border-[var(--border)] text-[var(--muted-foreground)]'}`}>
                 Nenhum equipamento elegivel encontrado para esta build.
               </div>
             )}
@@ -198,10 +198,10 @@ const EquipamentosBlock = ({
                 className={`rounded-2xl border border-l-4 p-4 ${item.barClass} ${isLight ? 'bg-white/70' : 'bg-black/15'}`}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${item.badgeClass}`}>
+                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold ${item.badgeClass}`}>
                     {item.badge}
                   </span>
-                  <span className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+                  <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                     {item.grupo}
                   </span>
                 </div>
@@ -220,17 +220,17 @@ const EquipamentosBlock = ({
 
         {/* Recomendações táticas — habilidades e magias */}
         {recomendacoes.length > 0 && (
-          <div className="wa-panel-soft rounded-2xl p-4">
+          <div className="bg-[var(--muted)]/40 rounded-2xl p-4">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+                <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                   Recomendacoes taticas
                 </p>
                 <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
                   Sugestoes do Mestre para habilidades e magias. Nao sao persistidas na criacao.
                 </p>
               </div>
-              <span className="wa-teal-chip rounded-full px-3 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+              <span className="bg-emerald-500/15 text-emerald-500 rounded-full px-3 py-1 text-[10px] font-modern font-semibold">
                 {recomendacoes.length} sugestoes
               </span>
             </div>
@@ -242,10 +242,10 @@ const EquipamentosBlock = ({
                   className={`rounded-2xl border border-l-4 p-4 ${item.barClass} ${isLight ? 'bg-white/70' : 'bg-black/15'}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${item.badgeClass}`}>
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold ${item.badgeClass}`}>
                       {item.badge}
                     </span>
-                    <span className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+                    <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                       {item.grupo}
                     </span>
                   </div>
@@ -264,10 +264,10 @@ const EquipamentosBlock = ({
         )}
 
         {/* Footer — ações */}
-        <div className="border-t border-[var(--wa-border)] pt-4">
+        <div className="border-t border-[var(--border)] pt-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                 Arsenal da build
               </p>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
@@ -283,7 +283,7 @@ const EquipamentosBlock = ({
                 className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-semibold transition-all ${
                   loading || tentativasUsadas >= 3 || !data
                     ? 'cursor-not-allowed opacity-60'
-                    : 'wa-panel-soft hover:-translate-y-0.5'
+                    : 'bg-[var(--muted)]/40 hover:-translate-y-0.5'
                 }`}
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
@@ -296,8 +296,8 @@ const EquipamentosBlock = ({
                 disabled={loading || !data}
                 className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
                   loading || !data
-                    ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
-                    : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
+                    ? 'cursor-not-allowed bg-[var(--muted)] text-[var(--muted-foreground)] opacity-70'
+                    : 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg hover:opacity-90'
                 }`}
               >
                 <ChevronRight size={16} />

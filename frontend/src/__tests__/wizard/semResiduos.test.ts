@@ -18,6 +18,8 @@ const ARQUIVOS_LIMPOS = [
   'components/AtributoTile.tsx',
   'components/AttributeDistributor.tsx',
   'stages/AtributosStage.tsx',
+  'components/EquipamentosBlock.tsx',
+  'components/GrimorioBlock.tsx',
 ];
 
 const PROIBIDOS: Array<[string, RegExp]> = [

@@ -30,7 +30,7 @@ const MestrePanel = (props: MestrePanelProps) => {
   const sugestoes = (ultimaDoMestre?.sugestoes ?? []) as WizardSuggestion[];
   const texto = isLight ? 'text-slate-800' : 'text-slate-100';
   const suave = isLight ? 'text-slate-500' : 'text-slate-400';
-  const chip = `rounded-full border px-3 py-1.5 font-modern text-sm transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 ${isLight ? 'border-purple-200 bg-purple-50 text-purple-800 hover:bg-purple-100' : 'border-purple-500/30 bg-purple-500/10 text-purple-200 hover:bg-purple-500/20'}`;
+  const chip = `rounded-full border px-3 py-1.5 font-modern text-sm transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 border-[var(--primary)]/30 bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 ${isLight ? 'text-slate-800' : 'text-slate-100'}`;
 
   const enviar = () => {
     if (!inputTexto.trim() || enviando) return;
@@ -85,7 +85,7 @@ const MestrePanel = (props: MestrePanelProps) => {
           )}
 
           {config.allowRefresh && (
-            <button type="button" disabled={enviando} onClick={() => onEnviar(config.refreshPrompt ?? 'Me dê outras opções', { manterEtapa: true })} className={`inline-flex items-center gap-2 font-modern text-sm cursor-pointer disabled:opacity-50 ${isLight ? 'text-purple-700' : 'text-purple-300'}`}>
+            <button type="button" disabled={enviando} onClick={() => onEnviar(config.refreshPrompt ?? 'Me dê outras opções', { manterEtapa: true })} className={`inline-flex items-center gap-2 font-modern text-sm cursor-pointer disabled:opacity-50 text-[var(--primary)]`}>
               <RefreshCw size={14} /> Mais sugestões
             </button>
           )}

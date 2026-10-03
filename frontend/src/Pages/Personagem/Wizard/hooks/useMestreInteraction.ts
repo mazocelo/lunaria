@@ -143,7 +143,7 @@ export const useMestreInteraction = ({
     const manterEtapa = options?.manterEtapa === true;
     const estadoOverride: Record<string, unknown> = {};
 
-    if (navigation.etapaAtual === 'boas_vindas' && !estadoRef.current.nome && deveDefinirNomeInicial(mensagemJogador, options)) {
+    if (navigation.etapaAtual === 'boas_vindas' && (options.aceitarNome === true || !estadoRef.current.nome) && deveDefinirNomeInicial(mensagemJogador, options)) {
       setNome(mensagemJogador);
       estadoOverride.nome = mensagemJogador;
     } else if (navigation.etapaAtual === 'background' && !manterEtapa) {

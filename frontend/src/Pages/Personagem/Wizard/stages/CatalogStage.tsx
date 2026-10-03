@@ -44,7 +44,7 @@ const CatalogStage = ({ itens, selecionados, modo, sugeridos = [], enviando, onS
           <input id="catalog-busca" type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={rotuloBusca} className={`w-full bg-transparent font-modern text-sm outline-none ${isLight ? 'text-slate-800' : 'text-white'}`} />
         </label>
         {catalogoHref && (
-          <a href={catalogoHref} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1.5 font-modern text-sm font-semibold ${isLight ? 'text-purple-700' : 'text-purple-300'}`}>
+          <a href={catalogoHref} target="_blank" rel="noreferrer" className={`inline-flex items-center gap-1.5 font-modern text-sm font-semibold text-[var(--primary)]`}>
             Ver catálogo completo <ExternalLink size={14} />
           </a>
         )}
@@ -74,7 +74,7 @@ const CatalogStage = ({ itens, selecionados, modo, sugeridos = [], enviando, onS
                   className="h-full"
                 >
                   {foiSugerido(item.id) && (
-                    <span className={`mb-1 inline-flex items-center gap-1 font-modern text-[11px] font-semibold ${isLight ? 'text-purple-700' : 'text-purple-300'}`}><Sparkles size={11} /> Sugestão do Mestre</span>
+                    <span className={`mb-1 inline-flex items-center gap-1 font-modern text-[11px] font-semibold text-[var(--primary)]`}><Sparkles size={11} /> Sugestão do Mestre</span>
                   )}
                   {item.descricao ? <p className={`line-clamp-3 font-modern text-xs ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>{item.descricao}</p> : null}
                 </CatalogCard>

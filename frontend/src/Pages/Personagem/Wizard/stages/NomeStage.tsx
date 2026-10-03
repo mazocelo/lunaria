@@ -53,7 +53,7 @@ const NomeStage = ({ nomeAtual, sugestoes, enviando, onConfirmar, onPedirSugesto
           <ul className="flex flex-wrap gap-2">
             {sugestoes.map((nome, i) => (
               <li key={`${nome}-${i}`} className="wz-card-in" style={{ ['--wz-i' as string]: i }}>
-                <button type="button" disabled={enviando} onClick={() => { setRascunho(nome); confirmar(nome); }} className={`rounded-full border px-4 py-2 font-modern text-sm cursor-pointer disabled:opacity-50 ${isLight ? 'border-slate-300 bg-white text-slate-700 hover:border-purple-400' : 'border-slate-700 bg-slate-900/60 text-slate-200 hover:border-purple-400'}`}>
+                <button type="button" disabled={enviando} onClick={() => { setRascunho(nome); confirmar(nome); }} className={`rounded-full border px-4 py-2 font-modern text-sm cursor-pointer disabled:opacity-50 ${isLight ? 'border-slate-300 bg-white text-slate-700 hover:border-[var(--primary)]' : 'border-slate-700 bg-slate-900/60 text-slate-200 hover:border-[var(--primary)]'}`}>
                   {nome}
                 </button>
               </li>

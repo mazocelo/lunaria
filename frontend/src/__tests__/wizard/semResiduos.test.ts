@@ -13,6 +13,7 @@ const ARQUIVOS_LIMPOS = [
   'components/MestrePanel.tsx',
   'stages/NomeStage.tsx',
   'stages/CatalogStage.tsx',
+  'stages/OrcamentoBar.tsx',
 ];
 
 const PROIBIDOS: Array<[string, RegExp]> = [

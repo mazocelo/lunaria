@@ -1,50 +1,12 @@
-import { useState, useMemo } from 'react';
-import { Minus, Plus, Wand2, Info, Sparkles, CheckCircle2 } from 'lucide-react';
-
-interface AttrConfig {
-  label: string;
-  abbr: string;
-  bar: string;
-  desc: string;
-}
-
-const ATTR_CONFIG: Record<string, AttrConfig> = {
-  forca: {
-    label: 'Forca', abbr: 'FOR', bar: 'bg-red-500',
-    desc: 'Poder fisico bruto. Afeta dano corpo-a-corpo, carga e testes de forca.',
-  },
-  destreza: {
-    label: 'Destreza', abbr: 'DES', bar: 'bg-purple-500',
-    desc: 'Precisao e coordenacao. Afeta ataques a distancia, furtividade e trabalhos manuais.',
-  },
-  constituicao: {
-    label: 'Constituicao', abbr: 'CON', bar: 'bg-green-500',
-    desc: 'Resistencia e vitalidade. Aumenta pontos de vida e suportes de fadiga.',
-  },
-  inteligencia: {
-    label: 'Inteligencia', abbr: 'INT', bar: 'bg-blue-500',
-    desc: 'Raciocinio e estudo. Afeta magia arcana, investigacao e conhecimento.',
-  },
-  agilidade: {
-    label: 'Agilidade', abbr: 'AGI', bar: 'bg-yellow-500',
-    desc: 'Velocidade e reflexos. Afeta esquiva, iniciativa e movimento.',
-  },
-  carisma: {
-    label: 'Carisma', abbr: 'CAR', bar: 'bg-pink-500',
-    desc: 'Presenca e influencia. Afeta persuasao, intimidacao e lideranca.',
-  },
-};
+import { useMemo } from 'react';
+import { Minus, Plus, Wand2 } from 'lucide-react';
+import { FOCO } from '../../../../components/shared';
+import AtributoTile, { type FonteDeBonus } from './AtributoTile';
+import { ATRIBUTOS_LUNARIA, pvEstimado } from '../stages/atributos';
 
 /* ---------- Radar Chart ---------- */
 
-const RADAR_AXES = [
-  { key: 'forca', abbr: 'FOR' },
-  { key: 'destreza', abbr: 'DES' },
-  { key: 'constituicao', abbr: 'CON' },
-  { key: 'inteligencia', abbr: 'INT' },
-  { key: 'agilidade', abbr: 'AGI' },
-  { key: 'carisma', abbr: 'CAR' },
-];
+const RADAR_AXES = ATRIBUTOS_LUNARIA.map(({ chave, abrev }) => ({ key: chave, abbr: abrev }));
 
 const RADAR_SIZE = 200;
 const RADAR_CX = RADAR_SIZE / 2;
@@ -94,12 +56,13 @@ const RadarChart = ({ atributos, attrMin, attrMax, isLight }: RadarChartProps) =
       .join(' ') + ' Z';
 
   const gridLevels = [0.25, 0.5, 0.75, 1];
-  const gridColor = isLight ? 'rgba(100,116,139,0.18)' : 'var(--wa-teal)';
-  const gridOpacity = isLight ? 1 : 0.18;
+  const gridColor = 'var(--muted-foreground)';
+  const gridOpacity = isLight ? 0.3 : 0.25;
 
   return (
     <div className="flex justify-center pb-2">
       <svg
+        aria-hidden="true"
         width={RADAR_SIZE}
         height={RADAR_SIZE}
         viewBox={`0 0 ${RADAR_SIZE} ${RADAR_SIZE}`}
@@ -137,9 +100,9 @@ const RadarChart = ({ atributos, attrMin, attrMax, isLight }: RadarChartProps) =
         {/* Filled data polygon */}
         <path
           d={dataPath}
-          fill="var(--wa-accent)"
+          fill="var(--primary)"
           fillOpacity={0.22}
-          stroke="var(--wa-accent)"
+          stroke="var(--primary)"
           strokeWidth={1.8}
           strokeLinejoin="round"
           style={{ transition: 'd 0.35s ease' }}
@@ -152,7 +115,7 @@ const RadarChart = ({ atributos, attrMin, attrMax, isLight }: RadarChartProps) =
             cx={x}
             cy={y}
             r={3}
-            fill="var(--wa-accent)"
+            fill="var(--primary)"
             style={{ transition: 'cx 0.35s ease, cy 0.35s ease' }}
           />
         ))}
@@ -167,8 +130,8 @@ const RadarChart = ({ atributos, attrMin, attrMax, isLight }: RadarChartProps) =
               y={y}
               textAnchor="middle"
               dominantBaseline="central"
-              className="text-[10px] font-mono font-bold"
-              fill={isLight ? '#475569' : '#94a3b8'}
+              className="font-modern text-[10px] font-bold"
+              fill="var(--muted-foreground)"
             >
               {axis.abbr}
             </text>
@@ -191,156 +154,64 @@ interface AttributeDistributorProps {
   aplicarAtributosSugeridos?: () => void;
   isLight: boolean;
   disabled?: boolean;
+  /** Confirmado: tiles sem os botões de − e +. */
+  somenteLeitura?: boolean;
   attrMin?: number;
   attrMax?: number;
+  bonusFontes?: Record<string, FonteDeBonus[]>;
+  multRaca?: number | null;
 }
 
-const AttributeDistributor = ({
-  atributos,
-  setAtributo,
-  pontosDistribuidos,
-  pontosRestantes,
-  pontosTotais,
-  atributosSugeridos,
-  aplicarAtributosSugeridos,
-  isLight,
-  disabled = false,
-  attrMin = 5,
-  attrMax = 16,
-}: AttributeDistributorProps) => {
-  const [infoAberta, setInfoAberta] = useState<string | null>(null);
-  const pronto = pontosRestantes === 0;
+const somaFontes = (fontes: FonteDeBonus[] | undefined) => (fontes ?? []).reduce((t, f) => t + f.valor, 0);
 
-  const progressPct = pontosTotais > 0 ? Math.min(100, (pontosDistribuidos / pontosTotais) * 100) : 0;
-  const erro = pontosRestantes < 0;
+const AttributeDistributor = ({
+  atributos, setAtributo, pontosDistribuidos, pontosRestantes, pontosTotais, atributosSugeridos, aplicarAtributosSugeridos,
+  isLight, disabled = false, somenteLeitura = false, attrMin = 5, attrMax = 16, bonusFontes = {}, multRaca = null,
+}: AttributeDistributorProps) => {
+  const finais = Object.fromEntries(ATRIBUTOS_LUNARIA.map(({ chave }) => [chave, Number(atributos[chave] ?? 0) + somaFontes(bonusFontes[chave])]));
+  const pv = pvEstimado(finais.constituicao ?? 10, multRaca);
+  // Teto do radar: o maior valor final possível, para o bônus não sair do hexágono.
+  const maiorBonus = Math.max(0, ...ATRIBUTOS_LUNARIA.map(({ chave }) => somaFontes(bonusFontes[chave])));
+  const estado = pontosRestantes === 0
+    ? 'Todos os pontos distribuídos'
+    : pontosRestantes < 0 ? `${-pontosRestantes} pts acima do limite` : `${pontosRestantes} pts restantes`;
+  const botao = `inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--foreground)] transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-35 hover:border-[var(--primary)] ${FOCO}`;
 
   return (
-    <div className="wa-panel wa-etched rounded-[22px] p-4 md:p-5">
-      {/* --- Centered prominent points counter --- */}
-      <div className="mb-5 flex flex-col items-center gap-2">
-        <div className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
-          <Sparkles size={11} />
-          Mesa de calibracao
-        </div>
-        <h4 className={`mt-2 text-lg font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-          Distribuir Atributos
-        </h4>
-        <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
-          Ajuste o corpo mecanico da ficha antes de aplicar os bonus finais.
-        </p>
-
-        {/* Big points badge */}
-        <div className={`mt-2 flex flex-col items-center gap-1.5 rounded-2xl px-6 py-3 transition-all duration-300 ${
-          pronto ? 'bg-emerald-500/15 ring-2 ring-emerald-400/50 animate-pulse' : erro ? 'bg-red-500/15 ring-2 ring-red-400/50' : isLight ? 'bg-slate-100' : 'bg-slate-800/60'
-        }`}>
-          <span className={`flex items-center gap-2 text-2xl font-mono font-bold ${
-            pronto ? 'text-emerald-400' : erro ? 'text-red-400' : isLight ? 'text-slate-900' : 'text-white'
-          }`}>
-            {pronto ? <CheckCircle2 size={22} /> : <Sparkles size={22} />}
-            {pontosDistribuidos} / {pontosTotais}
-          </span>
-          <span className={`text-xs font-modern font-medium ${
-            pronto ? 'text-emerald-400' : erro ? 'text-red-400' : 'text-[var(--wa-muted)]'
-          }`}>
-            {pronto ? 'Todos os pontos distribuidos — pronto para confirmar!' : erro ? `${Math.abs(pontosRestantes)} pontos acima do limite!` : `${pontosRestantes} pontos restantes`}
-          </span>
-        </div>
-
-        {/* Progress bar */}
-        <div className={`mt-1 h-2 w-full max-w-xs overflow-hidden rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-800/80'}`}>
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${
-              pronto ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : erro ? 'bg-red-500' : 'bg-[var(--wa-accent)]'
-            }`}
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {somenteLeitura ? <span /> : (
+          <p role="status" aria-live="polite" className={`font-modern text-sm tabular-nums ${pontosRestantes < 0 ? 'text-red-600 dark:text-red-400' : 'text-[var(--foreground)]'}`}>
+            <span className="font-bold">{pontosDistribuidos} / {pontosTotais}</span> · {estado}
+          </p>
+        )}
+        <p className="font-modern text-sm text-[var(--foreground)]">PV estimados: <span data-pv={pv} className="font-bold tabular-nums">{pv}</span></p>
+        {!!atributosSugeridos && !disabled && !somenteLeitura && aplicarAtributosSugeridos && (
+          <button type="button" data-acao="aplicar-sugestao" onClick={aplicarAtributosSugeridos} className={`btn-rpg-secondary inline-flex items-center gap-2 cursor-pointer ${FOCO}`}>
+            <Wand2 size={14} aria-hidden="true" /> Aplicar sugestão do Mestre
+          </button>
+        )}
       </div>
-
-      {!!atributosSugeridos && !disabled && (
-        <button
-          onClick={aplicarAtributosSugeridos}
-          className="wa-panel-soft mb-4 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
-        >
-          <Wand2 size={15} className="text-[var(--wa-forge-gold)]" />
-          Aplicar sugestao do Mestre
-        </button>
-      )}
-
-      <RadarChart
-        atributos={atributos}
-        attrMin={attrMin}
-        attrMax={attrMax}
-        isLight={isLight}
-      />
-
-      <div className="space-y-3">
-        {Object.entries(ATTR_CONFIG).map(([key, cfg]) => {
-          const val = atributos[key] || 0;
-          const mod = Math.floor((val - 10) / 2);
-          const showInfo = infoAberta === key;
-          const modClass = mod >= 0 ? 'wa-emerald-chip' : 'wa-ember-chip';
-
-          return (
-            <div key={key} className="wa-panel-soft rounded-2xl px-3 py-3">
-              <div className="flex items-center gap-2">
-                <div className="w-14 shrink-0">
-                  <div className="flex items-center gap-1">
-                    <span className={`text-xs font-mono font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>{cfg.abbr}</span>
-                    <button
-                      type="button"
-                      onClick={() => setInfoAberta(showInfo ? null : key)}
-                      className={`rounded p-0.5 transition-colors cursor-pointer ${showInfo ? 'text-[var(--wa-accent)]' : isLight ? 'text-slate-400 hover:text-slate-600' : 'text-slate-500 hover:text-slate-300'}`}
-                    >
-                      <Info size={12} />
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setAtributo(key, val - 1)}
-                  disabled={disabled || val <= attrMin}
-                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition-all active:scale-95 cursor-pointer ${
-                    disabled || val <= attrMin
-                      ? 'opacity-35 cursor-not-allowed'
-                      : isLight ? 'border-slate-300 text-slate-600 hover:bg-white hover:border-slate-400' : 'border-slate-700 text-slate-300 hover:bg-slate-900 hover:border-slate-500'
-                  }`}
-                >
-                  <Minus size={16} />
-                </button>
-
-                <div className={`w-10 text-center text-lg font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{val}</div>
-
-                <button
-                  onClick={() => setAtributo(key, val + 1)}
-                  disabled={disabled || val >= attrMax || pontosRestantes <= 0}
-                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border transition-all active:scale-95 cursor-pointer ${
-                    disabled || val >= attrMax || pontosRestantes <= 0
-                      ? 'opacity-35 cursor-not-allowed'
-                      : isLight ? 'border-slate-300 text-slate-600 hover:bg-white hover:border-slate-400' : 'border-slate-700 text-slate-300 hover:bg-slate-900 hover:border-slate-500'
-                  }`}
-                >
-                  <Plus size={16} />
-                </button>
-
-                <span className={`${modClass} inline-flex min-w-[3.25rem] items-center justify-center rounded-full px-2 py-1 text-xs font-mono font-semibold`}>
-                  {mod >= 0 ? '+' : ''}{mod}
-                </span>
-
-                <div className={`h-2.5 flex-1 overflow-hidden rounded-full ${isLight ? 'bg-slate-200' : 'bg-slate-800/80'}`}>
-                  <div className={`h-full rounded-full ${cfg.bar} transition-all duration-300`} style={{ width: `${Math.min(100, (val / 20) * 100)}%` }} />
-                </div>
-              </div>
-
-              {showInfo && (
-                <div className={`mt-2 rounded-xl px-3 py-2 text-xs font-modern leading-relaxed ${isLight ? 'bg-slate-100 text-slate-600' : 'bg-slate-900/80 text-slate-300'}`}>
-                  <span className={`font-semibold ${isLight ? 'text-slate-800' : 'text-white'}`}>{cfg.label}</span>
-                  {' - '}{cfg.desc}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem]">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          {ATRIBUTOS_LUNARIA.map(({ chave, rotulo, icone, dica }) => {
+            const valor = Number(atributos[chave] ?? 0);
+            return (
+              <AtributoTile key={chave} chave={chave} rotulo={rotulo} base={valor} fontes={bonusFontes[chave] ?? []} icone={icone} dica={dica} isLight={isLight}>
+                {somenteLeitura ? null : (
+                  <>
+                    <button type="button" aria-label={`Diminuir ${rotulo}`} disabled={disabled || valor <= attrMin} onClick={() => setAtributo(chave, valor - 1)} className={botao}><Minus size={14} aria-hidden="true" /></button>
+                    <button type="button" aria-label={`Aumentar ${rotulo}`} disabled={disabled || valor >= attrMax || pontosRestantes <= 0} onClick={() => setAtributo(chave, valor + 1)} className={botao}><Plus size={14} aria-hidden="true" /></button>
+                  </>
+                )}
+              </AtributoTile>
+            );
+          })}
+        </div>
+        <figure className="self-start">
+          <RadarChart atributos={finais} attrMin={attrMin} attrMax={attrMax + maiorBonus} isLight={isLight} />
+          <figcaption className="mt-1 text-center font-modern text-xs text-[var(--muted-foreground)]">Radar dos valores finais, com bônus</figcaption>
+        </figure>
       </div>
     </div>
   );

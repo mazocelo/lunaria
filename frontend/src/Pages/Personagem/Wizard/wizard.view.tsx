@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, AlertTriangle, Loader2, RotateCcw, Sparkles, Trash2, Users, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, ArrowLeft, Loader2, RotateCcw, Sparkles, Trash2, Users, X } from 'lucide-react';
 import { useTheme } from '../../../contexts/theme';
 import { PageHeader } from '../../../components/shared';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard';
@@ -146,6 +146,7 @@ const WizardView = (props: WizardViewProps) => {
     toggleDndSkill,
     confirmarDndSkills,
     avancarEtapa,
+    navigate,
   } = props;
 
   const { theme } = useTheme();
@@ -282,11 +283,17 @@ const WizardView = (props: WizardViewProps) => {
         subtitle={`${NOME_SISTEMA[sistema] ?? sistema} · etapa ${etapaIndex + 1} de ${etapas.length}`}
         icon={Users}
         actions={
-          <button type="button" onClick={() => setMestreAberto(true)} className="btn-rpg-secondary inline-flex items-center gap-2 cursor-pointer">
-            <Sparkles size={16} />
-            <span className="hidden sm:inline">Pedir sugestão ao Mestre</span>
-            <span className="sm:hidden">Mestre</span>
-          </button>
+          <>
+            <button type="button" data-acao="sair" onClick={() => navigate('/personagens')} title="Sair do wizard. Seu rascunho fica salvo." className="btn-rpg-secondary inline-flex items-center gap-2 cursor-pointer">
+              <ArrowLeft size={16} />
+              <span>Sair</span>
+            </button>
+            <button type="button" onClick={() => setMestreAberto(true)} className="btn-rpg-secondary inline-flex items-center gap-2 cursor-pointer">
+              <Sparkles size={16} />
+              <span className="hidden sm:inline">Pedir sugestão ao Mestre</span>
+              <span className="sm:hidden">Mestre</span>
+            </button>
+          </>
         }
       />
 

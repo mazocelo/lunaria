@@ -1,11 +1,12 @@
 // src/__tests__/wizard/WizardView.test.tsx
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { ThemeProvider } from '../../contexts/theme';
 import WizardView from '../../Pages/Personagem/Wizard/wizard.view';
 import WizardFooter from '../../Pages/Personagem/Wizard/components/WizardFooter';
 import { criarPropsDaView } from './wizardViewFixture';
+import { montar, clicar } from '../helpers/montar';
 
 const render = (el: ReactElement) => renderToStaticMarkup(<ThemeProvider>{el}</ThemeProvider>);
 
@@ -36,5 +37,20 @@ describe('WizardView: rodapé (A01)', () => {
     const html = render(<WizardView {...criarPropsDaView({ etapaAtual: 'raca', etapaIndex: 1 })} />);
     expect(html).toContain('data-acao="voltar"');
     expect(html).toContain('data-acao="continuar"');
+  });
+});
+
+describe('WizardView: sair do wizard (A03)', () => {
+  it('cabeçalho tem Sair avisando que o rascunho fica salvo', () => {
+    const html = render(<WizardView {...criarPropsDaView()} />);
+    expect(html).toMatch(/data-acao="sair"[^>]*title="[^"]*Seu rascunho fica salvo/);
+  });
+
+  it('Sair navega para /personagens', () => {
+    const navigate = vi.fn();
+    const { container, desmontar } = montar(<ThemeProvider><WizardView {...criarPropsDaView({ navigate })} /></ThemeProvider>);
+    clicar(container.querySelector('[data-acao="sair"]'));
+    expect(navigate).toHaveBeenCalledWith('/personagens');
+    desmontar();
   });
 });

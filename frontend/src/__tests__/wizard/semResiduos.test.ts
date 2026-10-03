@@ -1,6 +1,6 @@
 // src/__tests__/wizard/semResiduos.test.ts
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const RAIZ = 'src/Pages/Personagem/Wizard'; // o vitest roda da raiz do projeto
 
@@ -26,6 +26,7 @@ const ARQUIVOS_LIMPOS = [
   'stages/ResumoStage.tsx',
   'components/WizardCreationResultModal.tsx',
   'wizard.view.tsx',
+  '../../../components/PersonagemPreviewCard.tsx',
 ];
 
 const PROIBIDOS: Array<[string, RegExp]> = [
@@ -42,5 +43,11 @@ describe('wizard sem resíduos do tema paralelo', () => {
   it.each(ARQUIVOS_LIMPOS)('%s', (arquivo) => {
     const fonte = readFileSync(`${RAIZ}/${arquivo}`, 'utf8');
     for (const [nome, re] of PROIBIDOS) expect(fonte, `${arquivo}: ${nome}`).not.toMatch(re);
+  });
+
+  it('arquivos legados do wizard não existem mais', () => {
+    const mortos = ['WizardChat', 'LegacyStageAdapter', 'SuggestionCard', 'MasterAvatarGlyph', 'WizardProgressBar', 'WizardStageHero', 'WizardReadinessSeal', 'FinalizacaoPanel', 'TresDetCaracteristicasBlock', 'TresDetVantagensBlock'];
+    for (const nome of mortos) expect(existsSync(`${RAIZ}/components/${nome}.tsx`), nome).toBe(false);
+    expect(existsSync('scripts/wizard-restyle.sed')).toBe(false);
   });
 });

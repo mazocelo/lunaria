@@ -19,6 +19,7 @@ import { telaDaEtapa } from './stages/stageScreen';
 import { getStageConfig } from './stages/stageConfig';
 import { getProgressItems, canCreate } from './stages/stageSelectors';
 import { falaDeRecusa, avisoDeFalha, type TentativaDeAvanco } from './stages/mestreFeedback';
+import { bonusRacialDnd } from './stages/dnd';
 import type { WizardSuggestion } from './hooks/useChatState';
 import type { WizardModel } from './wizard.model';
 
@@ -565,8 +566,8 @@ const WizardView = (props: WizardViewProps) => {
             dndSkillsConfirmed={dndSkillsConfirmed}
             onToggleDndSkill={toggleDndSkill}
             onConfirmarDndSkills={confirmarDndSkills}
-            /* TODO E-1: dndRacialBonuses fixo em {} — bonus racial e divida do epico. */
-            dndRacialBonuses={{}}
+            /* Só exibição (L-14): o POST de criação manda a distribuição sem bônus. */
+            dndRacialBonuses={bonusRacialDnd(racaAtual)}
             onAvancarEtapa={avancarEtapa}
           />
         )}

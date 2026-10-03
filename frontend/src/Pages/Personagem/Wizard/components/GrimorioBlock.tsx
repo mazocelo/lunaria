@@ -3,12 +3,14 @@ import {
   Loader2,
   AlertTriangle,
   Check,
-  ChevronRight,
+  RefreshCw,
   Search,
   X,
   Sparkles,
   BookOpen,
 } from 'lucide-react';
+import { FOCO } from '../../../../components/shared';
+import { mensagemDeErro } from '../stages/mensagemDeErro';
 
 interface Magia {
   id?: number | string;
@@ -54,7 +56,8 @@ interface GrimorioBlockProps {
   slots?: number;
   selecionadas?: Array<number | string>;
   onToggleMagia?: (id: number | string) => void;
-  onContinuar?: () => void;
+  /** "Tentar de novo" quando o grimório não carregou (B13). */
+  onRetry?: () => void;
   loading?: boolean;
   error?: string | null;
   isLight?: boolean;
@@ -65,7 +68,7 @@ const GrimorioBlock = ({
   slots = 0,
   selecionadas = [],
   onToggleMagia,
-  onContinuar,
+  onRetry,
   loading = false,
   error = null,
   isLight = false,
@@ -124,16 +127,22 @@ const GrimorioBlock = ({
   if (error) {
     return (
       <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
-        <div className="flex items-start gap-3">
+        <div role="alert" className="flex items-start gap-3">
           <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-500" />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-modern font-semibold text-amber-500">
-              Grimorio indisponivel
+              Grimório indisponível
             </p>
             <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-              {error}
+              {mensagemDeErro(error)}
             </p>
           </div>
+          {onRetry && (
+            <button type="button" onClick={onRetry} className={`btn-rpg-secondary inline-flex shrink-0 items-center gap-2 cursor-pointer ${FOCO}`}>
+              <RefreshCw size={12} />
+              Tentar de novo
+            </button>
+          )}
         </div>
       </section>
     );
@@ -188,7 +197,7 @@ const GrimorioBlock = ({
               className={`flex-1 bg-transparent text-sm font-modern outline-none ${isLight ? 'text-slate-700 placeholder-slate-400' : 'text-slate-100 placeholder-slate-500'}`}
             />
             {busca && (
-              <button type="button" onClick={() => setBusca('')} className="cursor-pointer">
+              <button type="button" aria-label="Limpar busca" onClick={() => setBusca('')} className={`cursor-pointer rounded ${FOCO}`}>
                 <X size={12} className={isLight ? 'text-slate-400' : 'text-[var(--muted-foreground)]'} />
               </button>
             )}
@@ -326,27 +335,11 @@ const GrimorioBlock = ({
               <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                 Grimorio do personagem
               </p>
-              <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                {selecionadas.length === 0
-                  ? 'Selecione magias acima para preencher os slots disponiveis.'
-                  : `${selecionadas.length} de ${slots} slots preenchidos. Confirme para avancar.`
-                }
+              <p role="status" className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                {selecionadas.length} de {slots} slots preenchidos.
+                {selecionadas.length === 0 ? ' Selecione magias acima.' : ' Para seguir, use Confirmar magias no rodapé.'}
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={onContinuar}
-              disabled={selecionadas.length === 0}
-              className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
-                selecionadas.length === 0
-                  ? 'cursor-not-allowed bg-[var(--muted)] text-[var(--muted-foreground)] opacity-70'
-                  : 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg hover:opacity-90'
-              }`}
-            >
-              <ChevronRight size={16} />
-              Confirmar magias ({selecionadas.length}/{slots})
-            </button>
           </div>
         </div>
       </div>

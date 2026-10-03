@@ -11,6 +11,7 @@ import TresDetCaracteristicasBlock from './TresDetCaracteristicasBlock';
 import TresDetVantagensBlock from './TresDetVantagensBlock';
 import DnDAbilityScoreBlock from './DnDAbilityScoreBlock';
 import DnDSkillsBlock from './DnDSkillsBlock';
+import { CLASS_SKILL_OPTIONS } from '../../../../utils/dnd5eData';
 import { getStageConfig } from '../stages/stageConfig';
 import { canContinueStage, getContinueLabel } from '../stages/stageSelectors';
 import type { WizardMessage, WizardSuggestion } from '../hooks/useChatState';
@@ -269,6 +270,17 @@ const WizardChat = ({
     desvantagensSelecionadas: tresdetDesvantagensConfirmadas,
   };
   const podeContinuarSelecoes = canContinueStage(etapaAtual, buildStateChat, sistema);
+
+  // Ponte TEMPORÁRIA (Task 15 → Task 20): os blocos perderam o botão próprio e a ação vai para o
+  // WizardFooter, mas até a Task 20 estas etapas ainda passam por aqui; o dock segura a ação.
+  const dndAtribuidos = Object.values(dndAbilityScores ?? {}).filter((v) => v != null).length;
+  const dndPericiasMax = (CLASS_SKILL_OPTIONS as Record<string, { count: number }>)[classeNome.toLowerCase().trim()]?.count ?? 2;
+  const acaoDoDock = (rotulo: string, ok: boolean, onClick: () => void) => (
+    <button type="button" data-acao="continuar" disabled={!ok || enviando} onClick={onClick} className="btn-rpg inline-flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50">
+      <ArrowRight size={16} />
+      {rotulo}
+    </button>
+  );
   const textoContinuarSelecoes = getContinueLabel(etapaAtual, sistema);
   const isEquipamentosStage = etapaAtual === 'equipamentos';
   const isGrimorioStage = isTresdet ? etapaAtual === 'magias' : etapaAtual === 'grimorio';
@@ -813,10 +825,6 @@ const WizardChat = ({
             scores={dndAbilityScores}
             racialBonuses={dndRacialBonuses}
             onSetScore={onSetDndAbilityScore ?? (() => {})}
-            onConfirmar={() => {
-              onConfirmarDndAbilities?.();
-              onAvancarEtapa?.();
-            }}
             onReset={onResetDndAbilityScores}
             confirmado={dndAbilitiesConfirmed}
             isLight={isLight}
@@ -829,10 +837,6 @@ const WizardChat = ({
             classeNome={classeNome}
             abilityScores={Object.fromEntries(Object.entries(dndAbilityScores ?? {}).filter(([, v]) => v != null)) as Record<string, number>}
             onToggle={onToggleDndSkill}
-            onConfirmar={() => {
-              onConfirmarDndSkills?.();
-              onAvancarEtapa?.();
-            }}
             confirmado={dndSkillsConfirmed}
             isLight={isLight}
           />
@@ -846,7 +850,6 @@ const WizardChat = ({
             tentativasUsadas={comboPreviewTentativa}
             onRegenerar={onRegenerarComboPreview}
             onRetry={onRecarregarComboPreview}
-            onContinuar={() => onAvancarComMestre?.()}
             isLight={isLight}
           />
         )}
@@ -857,7 +860,6 @@ const WizardChat = ({
             slots={grimorioSlots}
             selecionadas={grimorioSelecionadas}
             onToggleMagia={onToggleGrimorioMagia}
-            onContinuar={onConfirmarGrimorio}
             loading={grimorioLoading}
             error={grimorioError}
             isLight={isLight}
@@ -904,9 +906,9 @@ const WizardChat = ({
             <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
               Distribua os valores do Conjunto Padrao entre os seis atributos acima.
             </p>
-            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
-              Atributos D&D 5e
-            </span>
+            {dndAbilitiesConfirmed
+              ? acaoDoDock('Continuar', true, () => onAvancarEtapa?.())
+              : acaoDoDock(`Confirmar atributos (${dndAtribuidos}/6)`, dndAtribuidos >= 6, () => { onConfirmarDndAbilities?.(); onAvancarEtapa?.(); })}
           </div>
         </div>
       ) : isDndSkillsStage ? (
@@ -915,9 +917,9 @@ const WizardChat = ({
             <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
               Escolha as pericias treinadas concedidas pela sua classe e confirme para avancar.
             </p>
-            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
-              Pericias D&D 5e
-            </span>
+            {dndSkillsConfirmed
+              ? acaoDoDock('Continuar', true, () => onAvancarEtapa?.())
+              : acaoDoDock(`Confirmar perícias (${dndSkillProficiencies.length}/${dndPericiasMax})`, dndSkillProficiencies.length >= dndPericiasMax, () => { onConfirmarDndSkills?.(); onAvancarEtapa?.(); })}
           </div>
         </div>
       ) : isTresdetCaracteristicasStage ? (
@@ -948,9 +950,7 @@ const WizardChat = ({
             <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
               Revise o arsenal acima. Confirme para avancar ao grimorio.
             </p>
-            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
-              Arsenal definido pelo Mestre
-            </span>
+            {acaoDoDock('Continuar', Boolean(comboPreviewData) && !comboPreviewLoading, () => onAvancarComMestre?.())}
           </div>
         </div>
       ) : isGrimorioStage ? (
@@ -959,9 +959,7 @@ const WizardChat = ({
             <p className={`text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
               Selecione magias acima para preencher os slots do grimorio.
             </p>
-            <span className="wa-panel-soft rounded-full px-3 py-1.5 text-[11px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
-              Grimorio — escolha do jogador
-            </span>
+            {acaoDoDock(`Confirmar magias (${grimorioSelecionadas.length}/${grimorioSlots})`, grimorioSelecionadas.length > 0, () => onConfirmarGrimorio?.())}
           </div>
         </div>
       ) : isDestinoResolutivo ? (

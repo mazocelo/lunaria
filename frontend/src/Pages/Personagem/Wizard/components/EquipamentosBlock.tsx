@@ -5,8 +5,11 @@ import {
   RefreshCw,
   Shield,
   Sparkles,
-  ChevronRight,
 } from 'lucide-react';
+import { RARIDADE_CONFIG, FOCO } from '../../../../components/shared';
+import type { RaridadeConfig } from '../../../../components/shared/catalogDetailHelpers';
+import { lerItemCombo, type ItemCombo } from '../stages/itemCombo';
+import { mensagemDeErro } from '../stages/mensagemDeErro';
 
 interface ComboItem {
   id?: number | string;
@@ -23,7 +26,28 @@ interface Combo {
 
 interface EquipamentosData {
   combo?: Combo;
+  /** Catálogo da mesma resposta do combo-preview: é dele que vêm raridade, tipo, dano, preço e peso. */
+  catalogo_editavel?: { equipamentos?: Array<Record<string, unknown>> };
   meta?: Record<string, unknown>;
+}
+
+const semAcento = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** Cores da raridade do catálogo compartilhado, casando nome sem acento/caixa ("raro" → "Raro"). */
+function raridadeConfig(nome: string): RaridadeConfig | null {
+  const chave = (Object.keys(RARIDADE_CONFIG) as Array<keyof typeof RARIDADE_CONFIG>).find((k) => semAcento(k) === semAcento(nome));
+  return chave ? RARIDADE_CONFIG[chave] : null;
+}
+
+const fmtNumero = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+
+function detalhesDoItem(it: ItemCombo): Array<[string, string]> {
+  const linhas: Array<[string, string]> = [];
+  if (it.tipo) linhas.push(['Tipo', it.tipo]);
+  if (it.dano) linhas.push(['Dano', it.dano]);
+  if (it.preco != null) linhas.push(['Preço', fmtNumero(it.preco)]);
+  if (it.peso != null) linhas.push(['Peso', fmtNumero(it.peso)]);
+  return linhas;
 }
 
 const PERFIL_LABELS: Record<string, string> = {
@@ -32,12 +56,12 @@ const PERFIL_LABELS: Record<string, string> = {
   amplo: 'Combo amplo',
 };
 
-function buildItensAgrupados(combo: Combo = {}) {
+function buildItensAgrupados(combo: Combo = {}, catalogo: Array<Record<string, unknown>> = []) {
+  const porId = new Map(catalogo.map((c) => [String(c.id), c]));
   const inventario = (combo.equipamentos || []).map((item) => ({
     ...item,
-    grupo: 'Equipamento',
-    badge: 'Inventario',
-    badgeClass: 'bg-amber-400/15 text-amber-600',
+    // O nome e o motivo do combo valem sobre os do catálogo.
+    dados: lerItemCombo({ ...(porId.get(String(item.id)) ?? {}), ...item }),
     barClass: 'border-[var(--primary)]/35',
   }));
 
@@ -68,7 +92,6 @@ interface EquipamentosBlockProps {
   tentativasUsadas?: number;
   onRegenerar?: () => void;
   onRetry?: () => void;
-  onContinuar?: () => void;
   isLight?: boolean;
 }
 
@@ -79,10 +102,9 @@ const EquipamentosBlock = ({
   tentativasUsadas = 0,
   onRegenerar,
   onRetry,
-  onContinuar,
   isLight = false,
 }: EquipamentosBlockProps) => {
-  const { inventario, recomendacoes } = useMemo(() => buildItensAgrupados(data?.combo), [data]);
+  const { inventario, recomendacoes } = useMemo(() => buildItensAgrupados(data?.combo, data?.catalogo_editavel?.equipamentos), [data]);
   const meta = data?.meta || {};
   const tentativasRestantes = Math.max(0, 3 - tentativasUsadas);
 
@@ -146,25 +168,25 @@ const EquipamentosBlock = ({
         </div>
 
         {error && (
-          <div className="bg-[var(--muted)]/40 flex items-start gap-3 rounded-2xl border border-amber-500/30 px-4 py-3">
+          <div role="alert" className="bg-[var(--muted)]/40 flex items-start gap-3 rounded-2xl border border-amber-500/30 px-4 py-3">
             <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-500" />
             <div className="min-w-0 flex-1">
               <p className="text-xs font-modern font-semibold text-amber-500">
                 Arsenal indisponivel
               </p>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
-                {error}
+                {mensagemDeErro(error)}
               </p>
             </div>
             {onRetry && (
               <button
                 type="button"
-                onClick={onRetry}
                 disabled={loading}
-                className="bg-[var(--muted)]/40 inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-modern font-semibold hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={onRetry}
+                className={`btn-rpg-secondary inline-flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${FOCO}`}
               >
                 {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                Tentar novamente
+                Tentar de novo
               </button>
             )}
           </div>
@@ -192,29 +214,45 @@ const EquipamentosBlock = ({
                 Nenhum equipamento elegivel encontrado para esta build.
               </div>
             )}
-            {inventario.map((item, index) => (
-              <article
-                key={`equip-${item.id}-${index}`}
-                className={`rounded-2xl border border-l-4 p-4 ${item.barClass} ${isLight ? 'bg-white/70' : 'bg-black/15'}`}
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold ${item.badgeClass}`}>
-                    {item.badge}
-                  </span>
-                  <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
-                    {item.grupo}
-                  </span>
-                </div>
-                <h4 className={`mt-3 text-base font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  {item.nome}
-                </h4>
-                {item.motivo && (
-                  <p className={`mt-2 text-sm font-modern leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                    {item.motivo}
-                  </p>
-                )}
-              </article>
-            ))}
+            {inventario.map((item, index) => {
+              const it = item.dados;
+              const rar = it.raridade ? raridadeConfig(it.raridade) : null;
+              const detalhes = detalhesDoItem(it);
+              return (
+                <article
+                  key={`equip-${item.id}-${index}`}
+                  className={`rounded-2xl border border-l-4 p-4 ${item.barClass} ${isLight ? 'bg-white/70' : 'bg-black/15'}`}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className={`text-base font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                      {it.nome}
+                    </h4>
+                    {it.raridade && (
+                      <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-modern font-semibold ${
+                        rar ? (isLight ? rar.badgeLight : rar.badge) : 'border-[var(--border)] bg-[var(--muted)] text-[var(--muted-foreground)]'
+                      }`}>
+                        {it.raridade}
+                      </span>
+                    )}
+                  </div>
+                  {detalhes.length > 0 && (
+                    <dl className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-modern">
+                      {detalhes.map(([rotulo, valor]) => (
+                        <div key={rotulo} className="flex gap-1">
+                          <dt className="text-[var(--muted-foreground)]">{rotulo}</dt>
+                          <dd className={`tabular-nums font-semibold ${isLight ? 'text-slate-800' : 'text-slate-100'}`}>{valor}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  )}
+                  {it.motivo && (
+                    <p className={`mt-2 text-sm font-modern leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
+                      {it.motivo}
+                    </p>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </div>
 
@@ -271,16 +309,16 @@ const EquipamentosBlock = ({
                 Arsenal da build
               </p>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                Regenerar troca todo o combo. Confirmar avanca para o resumo final.
+                Regenerar troca todo o combo. Para seguir, use o Continuar no rodapé.
               </p>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
-                onClick={onRegenerar}
                 disabled={loading || tentativasUsadas >= 3 || !data}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-semibold transition-all ${
+                onClick={onRegenerar}
+                className={`${FOCO} inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-modern font-semibold transition-all ${
                   loading || tentativasUsadas >= 3 || !data
                     ? 'cursor-not-allowed opacity-60'
                     : 'bg-[var(--muted)]/40 hover:-translate-y-0.5'
@@ -288,20 +326,6 @@ const EquipamentosBlock = ({
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                 {loading ? 'Regenerando...' : `Regenerar combo (${tentativasRestantes})`}
-              </button>
-
-              <button
-                type="button"
-                onClick={onContinuar}
-                disabled={loading || !data}
-                className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
-                  loading || !data
-                    ? 'cursor-not-allowed bg-[var(--muted)] text-[var(--muted-foreground)] opacity-70'
-                    : 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg hover:opacity-90'
-                }`}
-              >
-                <ChevronRight size={16} />
-                Confirmar e continuar
               </button>
             </div>
           </div>

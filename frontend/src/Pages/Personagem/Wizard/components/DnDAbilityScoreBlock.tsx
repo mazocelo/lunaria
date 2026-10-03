@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
-import { ChevronRight, CheckCircle2, Sparkles, Info, RotateCcw } from 'lucide-react';
+import { CheckCircle2, Sparkles, Info, RotateCcw, Pencil } from 'lucide-react';
 import { ABILITIES, STANDARD_ARRAY } from '../../../../utils/dnd5eData';
+import { FOCO } from '../../../../components/shared';
 
 interface AbilityMeta { bar: string; desc: string; }
 
@@ -20,9 +21,11 @@ const formatMod = (mod: number) => (mod >= 0 ? `+${mod}` : `${mod}`);
 
 interface DnDAbilityScoreBlockProps {
   scores?: Record<string, number | null | undefined>;
+  /** Só para mostrar (L-14): o POST manda a distribuição sem bônus. Ver `bonusRacialDnd`. */
   racialBonuses?: Record<string, number>;
   onSetScore: (abilityId: string, valor: number | null) => void;
-  onConfirmar?: () => void;
+  /** Reabre a distribuição depois de confirmada (B04). A confirmação mora no rodapé. */
+  onEditar?: () => void;
   onReset?: () => void;
   confirmado?: boolean;
   isLight?: boolean;
@@ -32,7 +35,7 @@ const DnDAbilityScoreBlock = ({
   scores = {},
   racialBonuses = {},
   onSetScore,
-  onConfirmar,
+  onEditar,
   onReset,
   confirmado = false,
   isLight = false,
@@ -58,6 +61,12 @@ const DnDAbilityScoreBlock = ({
   }, [valoresAtribuidos]);
 
   const todosAtribuidos = valoresAtribuidos.length === 6;
+  const semBonusRacial = Object.keys(racialBonuses).length === 0;
+  const avisoSemBonus = semBonusRacial && (
+    <p className="font-modern text-sm text-[var(--muted-foreground)]">
+      Esta raça não traz bônus de atributo cadastrado; o valor final mostrado é o da distribuição.
+    </p>
+  );
   const totalAtribuidos = valoresAtribuidos.length;
 
   const handleSelecionar = useCallback(
@@ -82,7 +91,13 @@ const DnDAbilityScoreBlock = ({
           <span className={`text-base font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
             Atributos confirmados
           </span>
-          <CheckCircle2 size={16} className="ml-auto text-emerald-500" />
+          <CheckCircle2 size={16} className="text-emerald-500" />
+          {onEditar && (
+            <button type="button" data-acao="editar" onClick={onEditar} className={`btn-rpg-secondary ml-auto inline-flex items-center gap-1.5 cursor-pointer ${FOCO}`}>
+              <Pencil size={12} />
+              Editar atributos
+            </button>
+          )}
         </div>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           {ABILITIES.map((ab) => {
@@ -131,7 +146,10 @@ const DnDAbilityScoreBlock = ({
           Atribua os valores do Conjunto Padrao [{STANDARD_ARRAY.join(', ')}] a cada atributo.
         </p>
 
+        {avisoSemBonus}
+
         <div
+          role="status"
           className={`mt-2 flex flex-col items-center gap-1.5 rounded-2xl px-6 py-3 transition-all duration-300 ${
             todosAtribuidos
               ? 'bg-emerald-500/15 ring-2 ring-emerald-400/50 animate-pulse'
@@ -153,7 +171,7 @@ const DnDAbilityScoreBlock = ({
               todosAtribuidos ? 'text-emerald-400' : 'text-[var(--muted-foreground)]'
             }`}
           >
-            {todosAtribuidos ? 'Todos os atributos atribuidos!' : `${6 - totalAtribuidos} restantes`}
+            {todosAtribuidos ? 'Todos os atributos atribuídos!' : `${6 - totalAtribuidos} restantes`}
           </span>
         </div>
 
@@ -242,13 +260,13 @@ const DnDAbilityScoreBlock = ({
                   ))}
                 </select>
 
+                {racial !== 0 && (
+                  <span className={`text-xs tabular-nums ${racial > 0 ? 'text-green-400/80' : 'text-red-400/80'}`}>
+                    {racial > 0 ? '+' : ''}{racial} racial
+                  </span>
+                )}
                 {total != null && (
                   <div className="flex items-center gap-3">
-                    {racial !== 0 && (
-                      <span className={`text-xs tabular-nums ${racial > 0 ? 'text-green-400/80' : 'text-red-400/80'}`}>
-                        {racial > 0 ? '+' : ''}{racial}
-                      </span>
-                    )}
                     <div className={`text-center ${isLight ? 'text-slate-900' : 'text-white'}`}>
                       <div className="text-lg tabular-nums font-bold">{total}</div>
                       {mod != null && (
@@ -288,7 +306,7 @@ const DnDAbilityScoreBlock = ({
               </p>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
                 {todosAtribuidos
-                  ? 'Todos os atributos atribuidos. Confirme para avancar.'
+                  ? 'Todos os atributos atribuídos. Confirme no rodapé.'
                   : `Atribua os ${6 - totalAtribuidos} valores restantes.`}
               </p>
             </div>
@@ -303,20 +321,6 @@ const DnDAbilityScoreBlock = ({
               </button>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={onConfirmar}
-            disabled={!todosAtribuidos}
-            className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
-              !todosAtribuidos
-                ? 'cursor-not-allowed bg-[var(--muted)] text-[var(--muted-foreground)] opacity-70'
-                : 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg hover:opacity-90'
-            }`}
-          >
-            <ChevronRight size={16} />
-            Confirmar atributos ({totalAtribuidos}/6)
-          </button>
         </div>
       </div>
     </section>

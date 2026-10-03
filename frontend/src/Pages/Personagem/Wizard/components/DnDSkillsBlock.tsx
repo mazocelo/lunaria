@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { Check, ChevronRight, Sparkles, CheckCircle2, Lock } from 'lucide-react';
+import { Check, Sparkles, CheckCircle2, Lock, Pencil } from 'lucide-react';
 import { SKILLS, CLASS_SKILL_OPTIONS } from '../../../../utils/dnd5eData';
+import { FOCO } from '../../../../components/shared';
 
 // Ordem de exibicao dos atributos e cores de chip do tema Vitral Arcano.
 const ORDEM_ATRIBUTOS: readonly string[] = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
@@ -40,7 +41,8 @@ interface DnDSkillsBlockProps {
   classeNome?: string;
   abilityScores?: Record<string, number>;
   onToggle?: (skillId: string) => void;
-  onConfirmar?: () => void;
+  /** Reabre a escolha depois de confirmada (B04). A confirmação mora no rodapé. */
+  onEditar?: () => void;
   confirmado?: boolean;
   isLight?: boolean;
 }
@@ -50,7 +52,7 @@ const DnDSkillsBlock = ({
   classeNome = '',
   abilityScores = {},
   onToggle,
-  onConfirmar,
+  onEditar,
   confirmado = false,
   isLight = false,
 }: DnDSkillsBlockProps) => {
@@ -78,9 +80,15 @@ const DnDSkillsBlock = ({
         <div className="mb-4 flex items-center gap-2">
           <Sparkles size={18} className="text-emerald-500" />
           <span className={`text-base font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
-            Pericias confirmadas
+            Perícias confirmadas
           </span>
-          <CheckCircle2 size={16} className="ml-auto text-emerald-500" />
+          <CheckCircle2 size={16} className="text-emerald-500" />
+          {onEditar && (
+            <button type="button" data-acao="editar" onClick={onEditar} className={`btn-rpg-secondary ml-auto inline-flex items-center gap-1.5 cursor-pointer ${FOCO}`}>
+              <Pencil size={12} />
+              Editar perícias
+            </button>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           {selecionadas.map((skillId) => {
@@ -136,7 +144,7 @@ const DnDSkillsBlock = ({
             </p>
           </div>
 
-          <div className="bg-[var(--muted)]/40 flex shrink-0 flex-col gap-1 rounded-2xl px-4 py-3">
+          <div role="status" className="bg-[var(--muted)]/40 flex shrink-0 flex-col gap-1 rounded-2xl px-4 py-3">
             <span className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
               Selecionadas
             </span>
@@ -176,9 +184,9 @@ const DnDSkillsBlock = ({
                         aria-pressed={selecionada}
                         title={
                           !permitida
-                            ? 'Pericia indisponivel para esta classe'
+                            ? 'Perícia indisponível para esta classe'
                             : !selecionada && noLimite
-                              ? 'Limite de pericias atingido'
+                              ? 'Limite de perícias atingido'
                               : undefined
                         }
                         className={`group relative flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-all ${
@@ -235,23 +243,9 @@ const DnDSkillsBlock = ({
                   ? 'Selecione pericias na lista acima.'
                   : selecionadas.length < maxSelecoes
                     ? `${selecionadas.length} de ${maxSelecoes} selecionadas. Escolha mais ${maxSelecoes - selecionadas.length}.`
-                    : `${selecionadas.length} de ${maxSelecoes} selecionadas. Confirme para avancar.`}
+                    : `${selecionadas.length} de ${maxSelecoes} selecionadas. Confirme no rodapé.`}
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={onConfirmar}
-              disabled={selecionadas.length < maxSelecoes}
-              className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
-                selecionadas.length < maxSelecoes
-                  ? 'cursor-not-allowed bg-[var(--muted)] text-[var(--muted-foreground)] opacity-70'
-                  : 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg hover:opacity-90'
-              }`}
-            >
-              <ChevronRight size={16} />
-              Confirmar pericias ({selecionadas.length}/{maxSelecoes})
-            </button>
           </div>
         </div>
       </div>

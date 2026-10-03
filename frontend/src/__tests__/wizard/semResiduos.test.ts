@@ -20,6 +20,8 @@ const ARQUIVOS_LIMPOS = [
   'stages/AtributosStage.tsx',
   'components/EquipamentosBlock.tsx',
   'components/GrimorioBlock.tsx',
+  'components/DnDAbilityScoreBlock.tsx',
+  'components/DnDSkillsBlock.tsx',
 ];
 
 const PROIBIDOS: Array<[string, RegExp]> = [

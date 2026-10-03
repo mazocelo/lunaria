@@ -3,6 +3,8 @@ import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import EquipamentosBlock from '../../Pages/Personagem/Wizard/components/EquipamentosBlock';
 import GrimorioBlock from '../../Pages/Personagem/Wizard/components/GrimorioBlock';
+import DnDAbilityScoreBlock from '../../Pages/Personagem/Wizard/components/DnDAbilityScoreBlock';
+import DnDSkillsBlock from '../../Pages/Personagem/Wizard/components/DnDSkillsBlock';
 
 /** HTML estático sem os `<!-- -->` que o React põe entre nós de texto vizinhos. */
 const render = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el).replace(/<!-- -->/g, '');
@@ -32,6 +34,23 @@ describe('GrimorioBlock', () => {
     expect(html).toContain('Mísseis Mágicos');
     expect(html).toMatch(desabilitado('Confirmar magias (0/2)'));
     expect(html).not.toContain('font-mono');
+    expect(html).not.toMatch(/(?<![\w-])wa-/);
+  });
+});
+
+describe('DnDAbilityScoreBlock', () => {
+  it('nada atribuído: Confirmar atributos (0/6) desabilitado, números sem mono', () => {
+    const html = render(<DnDAbilityScoreBlock scores={{}} racialBonuses={{}} onSetScore={() => {}} onConfirmar={() => {}} confirmado={false} isLight={false} />);
+    expect(html).toMatch(desabilitado('Confirmar atributos (0/6)'));
+    expect(html).not.toContain('font-mono');
+    expect(html).not.toMatch(/(?<![\w-])wa-/);
+  });
+});
+
+describe('DnDSkillsBlock', () => {
+  it('mago sem perícias: Confirmar pericias (0/2) desabilitado', () => {
+    const html = render(<DnDSkillsBlock selecionadas={[]} classeNome="wizard" abilityScores={{}} onToggle={() => {}} onConfirmar={() => {}} confirmado={false} isLight={false} />);
+    expect(html).toMatch(desabilitado('Confirmar pericias (0/2)'));
     expect(html).not.toMatch(/(?<![\w-])wa-/);
   });
 });

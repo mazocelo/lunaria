@@ -10,7 +10,7 @@ const ABILITY_META: Record<string, AbilityMeta> = {
   DEX: { bar: 'bg-green-500', desc: 'Agilidade, reflexos, ataques a distancia e Classe de Armadura.' },
   CON: { bar: 'bg-yellow-500', desc: 'Vigor, resistencia, pontos de vida e concentracao.' },
   INT: { bar: 'bg-blue-500', desc: 'Raciocinio, conhecimento, arcanismo e investigacao.' },
-  WIS: { bar: 'bg-purple-500', desc: 'Percepcao, intuicao e forca de vontade.' },
+  WIS: { bar: 'bg-[var(--primary)]', desc: 'Percepcao, intuicao e forca de vontade.' },
   CHA: { bar: 'bg-pink-500', desc: 'Presenca, persuasao, enganacao e conjuracao de algumas classes.' },
 };
 
@@ -76,13 +76,13 @@ const DnDAbilityScoreBlock = ({
 
   if (confirmado) {
     return (
-      <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
+      <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
         <div className="mb-4 flex items-center gap-2">
-          <Sparkles size={18} className="text-[var(--wa-teal)]" />
+          <Sparkles size={18} className="text-emerald-500" />
           <span className={`text-base font-fantasy font-bold ${isLight ? 'text-slate-800' : 'text-white'}`}>
             Atributos confirmados
           </span>
-          <CheckCircle2 size={16} className="ml-auto text-[var(--wa-teal)]" />
+          <CheckCircle2 size={16} className="ml-auto text-emerald-500" />
         </div>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           {ABILITIES.map((ab) => {
@@ -95,17 +95,17 @@ const DnDAbilityScoreBlock = ({
                 key={ab.id}
                 className={`rounded-xl border px-2 py-2.5 text-center ${isLight ? 'border-slate-200 bg-white/75' : 'border-slate-700/50 bg-slate-900/55'}`}
               >
-                <div className={`text-[11px] font-mono font-semibold tracking-wide ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <div className={`text-[11px] tabular-nums font-semibold tracking-wide ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
                   {ab.id}
                 </div>
-                <div className={`mt-1 text-xl font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                <div className={`mt-1 text-xl tabular-nums font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
                   {total}
                 </div>
-                <div className={`text-xs font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                <div className={`text-xs tabular-nums ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                   {formatMod(mod)}
                 </div>
                 {racial !== 0 && (
-                  <div className={`mt-1 text-[10px] font-mono ${racial > 0 ? 'text-green-400/70' : 'text-red-400/70'}`}>
+                  <div className={`mt-1 text-[10px] tabular-nums ${racial > 0 ? 'text-green-400/70' : 'text-red-400/70'}`}>
                     {racial > 0 ? '+' : ''}{racial} racial
                   </div>
                 )}
@@ -118,16 +118,16 @@ const DnDAbilityScoreBlock = ({
   }
 
   return (
-    <section className="wa-combo-block wa-stage-enter wa-stagger-2 rounded-[28px] p-5 md:p-6">
+    <section className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-5 md:p-6">
       <div className="mb-5 flex flex-col items-center gap-2">
-        <div className="wa-accent-chip inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold uppercase tracking-[0.18em]">
+        <div className="bg-[var(--primary)]/15 text-[var(--primary)] inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-modern font-semibold">
           <Sparkles size={11} />
           Atributos D&D 5e
         </div>
         <h4 className={`mt-2 text-lg font-fantasy font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>
           Distribuicao por Conjunto Padrao
         </h4>
-        <p className={`text-sm font-modern text-center ${isLight ? 'text-slate-600' : 'text-[var(--wa-muted)]'}`}>
+        <p className={`text-sm font-modern text-center ${isLight ? 'text-slate-600' : 'text-[var(--muted-foreground)]'}`}>
           Atribua os valores do Conjunto Padrao [{STANDARD_ARRAY.join(', ')}] a cada atributo.
         </p>
 
@@ -141,7 +141,7 @@ const DnDAbilityScoreBlock = ({
           }`}
         >
           <span
-            className={`flex items-center gap-2 text-2xl font-mono font-bold ${
+            className={`flex items-center gap-2 text-2xl tabular-nums font-bold ${
               todosAtribuidos ? 'text-emerald-400' : isLight ? 'text-slate-900' : 'text-white'
             }`}
           >
@@ -150,7 +150,7 @@ const DnDAbilityScoreBlock = ({
           </span>
           <span
             className={`text-xs font-modern font-medium ${
-              todosAtribuidos ? 'text-emerald-400' : 'text-[var(--wa-muted)]'
+              todosAtribuidos ? 'text-emerald-400' : 'text-[var(--muted-foreground)]'
             }`}
           >
             {todosAtribuidos ? 'Todos os atributos atribuidos!' : `${6 - totalAtribuidos} restantes`}
@@ -159,13 +159,13 @@ const DnDAbilityScoreBlock = ({
 
         {valoresDisponiveis.length > 0 && (
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-            <span className={`text-[10px] font-modern font-semibold uppercase tracking-[0.18em] ${isLight ? 'text-slate-500' : 'text-[var(--wa-muted)]'}`}>
+            <span className={`text-[10px] font-modern font-semibold ${isLight ? 'text-slate-500' : 'text-[var(--muted-foreground)]'}`}>
               Disponiveis:
             </span>
             {valoresDisponiveis.map((v, i) => (
               <span
                 key={`disp-${v}-${i}`}
-                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm font-mono font-bold ${
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-sm tabular-nums font-bold ${
                   isLight ? 'bg-slate-200 text-slate-700' : 'bg-slate-800 text-slate-200'
                 }`}
               >
@@ -186,11 +186,11 @@ const DnDAbilityScoreBlock = ({
           const mostrarInfo = infoAberta === ab.id;
 
           return (
-            <div key={ab.id} className="wa-panel-soft rounded-2xl px-3 py-3">
+            <div key={ab.id} className="bg-[var(--muted)]/40 rounded-2xl px-3 py-3">
               <div className="flex items-center gap-3">
                 <div className="w-20 shrink-0">
                   <div className="flex items-center gap-1">
-                    <span className={`text-xs font-mono font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
+                    <span className={`text-xs tabular-nums font-bold ${isLight ? 'text-slate-700' : 'text-slate-200'}`}>
                       {ab.id}
                     </span>
                     <button
@@ -200,7 +200,7 @@ const DnDAbilityScoreBlock = ({
                       aria-expanded={mostrarInfo}
                       className={`rounded p-0.5 transition-colors cursor-pointer ${
                         mostrarInfo
-                          ? 'text-[var(--wa-accent)]'
+                          ? 'text-[var(--primary)]'
                           : isLight
                             ? 'text-slate-400 hover:text-slate-600'
                             : 'text-slate-500 hover:text-slate-300'
@@ -225,10 +225,10 @@ const DnDAbilityScoreBlock = ({
                       handleSelecionar(ab.id, Number(val));
                     }
                   }}
-                  className={`h-10 flex-1 max-w-[140px] rounded-xl border px-3 text-sm font-mono font-bold outline-none transition-colors cursor-pointer ${
+                  className={`h-10 flex-1 max-w-[140px] rounded-xl border px-3 text-sm tabular-nums font-bold outline-none transition-colors cursor-pointer ${
                     isLight
-                      ? 'border-slate-300 bg-white text-slate-900 focus:border-[var(--wa-accent)]'
-                      : 'border-slate-700 bg-slate-900/80 text-white focus:border-[var(--wa-accent)]'
+                      ? 'border-slate-300 bg-white text-slate-900 focus:border-[var(--primary)]'
+                      : 'border-slate-700 bg-slate-900/80 text-white focus:border-[var(--primary)]'
                   }`}
                 >
                   <option value="">--</option>
@@ -245,14 +245,14 @@ const DnDAbilityScoreBlock = ({
                 {total != null && (
                   <div className="flex items-center gap-3">
                     {racial !== 0 && (
-                      <span className={`text-xs font-mono ${racial > 0 ? 'text-green-400/80' : 'text-red-400/80'}`}>
+                      <span className={`text-xs tabular-nums ${racial > 0 ? 'text-green-400/80' : 'text-red-400/80'}`}>
                         {racial > 0 ? '+' : ''}{racial}
                       </span>
                     )}
                     <div className={`text-center ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                      <div className="text-lg font-mono font-bold">{total}</div>
+                      <div className="text-lg tabular-nums font-bold">{total}</div>
                       {mod != null && (
-                        <div className={`text-xs font-mono ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        <div className={`text-xs tabular-nums ${mod >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                           {formatMod(mod)}
                         </div>
                       )}
@@ -279,11 +279,11 @@ const DnDAbilityScoreBlock = ({
         })}
       </div>
 
-      <div className="mt-5 border-t border-[var(--wa-border)] pt-4">
+      <div className="mt-5 border-t border-[var(--border)] pt-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <div>
-              <p className="text-[10px] font-modern font-semibold uppercase tracking-[0.18em] text-[var(--wa-muted)]">
+              <p className="text-[10px] font-modern font-semibold text-[var(--muted-foreground)]">
                 Atributos
               </p>
               <p className={`mt-1 text-sm font-modern ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
@@ -296,7 +296,7 @@ const DnDAbilityScoreBlock = ({
               <button
                 type="button"
                 onClick={onReset}
-                className="wa-panel-soft inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
+                className="bg-[var(--muted)]/40 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-modern font-medium transition-all hover:-translate-y-0.5 cursor-pointer"
               >
                 <RotateCcw size={12} />
                 Redefinir
@@ -310,8 +310,8 @@ const DnDAbilityScoreBlock = ({
             disabled={!todosAtribuidos}
             className={`inline-flex min-w-[14rem] items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-modern font-semibold transition-all ${
               !todosAtribuidos
-                ? 'cursor-not-allowed bg-slate-600 text-slate-300 opacity-70'
-                : 'bg-gradient-to-br from-[var(--wa-accent)] to-[var(--wa-teal)] text-white shadow-lg hover:-translate-y-0.5'
+                ? 'cursor-not-allowed bg-[var(--muted)] text-[var(--muted-foreground)] opacity-70'
+                : 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg hover:opacity-90'
             }`}
           >
             <ChevronRight size={16} />

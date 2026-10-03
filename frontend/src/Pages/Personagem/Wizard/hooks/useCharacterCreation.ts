@@ -1,7 +1,9 @@
-import { useState, useCallback, type MutableRefObject } from 'react';
+import { useState, useCallback, useRef, type MutableRefObject } from 'react';
 import { Personagem } from '../../../../models/Personagem';
 import { personagemService, apiClient } from '../../../../services/index';
 import type { BonusCalculationApi } from './useBonusCalculation';
+import { passoNaoBloqueante, recarregarSemBloquear, type FalhaPosCriacao } from '../stages/criacao';
+import { mensagemDeErro } from '../stages/mensagemDeErro';
 
 interface CreationEstado {
   nome?: string;
@@ -55,6 +57,8 @@ interface CreationResultData {
   background_gerado?: string | null;
   background_final?: string;
   background_indisponivel?: boolean;
+  /** Passos pós-criação que falharam (o personagem existe; o modal avisa). */
+  falhas?: FalhaPosCriacao[];
 }
 
 /**
@@ -71,6 +75,8 @@ export const useCharacterCreation = ({
   const [creationFlowStatus, setCreationFlowStatus] = useState<string>('idle');
   const [creationResultModalOpen, setCreationResultModalOpen] = useState(false);
   const [creationResultData, setCreationResultData] = useState<CreationResultData | null>(null);
+  /** Id do personagem já criado nesta sessão do wizard: impede um segundo POST (A35). */
+  const criadoIdRef = useRef<number | string | null>(null);
 
   /** Cria um personagem D&D 5e: valida o estado D&D e envia o payload proprio. */
   const salvarPersonagemDnd5e = useCallback(async (s: CreationEstado) => {
@@ -106,6 +112,8 @@ export const useCharacterCreation = ({
       };
 
       const criado = await personagemService.createDnd5e(payload) as { id?: number | null } | null;
+      if (criado?.id != null) criadoIdRef.current = criado.id;
+      const falhas: FalhaPosCriacao[] = [];
 
       let backgroundResult: { background_gerado?: string } | null = null;
       let backgroundIndisponivel = false;
@@ -115,19 +123,19 @@ export const useCharacterCreation = ({
           backgroundResult = await personagemService.gerarBackground(criado.id, s.background) as { background_gerado?: string };
         } catch (bgError) {
           backgroundIndisponivel = true;
+          falhas.push('background');
           const msg = bgError instanceof Error ? bgError.message : String(bgError);
           console.warn('Background IA nao gerado:', msg);
         }
       }
 
       if (criado?.id && imageUrl) {
-        try {
-          await personagemService.update(criado.id, { imagem: imageUrl });
-        } catch { /* non-blocking */ }
+        const id = criado.id;
+        await passoNaoBloqueante(falhas, 'retrato', () => personagemService.update(id, { imagem: imageUrl }));
       }
 
       limparDraft();
-      await recarregarPersonagens();
+      await recarregarSemBloquear(recarregarPersonagens);
 
       setCreationFlowStatus('opening_result');
       setCreationResultData({
@@ -137,13 +145,15 @@ export const useCharacterCreation = ({
         background_gerado: backgroundResult?.background_gerado || null,
         background_final: backgroundResult?.background_gerado || s.background,
         background_indisponivel: backgroundIndisponivel || !backgroundResult?.background_gerado,
+        falhas,
       });
       setCreationResultModalOpen(true);
       setCreationFlowStatus('idle');
     } catch (err) {
+      // Só chega aqui erro anterior ao POST concluído; depois dele os passos são não bloqueantes.
       setCreationFlowStatus('error');
-      const message = err instanceof Error ? err.message : 'Erro ao criar personagem';
-      setError(message);
+      console.warn('[wizard] criação falhou', err);
+      setError(mensagemDeErro(err));
       setCreationFlowStatus('idle');
     } finally {
       setSalvando(false);
@@ -152,6 +162,7 @@ export const useCharacterCreation = ({
 
   /** Salva o personagem usando o combo atual do preview */
   const salvarPersonagem = useCallback(async () => {
+    if (criadoIdRef.current != null) { setCreationResultModalOpen(true); return; }
     const s = estadoRef.current;
     if (!s.nome?.trim()) { setError('Nome do personagem e obrigatorio'); return; }
     if (!s.racaId) { setError('Selecione uma raca antes de salvar'); return; }
@@ -209,6 +220,8 @@ export const useCharacterCreation = ({
 
       const personagem = new Personagem(dados);
       const criado = await personagemService.create(personagem, { context: 'criacao' }) as { id?: number | null } | null;
+      if (criado?.id != null) criadoIdRef.current = criado.id;
+      const falhas: FalhaPosCriacao[] = [];
 
       let backgroundResult: { background_gerado?: string } | null = null;
       let backgroundIndisponivel = false;
@@ -218,28 +231,27 @@ export const useCharacterCreation = ({
           backgroundResult = await personagemService.gerarBackground(criado.id, s.background) as { background_gerado?: string };
         } catch (bgError) {
           backgroundIndisponivel = true;
+          falhas.push('background');
           const msg = bgError instanceof Error ? bgError.message : String(bgError);
           console.warn('Background IA nao gerado:', msg);
         }
       }
 
       if (criado?.id && imageUrl) {
-        try {
-          await personagemService.update(criado.id, { imagem: imageUrl });
-        } catch { /* non-blocking */ }
+        const id = criado.id;
+        await passoNaoBloqueante(falhas, 'retrato', () => personagemService.update(id, { imagem: imageUrl }));
       }
 
       if (criado?.id && (grimorioSelecionadas?.length ?? 0) > 0) {
-        try {
-          await apiClient.post(`/personagens/${criado.id}/magias`, {
-            habilidade_ids: (grimorioSelecionadas || []).map(id => parseInt(String(id), 10)),
-            origem: 'criacao',
-          });
-        } catch { /* non-blocking — magias podem ser adicionadas depois */ }
+        const id = criado.id;
+        await passoNaoBloqueante(falhas, 'magias', () => apiClient.post(`/personagens/${id}/magias`, {
+          habilidade_ids: (grimorioSelecionadas || []).map(hid => parseInt(String(hid), 10)),
+          origem: 'criacao',
+        }));
       }
 
       limparDraft();
-      await recarregarPersonagens();
+      await recarregarSemBloquear(recarregarPersonagens);
 
       setCreationFlowStatus('opening_result');
       setCreationResultData({
@@ -249,13 +261,15 @@ export const useCharacterCreation = ({
         background_gerado: backgroundResult?.background_gerado || null,
         background_final: backgroundResult?.background_gerado || s.background,
         background_indisponivel: backgroundIndisponivel || !backgroundResult?.background_gerado,
+        falhas,
       });
       setCreationResultModalOpen(true);
       setCreationFlowStatus('idle');
     } catch (err) {
+      // Só chega aqui erro anterior ao POST concluído; depois dele os passos são não bloqueantes.
       setCreationFlowStatus('error');
-      const message = err instanceof Error ? err.message : 'Erro ao criar personagem';
-      setError(message);
+      console.warn('[wizard] criação falhou', err);
+      setError(mensagemDeErro(err));
       setCreationFlowStatus('idle');
     } finally {
       setSalvando(false);
@@ -273,6 +287,11 @@ export const useCharacterCreation = ({
     sistema,
     salvarPersonagemDnd5e,
   ]);
+
+  const limparOuDefinirResultado = useCallback((data: CreationResultData | null) => {
+    if (data == null) criadoIdRef.current = null;
+    setCreationResultData(data);
+  }, []);
 
   /** Fecha o modal de resultado de criação */
   const fecharResultadoCriacao = useCallback(() => {
@@ -308,6 +327,7 @@ export const useCharacterCreation = ({
     // Exposed for descartarDraft reset
     setCreationFlowStatus,
     setCreationResultModalOpen,
-    setCreationResultData,
+    /** Com `null` ("Começar do zero") também esquece o personagem criado, liberando uma nova criação. */
+    setCreationResultData: limparOuDefinirResultado,
   };
 };

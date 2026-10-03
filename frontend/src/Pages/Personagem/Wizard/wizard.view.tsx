@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle, AlertTriangle, Loader2, RotateCcw, Sparkles, Trash2, Users, X } from 'lucide-react';
 import { useTheme } from '../../../contexts/theme';
 import { PageHeader } from '../../../components/shared';
@@ -160,6 +160,11 @@ const WizardView = (props: WizardViewProps) => {
     setTransicao({ indice: etapaIndex, direcao: etapaIndex > transicao.indice ? 1 : -1 });
   }
   const { direcao } = transicao;
+
+  // A página rola dentro do <main> do shell; a etapa nova começa do topo.
+  useEffect(() => {
+    document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [etapaIndex]);
 
   const allSelecoes = useMemo(() => [...vantagensIds, ...desvantagensIds], [vantagensIds, desvantagensIds]);
 

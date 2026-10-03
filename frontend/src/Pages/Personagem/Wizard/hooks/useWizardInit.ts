@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { mestreCriadorService } from '../../../../services/index';
 import type { ChatStateApi } from './useChatState';
 import type { BonusCalculationApi } from './useBonusCalculation';
+import { mensagemDeErro } from '../stages/mensagemDeErro';
 import type { ComboPreviewApi } from './useComboPreview';
 import type { WizardDraft } from './useDraftPersistence';
 
@@ -123,8 +124,8 @@ export const useWizardInit = ({
       }]);
       if (resultado.sugestoes?.length) setSugestoes(resultado.sugestoes);
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(message);
+      console.error('[wizard]', err);
+      setError(mensagemDeErro(err));
       setMensagens([mensagemSistema, {
         id: Date.now() + 1,
         role: 'mestre',

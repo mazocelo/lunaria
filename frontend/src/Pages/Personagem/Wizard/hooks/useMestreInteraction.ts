@@ -2,6 +2,7 @@ import { useCallback, type MutableRefObject } from 'react';
 import { mestreCriadorService } from '../../../../services/index';
 import type { ChatStateApi, WizardMessage } from './useChatState';
 import type { BonusCalculationApi } from './useBonusCalculation';
+import { mensagemDeErro } from '../stages/mensagemDeErro';
 
 interface DeveDefinirNomeOptions {
   aceitarNome?: boolean;
@@ -194,8 +195,8 @@ export const useMestreInteraction = ({
         navigation.registrarVisita(resultado.etapa_proxima);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(message);
+      console.error('[wizard]', err);
+      setError(mensagemDeErro(err));
     } finally {
       enviandoRef.current = false;
       setEnviando(false);

@@ -9,3 +9,6 @@ export { default as TableSkeleton } from './TableSkeleton';
 export { default as CatalogCard, CatalogCardSkeleton, CatalogPagination } from './CatalogCard';
 export { default as CatalogDetailLayout } from './CatalogDetailLayout';
 export { StatRow, ChipGroup, AtributoBar, formatJson, formatBonusDisplay, formatObjectDisplay, formatRequisitosDisplay, getRaridadeConfig, RARIDADE_CONFIG } from './catalogDetailHelpers';
+export { default as ConfirmDialog } from './ConfirmDialog';
+export type { ConfirmDialogProps } from './ConfirmDialog';
+export { FOCO } from './foco';

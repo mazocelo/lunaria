@@ -6,6 +6,7 @@ import type { WizardMessage, WizardSuggestion } from '../hooks/useChatState';
 import { getStageConfig } from '../stages/stageConfig';
 import MestrePensando from './MestrePensando';
 import { formatarCustoTraco } from '../stages/custoTraco';
+import { FOCO } from '../../../../components/shared/foco';
 import '../wizard-motion.css';
 
 export interface MestrePanelProps {
@@ -21,14 +22,21 @@ export interface MestrePanelProps {
   onEscolherSugestao: (s: WizardSuggestion) => void;
   /** Recebe o foco quando o painel fecha (o botão do cabeçalho que o abriu). */
   focoAoFechar?: RefObject<HTMLElement | null>;
+  /** Ids já escolhidos (vantagens e desvantagens): o chip mostra "Escolhida" e um Remover explícito. */
+  selecionados?: Array<number | string>;
+  onRemover?: (tipo: 'vantagem' | 'desvantagem', id: number | string) => void;
   isLight: boolean;
 }
 
 const tipoDe = (s: WizardSuggestion) => String(s.tipo ?? '');
 
+const rolagemSuave = () =>
+  typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
 const MestrePanel = (props: MestrePanelProps) => {
-  const { aberto, onFechar, mensagens, enviando, inputTexto, setInputTexto, etapaAtual, sistema, onEnviar, onEscolherSugestao, focoAoFechar, isLight } = props;
+  const { aberto, onFechar, mensagens, enviando, inputTexto, setInputTexto, etapaAtual, sistema, onEnviar, onEscolherSugestao, focoAoFechar, selecionados = [], onRemover, isLight } = props;
   const campoRef = useRef<HTMLTextAreaElement>(null);
+  const fimRef = useRef<HTMLDivElement>(null);
   // Ref para o Esc sempre chamar o onFechar atual sem refazer o efeito (e o foco) a cada render.
   const onFecharRef = useRef(onFechar);
   useEffect(() => { onFecharRef.current = onFechar; });
@@ -47,6 +55,12 @@ const MestrePanel = (props: MestrePanelProps) => {
       (destino?.current ?? anterior)?.focus();
     };
   }, [aberto, focoAoFechar]);
+
+  // Resposta nova (ou painel reaberto): rola até o fim da conversa.
+  useEffect(() => {
+    if (!aberto) return;
+    fimRef.current?.scrollIntoView?.({ block: 'end', behavior: rolagemSuave() });
+  }, [mensagens.length, aberto]);
 
   if (!aberto) return null;
 
@@ -82,7 +96,7 @@ const MestrePanel = (props: MestrePanelProps) => {
           <button type="button" onClick={onFechar} aria-label="Fechar" className={`rounded-lg p-1.5 cursor-pointer ${isLight ? 'hover:bg-slate-100' : 'hover:bg-slate-800'}`}><X size={18} /></button>
         </header>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+        <div aria-live="polite" aria-relevant="additions" className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {mensagens.length === 0 && <p className={`font-modern text-sm italic ${suave}`}>O Mestre ainda não falou nesta etapa. Peça uma sugestão abaixo.</p>}
           {mensagens.map((msg, i) => (
             <div key={i} className={msg.role === 'jogador' ? 'ml-8' : ''}>
@@ -99,19 +113,35 @@ const MestrePanel = (props: MestrePanelProps) => {
                 const tipo = tipoDe(s);
                 const nome = String(s.nome ?? '');
                 if (!nome) return null;
-                const onClick = tipo === 'nome' ? () => onEnviar(nome, { aceitarNome: true })
+                const escolhida = (tipo === 'vantagem' || tipo === 'desvantagem') && s.id != null && selecionados.some((id) => String(id) === String(s.id));
+                // Chip escolhido não alterna no clique (sem remoção silenciosa): remover só pelo X.
+                const onClick = escolhida ? undefined
+                  : tipo === 'nome' ? () => onEnviar(nome, { aceitarNome: true })
                   : tipo === 'background' ? () => onEnviar(nome)
                   : () => onEscolherSugestao(s);
+                const descricao = String(s.descricao ?? '');
                 return (
-                  <button key={`${tipo}-${i}`} type="button" data-sugestao={tipo} disabled={enviando} onClick={onClick} title={String(s.descricao ?? '')} className={chip}>
-                    {nome}{typeof s.custo === 'number' ? <span className={`ml-1 ${formatarCustoTraco(s.custo).classe}`}>{formatarCustoTraco(s.custo).texto}</span> : null}
-                  </button>
+                  <span key={`${tipo}-${i}`} className="inline-flex max-w-full items-start gap-1">
+                    <button type="button" data-sugestao={tipo} aria-pressed={escolhida ? true : undefined} disabled={enviando} onClick={onClick} className={`${chip} ${FOCO} flex flex-col items-start text-left ${escolhida ? '!border-[var(--primary)] cursor-default' : ''}`}>
+                      <span>
+                        {nome}{typeof s.custo === 'number' ? <span className={`ml-1 ${formatarCustoTraco(s.custo).classe}`}>{formatarCustoTraco(s.custo).texto}</span> : null}
+                        {escolhida ? <span className="ml-2 font-semibold text-[var(--primary)]">Escolhida</span> : null}
+                      </span>
+                      {descricao ? <span className="line-clamp-2 font-modern text-xs text-[var(--muted-foreground)]">{descricao}</span> : null}
+                    </button>
+                    {escolhida && (tipo === 'vantagem' || tipo === 'desvantagem') && s.id != null ? (
+                      <button type="button" aria-label={`Remover ${nome}`} disabled={enviando} onClick={() => onRemover?.(tipo, s.id as number | string)} className={`mt-1 rounded-full p-1.5 cursor-pointer text-[var(--muted-foreground)] hover:text-[var(--foreground)] disabled:opacity-50 ${FOCO}`}>
+                        <X size={12} aria-hidden="true" />
+                      </button>
+                    ) : null}
+                  </span>
                 );
               })}
             </div>
           )}
 
           {enviando && <MestrePensando isLight={isLight} />}
+          <div ref={fimRef} />
 
           {config.allowRefresh && (
             <button type="button" disabled={enviando} onClick={() => onEnviar(config.refreshPrompt ?? 'Me dê outras opções', { manterEtapa: true })} className={`inline-flex items-center gap-2 font-modern text-sm cursor-pointer disabled:opacity-50 text-[var(--primary)]`}>

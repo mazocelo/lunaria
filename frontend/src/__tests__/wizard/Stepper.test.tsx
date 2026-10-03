@@ -41,4 +41,13 @@ describe('Stepper', () => {
     );
     expect(html).toContain('width:100%');
   });
+
+  it('etapa invalidada ganha alerta âmbar e motivo acessível', () => {
+    const html = renderToStaticMarkup(
+      <Stepper etapas={etapas} etapaIndex={2} etapasConcluidas={['boas_vindas', 'raca']} etapasVisitadas={['boas_vindas', 'raca', 'classe']} invalidadas={['raca']} onEtapaClick={() => {}} isLight={false} />,
+    );
+    expect(html).toMatch(/data-etapa="raca"[^>]*data-invalidada="true"/);
+    expect(html).toContain('precisa ser refeita');
+    expect(html).not.toMatch(/data-etapa="boas_vindas"[^>]*data-invalidada="true"/);
+  });
 });

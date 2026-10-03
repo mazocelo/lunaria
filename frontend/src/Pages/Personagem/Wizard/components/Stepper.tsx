@@ -1,5 +1,5 @@
 // src/Pages/Personagem/Wizard/components/Stepper.tsx
-import { Check } from 'lucide-react';
+import { AlertTriangle, Check } from 'lucide-react';
 import type { StageEtapa } from '../stages/stageConfig';
 
 export interface StepperProps {
@@ -8,6 +8,8 @@ export interface StepperProps {
   etapasConcluidas: string[];
   etapasVisitadas: string[];
   puladas?: string[];
+  /** Etapas que uma troca derrubou e precisam ser refeitas. */
+  invalidadas?: string[];
   onEtapaClick: (id: string) => void;
   isLight: boolean;
 }
@@ -22,7 +24,7 @@ const estadoDe = (id: string, index: number, props: StepperProps): EstadoEtapa =
 };
 
 const Stepper = (props: StepperProps) => {
-  const { etapas, etapaIndex, puladas = [], onEtapaClick, isLight } = props;
+  const { etapas, etapaIndex, puladas = [], invalidadas = [], onEtapaClick, isLight } = props;
   const total = etapas.length;
   const progresso = total === 0 ? 0 : Math.round(((etapaIndex + 1) / total) * 100);
   const atual = etapas[etapaIndex];
@@ -44,6 +46,7 @@ const Stepper = (props: StepperProps) => {
         {etapas.map((etapa, index) => {
           const estado = estadoDe(etapa.id, index, props);
           const pulada = puladas.includes(etapa.id);
+          const invalidada = invalidadas.includes(etapa.id);
           const clicavel = estado === 'concluida' || estado === 'visitada';
           const base = 'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-modern text-xs transition-colors';
           const porEstado: Record<EstadoEtapa, string> = {
@@ -58,13 +61,16 @@ const Stepper = (props: StepperProps) => {
                 type="button"
                 data-etapa={etapa.id}
                 data-estado={estado}
+                data-invalidada={invalidada ? 'true' : undefined}
+                title={invalidada ? `${etapa.label} precisa ser refeita` : undefined}
                 aria-current={estado === 'atual' ? 'step' : undefined}
                 disabled={!clicavel}
                 onClick={() => clicavel && onEtapaClick(etapa.id)}
-                className={`${base} ${porEstado[estado]} ${clicavel ? 'cursor-pointer' : 'cursor-default'}`}
+                className={`${base} ${invalidada && estado !== 'atual' ? (isLight ? 'border-transparent text-amber-700 hover:bg-amber-50' : 'border-transparent text-amber-400 hover:bg-amber-500/10') : porEstado[estado]} ${clicavel ? 'cursor-pointer' : 'cursor-default'}`}
               >
-                {estado === 'concluida' ? <Check size={12} /> : null}
+                {invalidada ? <AlertTriangle size={12} aria-hidden="true" className={isLight ? 'text-amber-700' : 'text-amber-400'} /> : estado === 'concluida' ? <Check size={12} /> : null}
                 <span>{etapa.label}{pulada ? ' (pulada)' : ''}</span>
+                {invalidada ? <span className="sr-only">, precisa ser refeita</span> : null}
               </button>
             </li>
           );

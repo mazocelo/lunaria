@@ -128,3 +128,28 @@ describe('MestrePanel: diálogo acessível (M1)', () => {
     botao.remove();
   });
 });
+
+describe('MestrePanel: anuncia e marca escolhidas (MA:M3, N-11)', () => {
+  const sug = [{ role: 'mestre', content: 'Opções', sugestoes: [{ tipo: 'vantagem', id: 7, nome: 'Riqueza', descricao: 'Recursos.', custo: 4 }] }] as WizardMessage[];
+
+  it('lista com aria-live e chip escolhido com Remover explícito', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} etapaAtual="vantagens" mensagens={sug} selecionados={[7]} onRemover={() => {}} />);
+    expect(html).toMatch(/aria-live="polite"/);
+    expect(html).toContain('Escolhida');
+    expect(html).toContain('aria-label="Remover Riqueza"');
+    expect(html).toContain('Recursos.');
+  });
+
+  it('clique no chip escolhido não alterna; Remover chama onRemover', () => {
+    const onEscolherSugestao = vi.fn();
+    const onRemover = vi.fn();
+    const onFechar = vi.fn();
+    const { container, desmontar } = montar(<MestrePanel {...base} aberto={true} etapaAtual="vantagens" mensagens={sug} selecionados={['7']} onEscolherSugestao={onEscolherSugestao} onRemover={onRemover} onFechar={onFechar} />);
+    clicar(container.querySelector('[data-sugestao="vantagem"]'));
+    expect(onEscolherSugestao).not.toHaveBeenCalled();
+    clicar(container.querySelector('[aria-label="Remover Riqueza"]'));
+    expect(onRemover).toHaveBeenCalledWith('vantagem', 7);
+    expect(onFechar).not.toHaveBeenCalled();
+    desmontar();
+  });
+});

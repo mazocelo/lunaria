@@ -25,6 +25,7 @@ const ARQUIVOS_LIMPOS = [
   'components/DestinoResolutivaBlock.tsx',
   'stages/ResumoStage.tsx',
   'components/WizardCreationResultModal.tsx',
+  'wizard.view.tsx',
 ];
 
 const PROIBIDOS: Array<[string, RegExp]> = [

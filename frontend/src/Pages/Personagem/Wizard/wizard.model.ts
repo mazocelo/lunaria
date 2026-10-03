@@ -620,7 +620,7 @@ export const useWizardModel = ({ navigate, sistema = 'lunaria' }: UseWizardModel
     salvarPersonagem: characterCreation.salvarPersonagem,
     clearError: chat.clearError,
     // Draft
-    draftRestaurado, resetarTudo, descartarDraft,
+    draftRestaurado, setDraftRestaurado, resetarTudo, descartarDraft,
     // Async
     salvando: characterCreation.salvando, error,
     // Resolutiva / Criacao

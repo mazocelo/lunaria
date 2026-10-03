@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, AlertTriangle, ArrowLeft, Loader2, RotateCcw, Sparkles, Trash2, Users, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, ArrowLeft, Loader2, RotateCcw, Sparkles, Users, X } from 'lucide-react';
 import { useTheme } from '../../../contexts/theme';
-import { PageHeader } from '../../../components/shared';
+import { ConfirmDialog, FOCO, PageHeader } from '../../../components/shared';
 import PersonagemPreviewCard from '../../../components/PersonagemPreviewCard';
 import { parseRacaClasseBonus } from '../../../utils/personagemBonus';
 import WizardCreationResultModal from './components/WizardCreationResultModal';
@@ -10,24 +10,36 @@ import Stepper from './components/Stepper';
 import StageFrame from './components/StageFrame';
 import WizardFooter from './components/WizardFooter';
 import MestrePanel from './components/MestrePanel';
-import LegacyStageAdapter from './components/LegacyStageAdapter';
+import EquipamentosBlock from './components/EquipamentosBlock';
+import GrimorioBlock from './components/GrimorioBlock';
+import DnDAbilityScoreBlock from './components/DnDAbilityScoreBlock';
+import DnDSkillsBlock from './components/DnDSkillsBlock';
+import DestinoResolutivaBlock from './components/DestinoResolutivaBlock';
 import MestrePensando from './components/MestrePensando';
 import MestreFalaCard from './components/MestreFalaCard';
 import NomeStage from './stages/NomeStage';
 import CatalogStage, { type CatalogItem } from './stages/CatalogStage';
-import { telaDaEtapa } from './stages/stageScreen';
+import BackgroundStage from './stages/BackgroundStage';
+import OrcamentoBar from './stages/OrcamentoBar';
+import AtributosStage from './stages/AtributosStage';
+import ResumoStage, { type ResumoStageProps } from './stages/ResumoStage';
+import { telaDaEtapa, regraDoRodape } from './stages/stageScreen';
 import { getStageConfig } from './stages/stageConfig';
-import { getProgressItems, canCreate } from './stages/stageSelectors';
+import { getProgressItems } from './stages/stageSelectors';
+import { motivosDeBloqueio, pontosDevolvidos, saldoAposTroca } from './stages/orcamento';
+import { formatarCustoTraco } from './stages/custoTraco';
+import { etapasAfetadas, precisaConfirmarTroca } from './stages/invalidacao';
 import { falaDeRecusa, avisoDeFalha, type TentativaDeAvanco } from './stages/mestreFeedback';
-import { bonusRacialDnd } from './stages/dnd';
+import { bonusRacialDnd, maxPericiasDaClasse } from './stages/dnd';
 import { siglasDaFaixa } from './stages/atributos';
 import { listarPendencias } from './stages/pendencias';
 import { parseBonusVantagens } from '../../../utils/bonusTracos';
+import { SKILLS } from '../../../utils/dnd5eData';
 import type { WizardSuggestion } from './hooks/useChatState';
 import type { WizardModel } from './wizard.model';
 
 type WizardViewProps = WizardModel;
-type WizardChatProps = Parameters<typeof LegacyStageAdapter>[0];
+type TipoTraco = 'vantagem' | 'desvantagem';
 
 const NOME_SISTEMA: Record<string, string> = { lunaria: 'Lunaria RPG', dnd5e: 'D&D 5e', tresdet: '3D&T Alpha' };
 
@@ -38,7 +50,14 @@ interface ItemDeCatalogo {
   imagem?: string | null;
   custo?: number | null;
   bonus?: unknown;
+  nivel?: number | null;
 }
+
+/** "Atributos", "Atributos e Equipamentos", "Atributos, Equipamentos e Grimório". */
+const juntar = (nomes: string[]) => nomes.length <= 1 ? (nomes[0] ?? '') : `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`;
+
+const rolagem = (): ScrollBehavior =>
+  typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 
 const WizardView = (props: WizardViewProps) => {
   const {
@@ -49,9 +68,7 @@ const WizardView = (props: WizardViewProps) => {
     inputTexto,
     setInputTexto,
     enviando,
-    sugestoes,
     atributosSugeridos,
-    chatEndRef,
     nome,
     racaId,
     classeId,
@@ -76,14 +93,14 @@ const WizardView = (props: WizardViewProps) => {
     navegarParaEtapa,
     clearError,
     bonusAplicados,
-    bonusDetalhes,
     bonusFontes,
     bonusInvalidado,
     skipVantagens,
     skipDesvantagens,
     background,
     draftRestaurado,
-    descartarDraft,
+    setDraftRestaurado,
+    resetarTudo,
     etapasConcluidas,
     etapasVisitadas,
     pontosCriacaoTotal,
@@ -123,20 +140,6 @@ const WizardView = (props: WizardViewProps) => {
     toggleGrimorioMagia,
     confirmarGrimorio,
     sistema,
-    isTresdet,
-    tresdetCaracteristicas,
-    tresdetCaracteristicasConfirmadas,
-    tresdetPontosTotais,
-    setTresdetCaracteristica,
-    confirmarTresdetCaracteristicas,
-    tresdetVantagensIds,
-    tresdetVantagensConfirmadas,
-    toggleTresdetVantagem,
-    confirmarTresdetVantagens,
-    tresdetDesvantagensIds,
-    tresdetDesvantagensConfirmadas,
-    toggleTresdetDesvantagem,
-    confirmarTresdetDesvantagens,
     isDnd5e,
     classeNome,
     dndAbilityScores,
@@ -154,6 +157,15 @@ const WizardView = (props: WizardViewProps) => {
     catalogoCarregando,
     catalogoErro,
     recarregarCatalogo,
+    removerSelecao,
+    etapasInvalidadas,
+    limparInvalidadas,
+    definirBackground,
+    redistribuirAtributos,
+    editarDndAtributos,
+    editarDndPericias,
+    recarregarGrimorio,
+    multRaca,
   } = props;
 
   const { theme } = useTheme();
@@ -170,9 +182,13 @@ const WizardView = (props: WizardViewProps) => {
   }
   const { direcao } = transicao;
 
-  // A página rola dentro do <main> do shell; a etapa nova começa do topo.
+  // A página rola dentro do <main> do shell; a etapa nova começa do topo e o foco vai ao
+  // título (MA:G6), menos na primeira montagem, para não roubar o foco ao abrir a página.
+  const primeiraMontagem = useRef(true);
   useEffect(() => {
-    document.querySelector('main')?.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('main')?.scrollTo?.({ top: 0, behavior: rolagem() });
+    if (primeiraMontagem.current) { primeiraMontagem.current = false; return; }
+    document.getElementById('etapa-titulo')?.focus({ preventScroll: true });
   }, [etapaIndex]);
 
   // Rascunho do nome: o Continuar do rodapé confirma o que está digitado. Volta ao nome do
@@ -210,9 +226,6 @@ const WizardView = (props: WizardViewProps) => {
     orcamentoCriacaoValido: pontosCriacaoRestantes >= 0,
     pontosCriacaoRestantes,
     grimorioSelecionado,
-    caracteristicasDistribuidas: tresdetCaracteristicasConfirmadas,
-    vantagensSelecionadas: tresdetVantagensConfirmadas,
-    desvantagensSelecionadas: tresdetDesvantagensConfirmadas,
     magiasSelecionadas: grimorioSelecionado,
     dndAbilitiesConfirmed,
     dndSkillsConfirmed,
@@ -224,14 +237,10 @@ const WizardView = (props: WizardViewProps) => {
     racaAtual, classeAtual,
     pontosCriacaoRestantes,
     grimorioSelecionado,
-    tresdetCaracteristicasConfirmadas,
-    tresdetVantagensConfirmadas,
-    tresdetDesvantagensConfirmadas,
     dndAbilitiesConfirmed,
     dndSkillsConfirmed,
   ]);
 
-  const podeCriar = useMemo(() => canCreate(buildState, sistema), [buildState, sistema]);
   const progressoItems = useMemo(() => getProgressItems(buildState, sistema), [buildState, sistema]);
   const creationStatusLabel = useMemo(() => {
     switch (creationFlowStatus) {
@@ -250,21 +259,18 @@ const WizardView = (props: WizardViewProps) => {
   const etapaProxima = etapas[etapaIndex + 1] ?? null;
   const concluidasCount = progressoItems.filter((i) => i.done).length;
   const tela = telaDaEtapa(etapaAtual, sistema);
-  // Até a Task 20, só Nome/Raça/Classe têm tela própria; o resto continua no LegacyStageAdapter.
-  const legado = tela !== 'nome' && tela !== 'catalogo-raca' && tela !== 'catalogo-classe';
-  // canContinueStage não cobre Nome/Raça/Classe; nessas telas basta o campo do modelo estar preenchido.
-  const podeContinuar = tela === 'nome' ? Boolean(rascunhoNome.valor.trim())
-    : tela === 'catalogo-raca' ? racaId != null
-    : tela === 'catalogo-classe' ? classeId != null
-    : false;
+  const labelDe = (id: string) => etapas.find((e) => e.id === id)?.label ?? id;
 
   const sugestoesDaUltima = useMemo(() => {
     const ultima = [...mensagens].reverse().find((m) => m.role === 'mestre');
     return (ultima?.sugestoes ?? []) as WizardSuggestion[];
   }, [mensagens]);
   const nomesSugeridos = sugestoesDaUltima.filter((s) => s.tipo === 'nome').map((s) => String(s.nome ?? '')).filter(Boolean);
-  // Filtra por tipo: ids de raça e de classe podem coincidir.
-  const idsSugeridos = (tipo: 'raca' | 'classe') => sugestoesDaUltima
+  const sugestoesBackground = sugestoesDaUltima
+    .filter((s) => s.tipo === 'background' && s.nome)
+    .map((s) => ({ nome: String(s.nome), descricao: typeof s.descricao === 'string' ? s.descricao : null }));
+  // Filtra por tipo: ids de raça e de classe (e de vantagem e desvantagem) podem coincidir.
+  const idsSugeridos = (tipo: 'raca' | 'classe' | TipoTraco) => sugestoesDaUltima
     .filter((s) => s.tipo === tipo)
     .map((s) => s.id)
     .filter((id): id is string | number => id != null);
@@ -280,21 +286,52 @@ const WizardView = (props: WizardViewProps) => {
       tracos: tracosConcedidos(x.bonus),
     };
 
+  // Seleção (A16/A17/A20): a carta só seleciona; quem avança é o rodapé. Troca que derruba
+  // etapa feita ou deixa o saldo negativo passa antes pelo diálogo.
+  const [troca, setTroca] = useState<{ tipo: 'raca' | 'classe'; item: CatalogItem; afetadas: string[]; saldo: number | null; primeira: boolean } | null>(null);
+  const saldoCom = (tipo: 'raca' | 'classe', custoNovo: number | null | undefined) =>
+    sistema === 'lunaria' ? saldoAposTroca(pontosCriacaoRestantes, tipo === 'raca' ? custoRaca : custoClasse, custoNovo ?? 0) : null;
+  const aplicarEscolha = (tipo: 'raca' | 'classe', item: CatalogItem) =>
+    selecionarSugestao({ tipo, id: item.id, nome: item.nome, descricao: item.descricao, custo: item.custo ?? 0 });
   const escolherDoCatalogo = (tipo: 'raca' | 'classe', item: CatalogItem) => {
-    const sugestao: WizardSuggestion = { tipo, id: item.id, nome: item.nome, descricao: item.descricao, custo: item.custo ?? 0 };
-    selecionarSugestao(sugestao);
-    tentarAvancar(() => {
-      if (tipo === 'raca') avancarComMestre({ raca_id: item.id, raca_nome: item.nome });
-      else avancarComMestre({ classe_id: item.id, classe_nome: item.nome });
-    });
+    const idAtual = tipo === 'raca' ? racaId : classeId;
+    const saldo = saldoCom(tipo, item.custo);
+    const depois = { racaId: tipo === 'raca' ? item.id : racaId, classeId: tipo === 'classe' ? item.id : classeId, vantagensIds, desvantagensIds };
+    const racaNova = tipo === 'raca' ? racasDisponiveis.find((r) => String(r.id) === String(item.id)) : undefined;
+    const afetadas = etapasAfetadas({ racaId, classeId, vantagensIds, desvantagensIds }, depois, {
+      bonusAplicados, comboPronto: Boolean(comboPreviewData), grimorioSelecionado, dndAbilitiesConfirmed, dndSkillsConfirmed,
+      racaDaBonusDnd: tipo === 'raca' && [racaNova, racaAtual].some((r) => Object.keys(bonusRacialDnd(r)).length > 0),
+    }, sistema);
+    if (precisaConfirmarTroca(etapasConcluidas.includes(tipo === 'raca' ? 'raca' : 'classe'), idAtual, item.id, afetadas, saldo)) {
+      setTroca({ tipo, item, afetadas, saldo, primeira: idAtual == null });
+      return;
+    }
+    aplicarEscolha(tipo, item);
   };
 
   const escolherSugestaoDoMestre = (s: WizardSuggestion) => {
-    selecionarSugestao(s);
-    if (s.tipo === 'raca') tentarAvancar(() => avancarComMestre({ raca_id: s.id, raca_nome: s.nome }));
-    else if (s.tipo === 'classe') tentarAvancar(() => avancarComMestre({ classe_id: s.id, classe_nome: s.nome }));
     setMestreAberto(false);
+    if (s.tipo === 'raca' || s.tipo === 'classe') {
+      const lista: ItemDeCatalogo[] = s.tipo === 'raca' ? racasDisponiveis : classesDisponiveis;
+      const doCatalogo = lista.find((x) => String(x.id) === String(s.id));
+      const item = doCatalogo ? paraItem(doCatalogo) : s.id != null ? { id: s.id, nome: String(s.nome ?? ''), custo: typeof s.custo === 'number' ? s.custo : null } : null;
+      if (item) escolherDoCatalogo(s.tipo, item);
+      return;
+    }
+    selecionarSugestao(s);
   };
+
+  // Vantagens e desvantagens vêm no mesmo catálogo; o sinal do custo separa (ver vantagem-desvantagem.ts).
+  const tipoTraco: TipoTraco | null = tela === 'catalogo-vantagem' ? 'vantagem' : tela === 'catalogo-desvantagem' ? 'desvantagem' : null;
+  const ehDoTipo = (tipo: TipoTraco, x: ItemDeCatalogo) => tipo === 'vantagem' ? (Number(x.custo) || 0) >= 0 : (Number(x.custo) || 0) < 0;
+  const tracoPorId = (tipo: TipoTraco, id: number | string) =>
+    (vantagensDisponiveis as ItemDeCatalogo[]).find((x) => String(x.id) === String(id) && ehDoTipo(tipo, x));
+  const itensTraco = (tipo: TipoTraco) => (vantagensDisponiveis as ItemDeCatalogo[]).filter((x) => ehDoTipo(tipo, x));
+  const idsTraco = (tipo: TipoTraco) => tipo === 'vantagem' ? vantagensIds : desvantagensIds;
+  const escolhidasTraco = (tipo: TipoTraco) => idsTraco(tipo).map((id) => {
+    const x = tracoPorId(tipo, id);
+    return { id, nome: x?.nome ?? String(id), custo: Number(x?.custo) || 0 };
+  });
 
   const continuarNome = () => {
     const valor = rascunhoNome.valor.trim();
@@ -303,8 +340,8 @@ const WizardView = (props: WizardViewProps) => {
     tentarAvancar(() => avancarComMestre({ nome: valor }));
   };
 
-  const recusa = legado ? null : falaDeRecusa(tentativa, etapaAtual, enviando, mensagens);
-  const falhaDoMestre = legado ? null : avisoDeFalha(mensagens, etapaAtual);
+  const recusa = falaDeRecusa(tentativa, etapaAtual, enviando, mensagens);
+  const falhaDoMestre = avisoDeFalha(mensagens, etapaAtual);
   const abrirConversa = () => { setTentativa(null); setMestreAberto(true); };
 
   const onVoltar = () => {
@@ -325,6 +362,105 @@ const WizardView = (props: WizardViewProps) => {
     sistema, nome, racaId, classeId, background, vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens,
     bonusAplicados, comboPronto: Boolean(comboPreviewData), pontosCriacaoRestantes, dndAbilitiesConfirmed, dndSkillsConfirmed,
   });
+
+  // Rodapé (decisão 4): toda etapa avança, confirma ou cria por aqui; desabilitado, diz por quê.
+  const regra = regraDoRodape(tela, {
+    nome: tela === 'nome' ? rascunhoNome.valor : nome, racaId, classeId, background, vantagensIds, desvantagensIds, skipVantagens, skipDesvantagens,
+    bonusAplicados, pontosRestantes, dndAbilitiesConfirmed,
+    dndAtribuidos: Object.values(dndAbilityScores ?? {}).filter((v) => v != null).length,
+    dndSkillsConfirmed, dndPericiasEscolhidas: dndSkillProficiencies.length, dndPericiasMax: maxPericiasDaClasse(classeNome ?? ''),
+    comboPronto: Boolean(comboPreviewData), comboCarregando: comboPreviewLoading, grimorioEscolhidas: grimorioSelecionadas.length,
+    grimorioErro: Boolean(grimorioError), pendencias: pendencias.map((p) => p.texto),
+  });
+
+  // Atributos (decisão do dono): um clique só. O Continuar confirma e o avanço espera o bônus
+  // aplicar, para o Mestre receber o estado já com os atributos confirmados.
+  const avancarAposBonus = useRef(false);
+  const avancarAgora = useRef(() => {});
+  useEffect(() => { avancarAgora.current = () => tentarAvancar(() => avancarComMestre()); });
+  useEffect(() => {
+    if (etapaAtual !== 'atributos') { avancarAposBonus.current = false; return; }
+    if (!avancarAposBonus.current || !bonusAplicados) return;
+    avancarAposBonus.current = false;
+    avancarAgora.current();
+  }, [bonusAplicados, etapaAtual]);
+
+  const agir = () => {
+    switch (regra.acao) {
+      case 'local': avancarEtapa(); break;
+      case 'confirmar-atributos': avancarAposBonus.current = true; confirmarAtributos(); break;
+      case 'confirmar-dnd-atributos': confirmarDndAbilities(); avancarEtapa(); break;
+      case 'confirmar-dnd-pericias': confirmarDndSkills(); avancarEtapa(); break;
+      case 'confirmar-grimorio': confirmarGrimorio(); break;
+      case 'criar': void salvarPersonagem(); break;
+      default:
+        if (tela === 'nome') continuarNome();
+        else tentarAvancar(() => avancarComMestre());
+    }
+  };
+
+  // Lunaria: a carta de raça/classe já avisa quanto o saldo ficaria (decisão do dono).
+  const avisosDeSaldo = (tipo: 'raca' | 'classe', itens: CatalogItem[]) => {
+    const idAtual = tipo === 'raca' ? racaId : classeId;
+    const avisos: Record<string, string> = {};
+    for (const item of itens) {
+      const saldo = saldoCom(tipo, item.custo);
+      if (saldo != null && saldo < 0 && String(item.id) !== String(idAtual)) avisos[String(item.id)] = `Seu saldo ficaria ${saldo}`;
+    }
+    return avisos;
+  };
+  const itensRaca = racasDisponiveis.map(paraItem).filter((i): i is CatalogItem => i !== null);
+  const itensClasse = classesDisponiveis.map(paraItem).filter((i): i is CatalogItem => i !== null);
+
+  const comCusto = (e: { nome: string; custo: number }) => ({ nome: e.nome, detalhe: formatarCustoTraco(e.custo).texto, classe: formatarCustoTraco(e.custo).classe });
+  const magiasEscolhidas = grimorioMagias
+    .filter((m) => grimorioSelecionadas.some((id) => String(id) === String(m.id)))
+    .map((m) => ({ nome: String(m.nome ?? m.id) }));
+  const escolhasResumo: ResumoStageProps['escolhas'] = sistema === 'dnd5e'
+    ? [
+      { titulo: 'Antecedente', etapa: 'background', itens: background.trim() ? [{ nome: background.trim().length > 80 ? `${background.trim().slice(0, 80)}…` : background.trim() }] : [] },
+      { titulo: 'Perícias', etapa: 'skills', itens: dndSkillProficiencies.map((id) => ({ nome: SKILLS.find((sk) => sk.id === id)?.nome ?? id })) },
+    ]
+    : [
+      { titulo: 'Vantagens', etapa: 'vantagens', itens: escolhidasTraco('vantagem').map(comCusto) },
+      { titulo: 'Desvantagens', etapa: 'desvantagens', itens: escolhidasTraco('desvantagem').map(comCusto) },
+      ...(etapas.some((e) => e.id === 'grimorio')
+        ? [{ titulo: `Magias (${grimorioSelecionadas.length}/${grimorioSlots} slots)`, etapa: 'grimorio', itens: magiasEscolhidas }]
+        : []),
+    ];
+
+  const [confirmarDescarte, setConfirmarDescarte] = useState(false);
+  const invalidadasLabels = etapasInvalidadas.map(labelDe);
+  const gerarRetrato = () => gerarImagem({
+    nome,
+    racaNome: racaAtual?.nome,
+    classeNome: classeAtual?.nome,
+    background,
+    vantagensNomes: escolhidasTraco('vantagem').map((e) => e.nome),
+    desvantagensNomes: escolhidasTraco('desvantagem').map((e) => e.nome),
+  });
+
+  const ficha = (
+    <PersonagemPreviewCard
+      nome={nome}
+      raca={racaId}
+      classe={classeId}
+      atributos={atributosFinal}
+      vantagensSelecionadas={allSelecoes}
+      vantagensDisponiveis={vantagensDisponiveis}
+      racasDisponiveis={racasDisponiveis}
+      classesDisponiveis={classesDisponiveis}
+      bonusJaAplicado={true}
+      mostrarPendencias={true}
+      bonusAplicados={bonusAplicados}
+      skipVantagens={skipVantagens}
+      skipDesvantagens={skipDesvantagens}
+      sistema={isDnd5e ? 'dnd5e' : 'lunaria'}
+      background={background}
+      pendencias={pendencias}
+      atributosDnd={atributosDndExibidos}
+    />
+  );
 
   return (
     <div className="animate-fade-in mx-auto max-w-5xl space-y-6">
@@ -360,26 +496,7 @@ const WizardView = (props: WizardViewProps) => {
         onToggle={() => setFichaAberta((v) => !v)}
         isLight={isLight}
       >
-        {/* variant default: a "wizard" depende de .wizard-atelier, que só existe dentro do LegacyStageAdapter. */}
-        <PersonagemPreviewCard
-          nome={nome}
-          raca={racaId}
-          classe={classeId}
-          atributos={atributosFinal}
-          vantagensSelecionadas={allSelecoes}
-          vantagensDisponiveis={vantagensDisponiveis}
-          racasDisponiveis={racasDisponiveis}
-          classesDisponiveis={classesDisponiveis}
-          bonusJaAplicado={true}
-          mostrarPendencias={true}
-          bonusAplicados={bonusAplicados}
-          skipVantagens={skipVantagens}
-          skipDesvantagens={skipDesvantagens}
-          sistema={isDnd5e ? 'dnd5e' : 'lunaria'}
-          background={background}
-          pendencias={isTresdet ? undefined : pendencias}
-          atributosDnd={atributosDndExibidos}
-        />
+        {ficha}
       </HeroStrip>
 
       <Stepper
@@ -388,38 +505,42 @@ const WizardView = (props: WizardViewProps) => {
         etapasConcluidas={etapasConcluidas}
         etapasVisitadas={etapasVisitadas}
         puladas={[...(skipVantagens ? ['vantagens'] : []), ...(skipDesvantagens ? ['desvantagens'] : [])]}
+        invalidadas={etapasInvalidadas}
         onEtapaClick={navegarParaEtapa}
         isLight={isLight}
       />
 
-      {(error || bonusInvalidado || draftRestaurado) && (
+      {(error || etapasInvalidadas.length > 0 || draftRestaurado) && (
         <div className="space-y-3">
           {error && (
-            <div className="card-rpg flex items-center gap-3 border border-red-500/30 bg-red-500/10 !py-3">
-              <AlertCircle size={16} className="shrink-0 text-red-400" />
+            <div role="alert" className="card-rpg flex items-center gap-3 border border-red-500/30 bg-red-500/10 !py-3">
+              <AlertCircle size={16} aria-hidden="true" className="shrink-0 text-red-500" />
               <span className={`flex-1 font-modern text-sm ${isLight ? 'text-red-700' : 'text-red-200'}`}>{error}</span>
-              <button type="button" onClick={clearError} aria-label="Fechar aviso" className="cursor-pointer opacity-70 hover:opacity-100"><X size={16} /></button>
+              <button type="button" aria-label="Fechar aviso" onClick={clearError} className={`rounded p-1 cursor-pointer opacity-70 hover:opacity-100 ${FOCO}`}><X size={16} aria-hidden="true" /></button>
             </div>
           )}
-          {bonusInvalidado && (
-            <div className="card-rpg flex items-start gap-3 border border-amber-500/30 bg-amber-500/10 !py-3">
-              <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-400" />
-              <div className="font-modern text-sm">
-                <p className="font-semibold">Bônus precisam de reconfirmação</p>
-                <p className="opacity-80">Você mudou raça ou classe. Reconfirme os atributos antes de finalizar.</p>
+          {etapasInvalidadas.length > 0 && (
+            <div role="status" data-banner="invalidadas" className="card-rpg flex flex-wrap items-start gap-3 border border-amber-500/30 bg-amber-500/10 !py-3">
+              <AlertTriangle size={16} aria-hidden="true" className={`mt-0.5 shrink-0 ${isLight ? 'text-amber-700' : 'text-amber-400'}`} />
+              <p className="min-w-0 flex-1 font-modern text-sm text-[var(--foreground)]">
+                {juntar(invalidadasLabels)} {invalidadasLabels.length === 1 ? 'precisa ser refeita' : 'precisam ser refeitas'} porque a raça, a classe ou as vantagens mudaram.
+              </p>
+              <div className="flex shrink-0 items-center gap-2">
+                <button type="button" data-acao="ir-invalidada" onClick={() => navegarParaEtapa(etapasInvalidadas[0])} className={`btn-rpg-secondary cursor-pointer ${FOCO}`}>Ir para {invalidadasLabels[0]}</button>
+                <button type="button" data-acao="entendi" onClick={limparInvalidadas} className={`rounded-lg px-3 py-1.5 font-modern text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer ${FOCO}`}>Entendi</button>
               </div>
             </div>
           )}
           {draftRestaurado && (
-            <div className="card-rpg flex items-center gap-3 !py-3">
-              <RotateCcw size={16} className="shrink-0 text-[var(--primary)]" />
-              <div className="flex-1 font-modern text-sm">
-                <p className="font-semibold">Rascunho restaurado</p>
-                <p className="opacity-80">Continuamos de onde você parou.</p>
+            <div data-banner="rascunho" className="card-rpg flex flex-wrap items-center gap-3 !py-3">
+              <RotateCcw size={16} aria-hidden="true" className="shrink-0 text-[var(--primary)]" />
+              <p className="min-w-0 flex-1 font-modern text-sm text-[var(--foreground)]">
+                Restauramos {nome.trim() || 'seu herói'} na etapa {labelDe(etapaAtual)}.
+              </p>
+              <div className="flex shrink-0 items-center gap-2">
+                <button type="button" data-acao="manter-rascunho" onClick={() => setDraftRestaurado(false)} className={`btn-rpg-secondary cursor-pointer ${FOCO}`}>Continuar</button>
+                <button type="button" data-acao="comecar-do-zero" onClick={() => setConfirmarDescarte(true)} className={`rounded-lg px-3 py-1.5 font-modern text-sm font-semibold cursor-pointer ${isLight ? 'text-red-700 hover:bg-red-50' : 'text-red-300 hover:bg-red-500/10'} ${FOCO}`}>Começar do zero</button>
               </div>
-              <button type="button" onClick={descartarDraft} className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/15 px-3 py-1.5 font-modern text-xs font-semibold text-red-400 hover:bg-red-500/25 cursor-pointer">
-                <Trash2 size={12} /> Descartar
-              </button>
             </div>
           )}
         </div>
@@ -450,7 +571,8 @@ const WizardView = (props: WizardViewProps) => {
         )}
         {tela === 'catalogo-raca' && (
           <CatalogStage
-            itens={racasDisponiveis.map(paraItem).filter((i): i is CatalogItem => i !== null)}
+            itens={itensRaca}
+            avisoPorItem={avisosDeSaldo('raca', itensRaca)}
             selecionados={racaId != null ? [racaId] : []}
             modo="unica"
             sugeridos={idsSugeridos('raca')}
@@ -468,7 +590,8 @@ const WizardView = (props: WizardViewProps) => {
         )}
         {tela === 'catalogo-classe' && (
           <CatalogStage
-            itens={classesDisponiveis.map(paraItem).filter((i): i is CatalogItem => i !== null)}
+            itens={itensClasse}
+            avisoPorItem={avisosDeSaldo('classe', itensClasse)}
             selecionados={classeId != null ? [classeId] : []}
             modo="unica"
             sugeridos={idsSugeridos('classe')}
@@ -484,112 +607,143 @@ const WizardView = (props: WizardViewProps) => {
             isLight={isLight}
           />
         )}
-        {legado && (
-          <LegacyStageAdapter
-            theme={theme}
-            mensagens={mensagens}
-            inputTexto={inputTexto}
-            setInputTexto={setInputTexto}
+        {tela === 'background' && (
+          <BackgroundStage
+            valor={background}
+            sugestoes={sugestoesBackground}
             enviando={enviando}
-            onEnviar={enviarMensagem}
-            onSelecionarSugestao={selecionarSugestao}
-            onAvancarComMestre={avancarComMestre}
-            onPularEtapa={pularEtapa}
-            vantagensIds={vantagensIds}
-            desvantagensIds={desvantagensIds}
-            etapaAtual={etapaAtual}
-            racasDisponiveis={racasDisponiveis as unknown as WizardChatProps['racasDisponiveis']}
-            classesDisponiveis={classesDisponiveis as unknown as WizardChatProps['classesDisponiveis']}
-            vantagensDisponiveis={vantagensDisponiveis as unknown as WizardChatProps['vantagensDisponiveis']}
-            chatEndRef={chatEndRef}
+            onMudar={definirBackground}
+            onPedirIdeias={() => enviarMensagem(config.refreshPrompt ?? 'Sugira origens para o meu herói', { manterEtapa: true })}
             isLight={isLight}
-            podeCriar={podeCriar}
-            atributos={atributosBase}
-            atributosFinal={atributosFinal}
+          />
+        )}
+        {tipoTraco && (
+          <div className="space-y-4">
+            <OrcamentoBar
+              tipo={tipoTraco}
+              total={pontosCriacaoTotal}
+              gastos={pontosGastos}
+              restantes={pontosCriacaoRestantes}
+              custoRaca={custoRaca}
+              custoClasse={custoClasse}
+              pontosVantagem={pontosVantagem}
+              devolvidos={pontosDevolvidos(pontosDesvantagem, maxCustoDesvantagem)}
+              maxDevolucao={maxCustoDesvantagem}
+              escolhidas={escolhidasTraco(tipoTraco)}
+              enviando={enviando}
+              onRemover={(id) => removerSelecao(tipoTraco, id)}
+              isLight={isLight}
+            />
+            <CatalogStage
+              key={tipoTraco}
+              itens={itensTraco(tipoTraco).map(paraItem).filter((i): i is CatalogItem => i !== null)}
+              selecionados={idsTraco(tipoTraco)}
+              modo="multipla"
+              sugeridos={idsSugeridos(tipoTraco)}
+              enviando={enviando}
+              onSelecionar={(item) => selecionarSugestao({ tipo: tipoTraco, id: item.id, nome: item.nome, descricao: item.descricao, custo: item.custo ?? 0 })}
+              formatoCusto="traco"
+              bloqueios={motivosDeBloqueio(tipoTraco, itensTraco(tipoTraco).filter((x): x is ItemDeCatalogo & { id: number | string } => x.id != null), { pontosCriacaoRestantes, pontosDesvantagem, maxCustoDesvantagem, tierMaximo: 1 })}
+              textoVazio={tipoTraco === 'vantagem' ? 'Nenhuma vantagem disponível na criação' : 'Nenhuma desvantagem disponível na criação'}
+              textoErro={tipoTraco === 'vantagem' ? 'Não conseguimos carregar as vantagens' : 'Não conseguimos carregar as desvantagens'}
+              catalogoHref={tipoTraco === 'vantagem' ? '/vantagens' : '/desvantagens'}
+              rotuloBusca={tipoTraco === 'vantagem' ? 'Buscar vantagem...' : 'Buscar desvantagem...'}
+              isLight={isLight}
+            />
+          </div>
+        )}
+        {tela === 'atributos' && (
+          <AtributosStage
+            atributosBase={atributosBase}
+            bonusFontes={bonusFontes ?? {}}
+            bonusAplicados={bonusAplicados}
             setAtributo={setAtributo}
             pontosDistribuidos={pontosDistribuidos}
             pontosRestantes={pontosRestantes}
             pontosTotais={pontosTotais}
             atributosSugeridos={atributosSugeridos}
             aplicarAtributosSugeridos={aplicarAtributosSugeridos}
-            bonusAplicados={bonusAplicados}
-            bonusDetalhes={bonusDetalhes}
-            bonusFontes={bonusFontes}
-            pontosCriacaoTotal={pontosCriacaoTotal}
-            pontosCriacaoRestantes={pontosCriacaoRestantes}
-            pontosGastos={pontosGastos}
-            pontosVantagem={pontosVantagem}
-            pontosDesvantagem={pontosDesvantagem}
-            custoRaca={custoRaca}
-            custoClasse={custoClasse}
-            maxCustoDesvantagem={maxCustoDesvantagem}
-            skipVantagens={skipVantagens}
-            skipDesvantagens={skipDesvantagens}
             attrMin={attrMin}
             attrMax={attrMax}
-            onConfirmarAtributos={confirmarAtributos}
-            onSalvarPersonagem={salvarPersonagem}
-            salvando={salvando}
-            comboPreviewData={comboPreviewData}
-            comboPreviewLoading={comboPreviewLoading}
-            comboPreviewErro={comboPreviewErro}
-            comboPreviewTentativa={comboPreviewTentativa}
-            onRegenerarComboPreview={regenerarComboPreview}
-            onRecarregarComboPreview={recarregarComboPreview}
-            creationFlowStatus={creationFlowStatus}
-            sugestoes={sugestoes}
-            imageUrl={imageUrl}
-            imageLoading={imageLoading}
-            imageError={imageError}
-            grimorioMagias={grimorioMagias}
-            grimorioSlots={grimorioSlots}
-            grimorioSelecionadas={grimorioSelecionadas}
-            grimorioLoading={grimorioLoading}
-            grimorioError={grimorioError}
-            onToggleGrimorioMagia={toggleGrimorioMagia}
-            onConfirmarGrimorio={confirmarGrimorio}
-            onGerarImagem={() => gerarImagem({
-              nome,
-              racaNome: racaAtual?.nome,
-              classeNome: classeAtual?.nome,
-              background,
-              vantagensNomes: vantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter((n): n is string => Boolean(n)),
-              desvantagensNomes: desvantagensIds.map(id => vantagensDisponiveis.find(v => String(v.id) === String(id))?.nome).filter((n): n is string => Boolean(n)),
-            })}
-            sistema={sistema}
-            isTresdet={isTresdet}
-            tresdetCaracteristicas={tresdetCaracteristicas}
-            tresdetCaracteristicasConfirmadas={tresdetCaracteristicasConfirmadas}
-            tresdetPontosTotais={tresdetPontosTotais}
-            onSetTresdetCaracteristica={setTresdetCaracteristica}
-            onConfirmarTresdetCaracteristicas={confirmarTresdetCaracteristicas}
-            tresdetVantagensIds={tresdetVantagensIds}
-            tresdetVantagensConfirmadas={tresdetVantagensConfirmadas}
-            onToggleTresdetVantagem={toggleTresdetVantagem}
-            onConfirmarTresdetVantagens={confirmarTresdetVantagens}
-            tresdetDesvantagensIds={tresdetDesvantagensIds}
-            tresdetDesvantagensConfirmadas={tresdetDesvantagensConfirmadas}
-            onToggleTresdetDesvantagem={toggleTresdetDesvantagem}
-            onConfirmarTresdetDesvantagens={confirmarTresdetDesvantagens}
-            isDnd5e={isDnd5e}
+            multRaca={multRaca}
+            enviando={enviando}
+            onRedistribuir={redistribuirAtributos}
+            isLight={isLight}
+          />
+        )}
+        {tela === 'dnd-atributos' && (
+          <DnDAbilityScoreBlock
+            scores={dndAbilityScores}
+            racialBonuses={bonusRacial}
+            onSetScore={setDndAbilityScore}
+            onReset={resetDndAbilityScores}
+            onEditar={editarDndAtributos}
+            confirmado={dndAbilitiesConfirmed}
+            isLight={isLight}
+          />
+        )}
+        {tela === 'dnd-pericias' && (
+          <DnDSkillsBlock
+            selecionadas={dndSkillProficiencies}
             classeNome={classeNome}
-            dndAbilityScores={dndAbilityScores}
-            dndAbilitiesConfirmed={dndAbilitiesConfirmed}
-            onSetDndAbilityScore={setDndAbilityScore}
-            onResetDndAbilityScores={resetDndAbilityScores}
-            onConfirmarDndAbilities={confirmarDndAbilities}
-            dndSkillProficiencies={dndSkillProficiencies}
-            dndSkillsConfirmed={dndSkillsConfirmed}
-            onToggleDndSkill={toggleDndSkill}
-            onConfirmarDndSkills={confirmarDndSkills}
-            /* Só exibição (L-14): o POST de criação manda a distribuição sem bônus. */
-            dndRacialBonuses={bonusRacialDnd(racaAtual)}
-            onAvancarEtapa={avancarEtapa}
+            abilityScores={Object.fromEntries(Object.entries(dndAbilityScores ?? {}).filter((par): par is [string, number] => typeof par[1] === 'number'))}
+            onToggle={toggleDndSkill}
+            onEditar={editarDndPericias}
+            confirmado={dndSkillsConfirmed}
+            isLight={isLight}
+          />
+        )}
+        {tela === 'equipamentos' && (
+          <EquipamentosBlock
+            data={comboPreviewData as Parameters<typeof EquipamentosBlock>[0]['data']}
+            loading={comboPreviewLoading}
+            error={comboPreviewErro}
+            tentativasUsadas={comboPreviewTentativa}
+            onRegenerar={regenerarComboPreview}
+            onRetry={recarregarComboPreview}
+            isLight={isLight}
+          />
+        )}
+        {tela === 'grimorio' && (
+          <GrimorioBlock
+            magias={grimorioMagias as Parameters<typeof GrimorioBlock>[0]['magias']}
+            slots={grimorioSlots}
+            selecionadas={grimorioSelecionadas}
+            onToggleMagia={toggleGrimorioMagia}
+            onRetry={recarregarGrimorio}
+            loading={grimorioLoading}
+            error={grimorioError}
+            isLight={isLight}
+          />
+        )}
+        {tela === 'resumo' && (
+          <ResumoStage
+            pendencias={pendencias}
+            onResolver={navegarParaEtapa}
+            escolhas={escolhasResumo}
+            onEditar={navegarParaEtapa}
+            leitura={sistema === 'dnd5e' ? (
+              <DnDAbilityScoreBlock scores={dndAbilityScores} racialBonuses={bonusRacial} onSetScore={setDndAbilityScore} confirmado isLight={isLight} />
+            ) : (
+              <DestinoResolutivaBlock
+                data={comboPreviewData as Parameters<typeof DestinoResolutivaBlock>[0]['data']}
+                loading={comboPreviewLoading}
+                error={comboPreviewErro}
+                onRetry={recarregarComboPreview}
+                imageUrl={imageUrl}
+                imageLoading={imageLoading}
+                imageError={imageError}
+                onGerarImagem={gerarRetrato}
+                isLight={isLight}
+              />
+            )}
+            ficha={ficha}
+            isLight={isLight}
           />
         )}
       </StageFrame>
 
-      {!legado && enviando && <MestrePensando isLight={isLight} />}
+      {enviando && <MestrePensando isLight={isLight} />}
       {recusa && (
         <MestreFalaCard
           fala={String(recusa.content ?? '')}
@@ -603,10 +757,13 @@ const WizardView = (props: WizardViewProps) => {
         etapaIndex={etapaIndex}
         etapasTotal={etapas.length}
         proximaLabel={etapaProxima?.label ?? null}
-        podeContinuar={podeContinuar}
-        enviando={enviando}
+        podeContinuar={regra.podeContinuar && !salvando}
+        enviando={enviando || salvando}
         onVoltar={onVoltar}
-        onContinuar={legado ? undefined : tela === 'nome' ? continuarNome : () => tentarAvancar(() => avancarComMestre())}
+        onContinuar={agir}
+        onPular={regra.pular ? () => { if (regra.pular) pularEtapa(regra.pular); } : undefined}
+        rotuloContinuar={regra.rotulo}
+        motivoBloqueio={regra.motivoBloqueio}
         isLight={isLight}
       />
 
@@ -622,18 +779,45 @@ const WizardView = (props: WizardViewProps) => {
         onEnviar={enviarMensagem}
         onEscolherSugestao={escolherSugestaoDoMestre}
         focoAoFechar={botaoMestreRef}
+        selecionados={allSelecoes}
+        onRemover={removerSelecao}
         isLight={isLight}
       />
 
       {creationFlowStatus !== 'idle' && !creationResultModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-md">
+        <div role="status" aria-live="polite" aria-busy="true" className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-md">
           <div className="card-rpg max-w-md text-center">
-            <Loader2 size={28} className="mx-auto animate-spin text-[var(--primary)]" />
-            <h2 className={`mt-4 font-fantasy text-2xl font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{creationStatusLabel}</h2>
-            <p className={`mt-2 font-modern text-sm ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>A ficha, o background e a leitura final do Mestre estão sendo consolidados.</p>
+            <Loader2 size={28} aria-hidden="true" className="mx-auto animate-spin text-[var(--primary)]" />
+            <h2 className="mt-4 font-fantasy text-2xl font-bold text-[var(--foreground)]">{creationStatusLabel}</h2>
+            <p className="mt-2 font-modern text-sm text-[var(--muted-foreground)]">A ficha, o background e a leitura final do Mestre estão sendo consolidados.</p>
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        aberto={troca !== null}
+        titulo={troca?.primeira ? (troca.tipo === 'raca' ? 'Escolher esta raça?' : 'Escolher esta classe?') : troca?.tipo === 'raca' ? 'Trocar a raça?' : 'Trocar a classe?'}
+        descricao={troca ? (
+          <>
+            {troca.saldo != null && troca.saldo < 0 ? <p>Seu saldo ficaria {troca.saldo}; será preciso remover vantagens ou escolher {troca.tipo === 'raca' ? 'uma raça' : 'uma classe'} mais barata.</p> : null}
+            {troca.afetadas.length > 0 ? <p>Estas etapas precisarão ser refeitas:</p> : null}
+          </>
+        ) : null}
+        itens={(troca?.afetadas ?? []).map(labelDe)}
+        rotuloConfirmar={troca?.primeira ? 'Escolher' : 'Trocar'}
+        onConfirmar={() => { if (troca) aplicarEscolha(troca.tipo, troca.item); setTroca(null); }}
+        onCancelar={() => setTroca(null)}
+      />
+
+      <ConfirmDialog
+        aberto={confirmarDescarte}
+        perigo
+        titulo="Começar do zero?"
+        descricao={`Isso apaga o rascunho de ${nome.trim() || 'seu herói'}. Não dá para desfazer.`}
+        rotuloConfirmar="Apagar e recomeçar"
+        onConfirmar={() => { resetarTudo(); setConfirmarDescarte(false); }}
+        onCancelar={() => setConfirmarDescarte(false)}
+      />
 
       <WizardCreationResultModal
         open={creationResultModalOpen}

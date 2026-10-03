@@ -36,3 +36,13 @@ export function etapasAfetadas(antes: Escolhas, depois: Escolhas, f: Feitos, sis
   if (classe && f.grimorioSelecionado) out.push('grimorio');
   return out;
 }
+
+/**
+ * Trocar raça/classe pede confirmação quando derruba etapa já feita ou deixa o saldo negativo (A20).
+ * Saldo negativo pergunta até na primeira escolha (decisão do dono); a mesma carta nunca pergunta.
+ */
+export function precisaConfirmarTroca(etapaJaConcluida: boolean, idAtual: unknown, idNovo: unknown, afetadas: string[], saldoDepois: number | null): boolean {
+  if (idAtual != null && String(idAtual) === String(idNovo)) return false;
+  if (saldoDepois != null && saldoDepois < 0) return true;
+  return idAtual != null && etapaJaConcluida && afetadas.length > 0;
+}

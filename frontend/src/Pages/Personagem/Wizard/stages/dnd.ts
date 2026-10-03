@@ -1,3 +1,5 @@
+import { SKILLS, CLASS_SKILL_OPTIONS } from '../../../../utils/dnd5eData';
+
 // src/Pages/Personagem/Wizard/stages/dnd.ts
 const MAPA: Record<string, string> = {
   str: 'STR', for: 'STR', forca: 'STR', strength: 'STR',
@@ -33,4 +35,17 @@ export function bonusRacialDnd(raca: { bonus?: unknown; atributos_bonus?: unknow
     if (Object.keys(lido).length > 0) return lido;
   }
   return {};
+}
+
+// Conjunto padrao para classes sem mapeamento (todas as pericias, 2 escolhas).
+const CLASSE_PADRAO = { skills: SKILLS.map((s) => s.id), count: 2 };
+
+/** Perícias que a classe D&D (slug em inglês) permite e quantas escolher. */
+export function configPericiasDaClasse(classeNome: string): { skills: string[]; count: number } {
+  return (CLASS_SKILL_OPTIONS as Record<string, { skills: string[]; count: number }>)[classeNome.toLowerCase().trim()] || CLASSE_PADRAO;
+}
+
+/** Quantas perícias a classe D&D deixa escolher (mesma conta do DnDSkillsBlock; o rodapé usa no motivo). */
+export function maxPericiasDaClasse(classeNome: string): number {
+  return configPericiasDaClasse(classeNome).count;
 }

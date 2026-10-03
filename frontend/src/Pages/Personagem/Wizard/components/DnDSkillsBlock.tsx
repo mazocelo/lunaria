@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Check, Sparkles, CheckCircle2, Lock, Pencil } from 'lucide-react';
-import { SKILLS, CLASS_SKILL_OPTIONS } from '../../../../utils/dnd5eData';
+import { SKILLS } from '../../../../utils/dnd5eData';
+import { configPericiasDaClasse } from '../stages/dnd';
 import { FOCO } from '../../../../components/shared';
 
 // Ordem de exibicao dos atributos e cores de chip do tema Vitral Arcano.
@@ -31,8 +32,6 @@ const NOME_CLASSE: Record<string, string> = {
   wizard: 'Mago',
 };
 
-// Conjunto padrao para classes sem mapeamento (todas as pericias, 2 escolhas).
-const CLASSE_PADRAO = { skills: SKILLS.map((s) => s.id), count: 2 };
 
 const calcModificador = (valor: number) => Math.floor((valor - 10) / 2);
 
@@ -57,7 +56,7 @@ const DnDSkillsBlock = ({
   isLight = false,
 }: DnDSkillsBlockProps) => {
   const classKey = classeNome?.toLowerCase()?.trim() || '';
-  const classConfig = (CLASS_SKILL_OPTIONS as Record<string, { skills: string[]; count: number }>)[classKey] || CLASSE_PADRAO;
+  const classConfig = configPericiasDaClasse(classKey);
   const maxSelecoes = classConfig.count;
   const periciasPermitidas = useMemo(() => new Set(classConfig.skills), [classConfig.skills]);
   const classLabel = NOME_CLASSE[classKey] || (classKey ? classKey.charAt(0).toUpperCase() + classKey.slice(1) : 'Sem classe');

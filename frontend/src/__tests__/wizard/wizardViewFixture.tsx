@@ -36,6 +36,8 @@ export const criarPropsDaView = (over: Partial<Record<keyof WizardModel, unknown
   tresdetDesvantagensIds: [], tresdetDesvantagensConfirmadas: false, toggleTresdetDesvantagem: noop, confirmarTresdetDesvantagens: noop,
   dndAbilityScores: {}, dndAbilitiesConfirmed: false, setDndAbilityScore: noop, resetDndAbilityScores: noop, confirmarDndAbilities: noop,
   dndSkillProficiencies: [], dndSkillsConfirmed: false, toggleDndSkill: noop, confirmarDndSkills: noop,
+  etapasInvalidadas: [], limparInvalidadas: noop, definirBackground: noop, redistribuirAtributos: noop, multRaca: null,
+  editarDndAtributos: noop, editarDndPericias: noop, recarregarGrimorio: noop, setDraftRestaurado: noop, definirNome: noop,
   navigate: noop,
   ...over,
 }) as unknown as WizardModel;

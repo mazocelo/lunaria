@@ -109,6 +109,7 @@ const WizardView = (props: WizardViewProps) => {
     creationFlowStatus,
     creationResultModalOpen,
     creationResultData,
+    fecharResultadoCriacao,
     irParaPersonagens,
     verFichaCriada,
     imageUrl,
@@ -624,6 +625,7 @@ const WizardView = (props: WizardViewProps) => {
         data={creationResultData as unknown as Parameters<typeof WizardCreationResultModal>[0]['data']}
         onViewSheet={verFichaCriada}
         onGoToCharacters={irParaPersonagens}
+        onClose={fecharResultadoCriacao}
         isLight={isLight}
       />
     </div>

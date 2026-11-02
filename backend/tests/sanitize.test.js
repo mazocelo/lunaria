@@ -953,7 +953,7 @@ describe('sanitizeCharacterName', () => {
     });
 
     it('lida com mistura de caracteres validos e invalidos', () => {
-      const result = sanitizeCharacterName('G@a#n$d%a^l&f*');
+      const result = sanitizeCharacterName('A@l#d$a%r^i&c*');
       expect(result).toBe('Aldaric');
     });
 

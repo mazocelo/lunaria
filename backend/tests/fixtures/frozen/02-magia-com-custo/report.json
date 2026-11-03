@@ -1,0 +1,45 @@
+{
+  "cenarioId": "02-magia-com-custo",
+  "cenarioVersao": "1.0.0",
+  "geradoEm": "2026-03-18T18:16:58.152Z",
+  "modelos": {
+    "groq": {
+      "statusExecucao": "concluida",
+      "turnos": 5,
+      "latenciaMediaMs": 36487,
+      "invariantes": {
+        "total": 8,
+        "passaram": 8,
+        "falharam": 0
+      },
+      "falhas": []
+    },
+    "gemini": {
+      "statusExecucao": "concluida",
+      "turnos": 6,
+      "latenciaMediaMs": 7321,
+      "invariantes": {
+        "total": 8,
+        "passaram": 7,
+        "falharam": 1
+      },
+      "falhas": [
+        {
+          "invariante": "mana_descontada_ao_usar_magia",
+          "detalhe": "turno 6: magia luz_divina custo 3, mana antes=2 esperado apos=-1 obtido=2"
+        }
+      ]
+    },
+    "sonnet": {
+      "statusExecucao": "concluida",
+      "turnos": 5,
+      "latenciaMediaMs": 15613,
+      "invariantes": {
+        "total": 8,
+        "passaram": 8,
+        "falharam": 0
+      },
+      "falhas": []
+    }
+  }
+}

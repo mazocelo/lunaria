@@ -1,0 +1,174 @@
+{
+  "id": "06-acao-invalida",
+  "titulo": "Rejeicao de acoes invalidas e habilidades inexistentes",
+  "versao": "1.0.0",
+  "personagem": {
+    "nome": "Moruxis",
+    "classe": "Paladino",
+    "raca": "Minotauro",
+    "nivel": 1,
+    "atributos": {
+      "forca": 10,
+      "inteligencia": 10,
+      "carisma": 7,
+      "destreza": 14,
+      "constituicao": 10,
+      "agilidade": 14
+    },
+    "magias": [
+      {
+        "id": "luz_divina",
+        "nome": "Luz Divina",
+        "escola": "evocacao",
+        "custo_mana": 3,
+        "dano_base": "1d8",
+        "atributo": "carisma",
+        "descricao": "Lanca radiante contra inimigo"
+      },
+      {
+        "id": "protecao_mal",
+        "nome": "Protecao contra o Mal",
+        "escola": "abjuracao",
+        "custo_mana": 2,
+        "tipo": "buff",
+        "duracao_turnos": 3
+      }
+    ],
+    "habilidades": [
+      {
+        "id": "investida",
+        "nome": "Investida",
+        "tipo": "ataque",
+        "recurso": "cooldown",
+        "cooldown_turnos": 2,
+        "bonus_dano": 4
+      },
+      {
+        "id": "golpe_brutal",
+        "nome": "Golpe Brutal",
+        "tipo": "ataque",
+        "recurso": "stamina",
+        "custo": 1
+      }
+    ],
+    "vantagens": [
+      {
+        "id": "mente_labirintica",
+        "nome": "Mente Labirintica",
+        "efeito": "bonus_teste",
+        "atributo_afetado": "inteligencia",
+        "bonus": 2,
+        "contexto": "investigacao e puzzles"
+      }
+    ],
+    "desvantagens": [
+      {
+        "id": "intimidador",
+        "nome": "Aparencia Intimidadora",
+        "efeito": "penalidade_teste",
+        "atributo_afetado": "carisma",
+        "penalidade": -2,
+        "contexto": "interacoes sociais"
+      }
+    ],
+    "equipamentos": [
+      {
+        "id": "espada_longa",
+        "nome": "Espada Longa",
+        "dano": "1d8",
+        "tipo": "melee",
+        "bonus_ataque": 1
+      }
+    ]
+  },
+  "estadoInicial": {
+    "hp": 30,
+    "hpMax": 30,
+    "mana": 10,
+    "manaMax": 10,
+    "status": [],
+    "cooldowns": {},
+    "concentracao": null,
+    "efeitos_ativos": [],
+    "emCombate": false,
+    "turno": 0,
+    "xp": 0
+  },
+  "inimigos": [
+    {
+      "id": "goblin_1",
+      "nome": "Goblin Saqueador",
+      "hp": 12,
+      "hpMax": 12,
+      "ataque": 4,
+      "dano": "1d6",
+      "esquiva": 8,
+      "armadura": 1,
+      "xp": 25,
+      "status": []
+    }
+  ],
+  "historia": {
+    "nome": "Cenario de Teste - Acao Invalida",
+    "temas": ["Fantasia"],
+    "prologo": "Moruxis encontra um goblin saqueador. O jogador tenta usar habilidades e equipamentos que nao possui.",
+    "mestreConfig": {
+      "nome": "Mestre Teste",
+      "personalidade": "Direto e mecanico, prioriza clareza sobre floreio narrativo. Sempre respeita as regras mecanicas.",
+      "temperatura": 0.6,
+      "tags": ["teste", "validacao", "acao-invalida"]
+    }
+  },
+  "acoes": [
+    {
+      "tipo": "iniciar_turno"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Lanco Bola de Fogo no inimigo",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "magiaId": "bola_de_fogo",
+        "alvo": "goblin_1"
+      },
+      "_comentario": "Deve falhar: bola_de_fogo nao existe em personagem.magias"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Ataco com minha alabarda",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "atacar",
+        "arma": "alabarda",
+        "alvo": "goblin_1"
+      },
+      "_comentario": "Deve falhar: alabarda nao existe em personagem.equipamentos"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Uso Escudo Sagrado para me proteger",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "habilidadeId": "escudo_sagrado",
+        "alvo": "goblin_1"
+      },
+      "_comentario": "Deve falhar: escudo_sagrado nao existe em personagem.habilidades"
+    }
+  ],
+  "condicoesDeParada": {
+    "qualquerUma": [
+      "acoes_esgotadas"
+    ]
+  },
+  "invariantes": [
+    "resposta_ia_parseavel",
+    "magia_inexistente_nao_aceita",
+    "equipamento_usado_existe_no_inventario",
+    "ia_nao_inventou_habilidade",
+    "alvos_referenciados_por_id",
+    "hp_nunca_negativo",
+    "mana_nunca_negativa"
+  ]
+}

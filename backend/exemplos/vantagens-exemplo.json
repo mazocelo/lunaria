@@ -1,0 +1,72 @@
+{
+  "vantagens": [
+    {
+      "nome": "Golpe Crítico",
+      "descricao": "Aumenta a chance de acertos críticos em combate",
+      "custo": 10,
+      "tipo": ["passiva"],
+      "bonus": {
+        "critico": 2
+      },
+      "restricao": {
+        "nivel_minimo": 5
+      },
+      "dano_base": null,
+      "efeito": {
+        "tipo": "critico",
+        "valor": 2
+      },
+      "usar": null,
+      "elemento": ["contundente"],
+      "nivel": 5,
+      "requisitos": {
+        "forca": 14
+      }
+    },
+    {
+      "nome": "Bola de Fogo",
+      "descricao": "Lança uma bola de fogo mágica no inimigo",
+      "custo": 15,
+      "tipo": ["ativa"],
+      "bonus": {
+        "dano_magico": 3
+      },
+      "restricao": {
+        "mana_minima": 15
+      },
+      "dano_base": "3d6",
+      "efeito": {
+        "tipo": "dano",
+        "elemento": "fogo",
+        "area": 3
+      },
+      "usar": 1,
+      "elemento": ["fogo"],
+      "nivel": 3,
+      "requisitos": {
+        "inteligencia": 12
+      }
+    },
+    {
+      "nome": "Persuasão",
+      "descricao": "Vantagem social que permite convencer outros através de argumentos lógicos e carisma.",
+      "custo": 5,
+      "tipo": ["ativa"],
+      "bonus": {
+        "carisma": 2
+      },
+      "restricao": {},
+      "dano_base": null,
+      "efeito": {
+        "tipo": "social",
+        "modificador": 2
+      },
+      "usar": 1,
+      "elemento": ["social"],
+      "nivel": 1,
+      "requisitos": {
+        "carisma": 10
+      }
+    }
+  ]
+} 

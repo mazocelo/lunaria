@@ -1,0 +1,195 @@
+{
+  "id": "03-habilidade-cooldown",
+  "titulo": "Habilidade com cooldown por turno — uso, bloqueio e reuso",
+  "versao": "1.0.0",
+  "personagem": {
+    "nome": "Moruxis",
+    "classe": "Paladino",
+    "raca": "Minotauro",
+    "nivel": 1,
+    "atributos": {
+      "forca": 10,
+      "inteligencia": 10,
+      "carisma": 7,
+      "destreza": 14,
+      "constituicao": 10,
+      "agilidade": 14
+    },
+    "magias": [
+      {
+        "id": "luz_divina",
+        "nome": "Luz Divina",
+        "escola": "evocacao",
+        "custo_mana": 3,
+        "dano_base": "1d8",
+        "atributo": "carisma",
+        "descricao": "Lanca radiante contra inimigo"
+      }
+    ],
+    "habilidades": [
+      {
+        "id": "investida",
+        "nome": "Investida",
+        "tipo": "ataque",
+        "recurso": "cooldown",
+        "cooldown_turnos": 2,
+        "bonus_dano": 4
+      },
+      {
+        "id": "golpe_brutal",
+        "nome": "Golpe Brutal",
+        "tipo": "ataque",
+        "recurso": "stamina",
+        "custo": 1
+      }
+    ],
+    "vantagens": [],
+    "desvantagens": [],
+    "equipamentos": [
+      {
+        "id": "espada_longa",
+        "nome": "Espada Longa",
+        "dano": "1d8",
+        "tipo": "melee",
+        "bonus_ataque": 1
+      }
+    ]
+  },
+  "estadoInicial": {
+    "hp": 30,
+    "hpMax": 30,
+    "mana": 10,
+    "manaMax": 10,
+    "status": [],
+    "cooldowns": {},
+    "concentracao": null,
+    "efeitos_ativos": [],
+    "emCombate": false,
+    "turno": 0,
+    "xp": 0
+  },
+  "inimigos": [
+    {
+      "id": "orc_1",
+      "nome": "Orc Guerreiro",
+      "hp": 28,
+      "hpMax": 28,
+      "ataque": 5,
+      "dano": "1d8",
+      "esquiva": 6,
+      "armadura": 2,
+      "xp": 40,
+      "status": []
+    }
+  ],
+  "historia": {
+    "nome": "Cenario de Teste - Habilidade com Cooldown",
+    "temas": ["Fantasia"],
+    "prologo": "Moruxis enfrenta um orc guerreiro em uma ponte de pedra estreita. O combate sera longo o suficiente para testar o cooldown da Investida.",
+    "mestreConfig": {
+      "nome": "Mestre Teste",
+      "personalidade": "Direto e mecanico, prioriza clareza sobre floreio narrativo. Sempre respeita as regras mecanicas.",
+      "temperatura": 0.6,
+      "tags": ["teste", "cooldown", "habilidade"]
+    }
+  },
+  "acoes": [
+    {
+      "tipo": "iniciar_turno"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Uso Investida contra o orc",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "habilidadeId": "investida",
+        "alvo": "orc_1"
+      },
+      "_comentario": "Turno 1: Investida usada com sucesso. Cooldown hab_investida = 2 ativado."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Ataco o orc com minha espada",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "atacar",
+        "arma": "espada_longa",
+        "alvo": "orc_1"
+      },
+      "_comentario": "Turno 2: Ataque normal. Cooldown decrementa para 1."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Uso Investida contra o orc novamente",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "habilidadeId": "investida",
+        "alvo": "orc_1"
+      },
+      "_comentario": "Turno 3: Deve ser BLOQUEADO — cooldown restante = 1 (decrementou de 2 para 1 no turno 2)."
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Ataco o orc com minha espada",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "atacar",
+        "arma": "espada_longa",
+        "alvo": "orc_1"
+      },
+      "_comentario": "Turno 4: Ataque normal. Cooldown decrementa para 0 e e removido."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Uso Investida contra o orc com toda forca",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "habilidadeId": "investida",
+        "alvo": "orc_1"
+      },
+      "_comentario": "Turno 5: Investida disponivel novamente — cooldown expirou. Deve funcionar."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    }
+  ],
+  "condicoesDeParada": {
+    "qualquerUma": [
+      "combate_finalizado",
+      "acoes_esgotadas",
+      "jogador_derrotado"
+    ]
+  },
+  "invariantes": [
+    "resposta_ia_parseavel",
+    "hp_nunca_negativo",
+    "hp_nunca_acima_maximo",
+    "mana_nunca_negativa",
+    "mana_nunca_acima_maximo",
+    "cooldown_aplicado_apos_habilidade",
+    "habilidade_em_cooldown_nao_reutilizada",
+    "dano_aplicado_quando_ataque_sucede",
+    "equipamento_usado_existe_no_inventario",
+    "alvos_referenciados_por_id"
+  ]
+}

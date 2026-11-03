@@ -1,0 +1,28 @@
+{
+  "cenarioId": "04-efeitos-status",
+  "cenarioVersao": "1.0.0",
+  "geradoEm": "2026-03-18T18:08:22.204Z",
+  "modelos": {
+    "groq": {
+      "statusExecucao": "sem_log",
+      "turnos": null,
+      "latenciaMediaMs": null,
+      "invariantes": null,
+      "falhas": []
+    },
+    "gemini": {
+      "statusExecucao": "sem_log",
+      "turnos": null,
+      "latenciaMediaMs": null,
+      "invariantes": null,
+      "falhas": []
+    },
+    "sonnet": {
+      "statusExecucao": "sem_log",
+      "turnos": null,
+      "latenciaMediaMs": null,
+      "invariantes": null,
+      "falhas": []
+    }
+  }
+}

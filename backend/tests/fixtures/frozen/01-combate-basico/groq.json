@@ -1,0 +1,591 @@
+{
+  "runId": "run_20260318_150232_f9de",
+  "cenarioId": "01-combate-basico",
+  "cenarioVersao": "1.0.0",
+  "cenarioHash": "sha256:9c899ed37abe",
+  "modelo": "llama-3.3-70b-versatile",
+  "provider": "groq",
+  "redisPrefix": "test_run_run_20260318_150232_f9de_groq:",
+  "statusExecucao": "falha_parsing",
+  "erroExecucao": null,
+  "iniciadoEm": "2026-03-18T18:02:32.402Z",
+  "finalizadoEm": "2026-03-18T18:05:59.040Z",
+  "duracaoMs": 206637,
+  "metricas": {
+    "turnosExecutados": 6,
+    "respostasParseadas": 5,
+    "errosParse": 1,
+    "rolagensAutomaticas": 2,
+    "latenciaMediaMs": 34438,
+    "latenciaMaxMs": 93353,
+    "tokensInput": null,
+    "tokensOutput": null,
+    "custoEstimado": null
+  },
+  "condicaoDeParada": "acoes_esgotadas",
+  "turnos": [
+    {
+      "turno": 1,
+      "acaoJogador": {
+        "tipo": "iniciar_turno"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Moruxis está em uma trilha estreita na floresta, com árvores altas e folhagem densa ao redor. O goblin saqueador, com sua adaga enferrujada, agora está a cerca de 5 metros de distância, olhando para Moruxis com um olhar feroz e selvagem. O goblin parece ter sido pego de surpresa pela aparição de Moruxis, mas agora está pronto para atacar. Moruxis nota que o goblin está usando um pedaço de couro como armadura e carrega uma bolsa pequena nas costas.",
+      "respostaIA": {
+        "narracao": "Moruxis está em uma trilha estreita na floresta, com árvores altas e folhagem densa ao redor. O goblin saqueador, com sua adaga enferrujada, agora está a cerca de 5 metros de distância, olhando para Moruxis com um olhar feroz e selvagem. O goblin parece ter sido pego de surpresa pela aparição de Moruxis, mas agora está pronto para atacar. Moruxis nota que o goblin está usando um pedaço de couro como armadura e carrega uma bolsa pequena nas costas.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": true,
+          "tipo": "d20",
+          "teste": "Iniciativa",
+          "dificuldade": "",
+          "origem": "Combate iniciado"
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Trilha na floresta",
+          "npcs_presentes": [
+            "Goblin Saqueador"
+          ],
+          "memoria_semantica": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 2496,
+      "tempoTurnoTotalMs": 2496
+    },
+    {
+      "turno": 2,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Avanço e ataco o goblin com minha espada",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "atacar",
+          "arma": "espada_longa",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Você avança com sua espada longa, pronto para atacar o goblin saqueador. O goblin, percebendo o perigo, se prepara para defender-se, segurando sua adaga suja. O ar está tenso, e o silêncio é quebrado apenas pelo som de sua respiração e do goblin preparando-se para o combate. Você está a uma distância de cerca de 5 metros do goblin, e o terreno é relativamente plano, sem obstáculos imediatos.",
+      "respostaIA": {
+        "narracao": "Você avança com sua espada longa, pronto para atacar o goblin saqueador. O goblin, percebendo o perigo, se prepara para defender-se, segurando sua adaga suja. O ar está tenso, e o silêncio é quebrado apenas pelo som de sua respiração e do goblin preparando-se para o combate. Você está a uma distância de cerca de 5 metros do goblin, e o terreno é relativamente plano, sem obstáculos imediatos.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": true,
+          "tipo": "d20",
+          "teste": "Ataque",
+          "dificuldade": "Media",
+          "origem": "Combate"
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Floresta Escura",
+          "npcs_presentes": [
+            "Goblin Saqueador"
+          ],
+          "memoria_semantica": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "atacar",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": "espada_longa",
+        "magiaId": null,
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 53212,
+      "tempoTurnoTotalMs": 53213
+    },
+    {
+      "turno": 3,
+      "acaoJogador": {
+        "tipo": "rolar_dado",
+        "quando": "se_solicitado"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "{\"rolagemBruta\":5,\"atributo\":null,\"atributoNome\":null,\"valorAtributo\":10,\"modificador\":0,\"bonusNivel\":0,\"bonusVantDesvant\":0,\"detalhesBonus\":[],\"totalModificador\":0,\"total\":5,\"dc\":12,\"dificuldadeNome\":\"Media\",\"sucesso\":false,\"margem\":-7,\"critico\":false,\"falha_critica\":false,\"descricaoResultado\":\"Falha\"}",
+      "respostaIA": null,
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": {
+        "dado": "d20",
+        "resultado": 5,
+        "teste": "Ataque",
+        "resolucao": {
+          "rolagemBruta": 5,
+          "atributo": null,
+          "atributoNome": null,
+          "valorAtributo": 10,
+          "modificador": 0,
+          "bonusNivel": 0,
+          "bonusVantDesvant": 0,
+          "detalhesBonus": [],
+          "totalModificador": 0,
+          "total": 5,
+          "dc": 12,
+          "dificuldadeNome": "Media",
+          "sucesso": false,
+          "margem": -7,
+          "critico": false,
+          "falha_critica": false,
+          "descricaoResultado": "Falha"
+        }
+      },
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 0,
+      "tempoTurnoTotalMs": 0
+    },
+    {
+      "turno": 4,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanço Luz Divina no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Você levanta a mão e uma luz divina brilhante irrompe, iluminando o ambiente sombrio da caverna. O goblin, momentaneamente cegado, recua em busca de proteção. A luz atinge o goblin, causando um dano mágico.",
+      "respostaIA": {
+        "narracao": "Você levanta a mão e uma luz divina brilhante irrompe, iluminando o ambiente sombrio da caverna. O goblin, momentaneamente cegado, recua em busca de proteção. A luz atinge o goblin, causando um dano mágico.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": true,
+          "tipo": "d20",
+          "teste": "Ataque",
+          "dificuldade": "Media",
+          "origem": "Luz Divina"
+        },
+        "acoes": [
+          {
+            "tipo": "aplicar_dano",
+            "personagem": "Goblin Saqueador",
+            "dano": 5,
+            "elemento": "divino"
+          }
+        ],
+        "metadados": {}
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 57566,
+      "tempoTurnoTotalMs": 57567
+    },
+    {
+      "turno": 5,
+      "acaoJogador": {
+        "tipo": "rolar_dado",
+        "quando": "se_solicitado"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "{\"rolagemBruta\":6,\"atributo\":null,\"atributoNome\":null,\"valorAtributo\":10,\"modificador\":0,\"bonusNivel\":0,\"bonusVantDesvant\":0,\"detalhesBonus\":[],\"totalModificador\":0,\"total\":6,\"dc\":12,\"dificuldadeNome\":\"Media\",\"sucesso\":false,\"margem\":-6,\"critico\":false,\"falha_critica\":false,\"descricaoResultado\":\"Falha\"}",
+      "respostaIA": null,
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": {
+        "dado": "d20",
+        "resultado": 6,
+        "teste": "Ataque",
+        "resolucao": {
+          "rolagemBruta": 6,
+          "atributo": null,
+          "atributoNome": null,
+          "valorAtributo": 10,
+          "modificador": 0,
+          "bonusNivel": 0,
+          "bonusVantDesvant": 0,
+          "detalhesBonus": [],
+          "totalModificador": 0,
+          "total": 6,
+          "dc": 12,
+          "dificuldadeNome": "Media",
+          "sucesso": false,
+          "margem": -6,
+          "critico": false,
+          "falha_critica": false,
+          "descricaoResultado": "Falha"
+        }
+      },
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 1,
+      "tempoTurnoTotalMs": 1
+    },
+    {
+      "turno": 6,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Uso Investida para finalizar o goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "habilidadeId": "investida",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": null,
+      "respostaIA": null,
+      "respostaParseou": false,
+      "erroParse": {
+        "tipo": "json_invalido",
+        "mensagem": "429 {\"error\":{\"message\":\"Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_00000000000000000000000000` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 93099, Requested 8803. Please try again in 27m23.328s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing\",\"type\":\"tokens\",\"code\":\"rate_limit_exceeded\"}}",
+        "trecho": ""
+      },
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {
+            "hab_investida": 1
+          },
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 93353,
+      "tempoTurnoTotalMs": 93353
+    }
+  ],
+  "estadoFinal": {
+    "jogador": {
+      "hp": 30,
+      "hpMax": 30,
+      "mana": 7,
+      "manaMax": 10,
+      "xpGanho": 0,
+      "status": []
+    },
+    "inimigos": [
+      {
+        "id": "goblin_1",
+        "hp": 12,
+        "hpMax": 12,
+        "status": []
+      }
+    ],
+    "combateAtivo": true,
+    "resultado": "indefinido",
+    "resultadoDetalhe": null
+  }
+}

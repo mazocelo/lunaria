@@ -1,0 +1,254 @@
+{
+  "desvantagens": [
+    {
+      "nome": "Fraqueza Física",
+      "descricao": "O personagem tem uma constituição física debilitada, sofrendo penalidades em testes de força e resistência.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "penalidade_forca": -2,
+        "penalidade_constituicao": -1
+      },
+      "restricao": {
+        "requer_descanso": true,
+        "limite_carga": 0.5
+      },
+      "dano_base": null,
+      "efeito": {
+        "fadiga_rapida": true,
+        "recuperacao_lenta": true
+      },
+      "usar": null,
+      "elemento": ["contundente"],
+      "nivel": 1,
+      "requisitos": {
+        "constituicao_maxima": 12
+      }
+    },
+    {
+      "nome": "Medo de Altura",
+      "descricao": "O personagem tem pavor de lugares altos, sofrendo penalidades em situações elevadas.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "penalidade_destreza": -3,
+        "penalidade_carisma": -1
+      },
+      "restricao": {
+        "altura_maxima": 3,
+        "requer_apoio": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "panico_altura": true,
+        "movimento_reduzido": true
+      },
+      "usar": null,
+      "elemento": ["psiquico"],
+      "nivel": 1,
+      "requisitos": {
+        "experiencia_traumatica": true
+      }
+    },
+    {
+      "nome": "Déficit de Atenção",
+      "descricao": "O personagem tem dificuldade para se concentrar, sofrendo penalidades em testes de inteligência e percepção.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "penalidade_inteligencia": -2,
+        "penalidade_percepcao": -3
+      },
+      "restricao": {
+        "tempo_concentracao": 2,
+        "distracoes": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "esquecimento": true,
+        "dificuldade_estudo": true
+      },
+      "usar": null,
+      "elemento": ["psiquico"],
+      "nivel": 1,
+      "requisitos": {
+        "idade_minima": 5
+      }
+    },
+    {
+      "nome": "Alergia Severa",
+      "descricao": "O personagem tem alergias graves que podem causar reações adversas em certos ambientes.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "penalidade_constituicao": -1,
+        "penalidade_agilidade": -1
+      },
+      "restricao": {
+        "ambientes_restritos": ["poeira", "polen", "mofo"],
+        "equipamento_especial": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "reacoes_alergicas": true,
+        "dificuldade_respiracao": true
+      },
+      "usar": null,
+      "elemento": ["contundente"],
+      "nivel": 1,
+      "requisitos": {
+        "constituicao_maxima": 14
+      }
+    },
+    {
+      "nome": "Dificuldade Social",
+      "descricao": "O personagem tem problemas para interagir socialmente, sofrendo penalidades em testes de carisma.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "penalidade_carisma": -3,
+        "penalidade_persuasao": -2
+      },
+      "restricao": {
+        "grupos_pequenos": true,
+        "tempo_interacao": 2
+      },
+      "dano_base": null,
+      "efeito": {
+        "ansiedade_social": true,
+        "isolamento": true
+      },
+      "usar": null,
+      "elemento": ["psiquico"],
+      "nivel": 1,
+      "requisitos": {
+        "experiencia_social": "limitada"
+      }
+    },
+    {
+      "nome": "Má Coordenação",
+      "descricao": "O personagem tem problemas de coordenação motora, sofrendo penalidades em testes de destreza.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "penalidade_destreza": -2,
+        "penalidade_agilidade": -1
+      },
+      "restricao": {
+        "tarefas_precisao": true,
+        "equilibrio": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "tropecoes": true,
+        "quedas_frequentes": true
+      },
+      "usar": null,
+      "elemento": ["contundente"],
+      "nivel": 1,
+      "requisitos": {
+        "idade_minima": 3
+      }
+    },
+    {
+      "nome": "Insônia Crônica",
+      "descricao": "O personagem sofre de problemas de sono, afetando sua recuperação e concentração.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "penalidade_inteligencia": -1,
+        "penalidade_constituicao": -1
+      },
+      "restricao": {
+        "descanso_ineficiente": true,
+        "recuperacao_lenta": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "fadiga_mental": true,
+        "irritabilidade": true
+      },
+      "usar": null,
+      "elemento": ["psiquico"],
+      "nivel": 1,
+      "requisitos": {
+        "estresse": "alto"
+      }
+    },
+    {
+      "nome": "Dependência Química",
+      "descricao": "O personagem tem dependência de substâncias que afeta seu desempenho e julgamento.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "penalidade_inteligencia": -2,
+        "penalidade_carisma": -1
+      },
+      "restricao": {
+        "substancia_necessaria": true,
+        "sintomas_abstinencia": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "julgamento_comprometido": true,
+        "comportamento_imprevisivel": true
+      },
+      "usar": null,
+      "elemento": ["contundente", "psiquico"],
+      "nivel": 1,
+      "requisitos": {
+        "experiencia_traumatica": true
+      }
+    },
+    {
+      "nome": "Fobia de Água",
+      "descricao": "O personagem tem medo irracional de água, evitando rios, lagos e até mesmo chuva.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "penalidade_agilidade": -2,
+        "penalidade_carisma": -1
+      },
+      "restricao": {
+        "evita_agua": true,
+        "rotas_restritas": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "panico_agua": true,
+        "movimento_limitado": true
+      },
+      "usar": null,
+      "elemento": ["psiquico"],
+      "nivel": 1,
+      "requisitos": {
+        "experiencia_traumatica": "afogamento"
+      }
+    },
+    {
+      "nome": "Problemas de Visão",
+      "descricao": "O personagem tem problemas de visão que afetam sua percepção e precisão.",
+      "custo": 0,
+      "tipo": ["passiva"],
+      "bonus": {
+        "penalidade_percepcao": -2,
+        "penalidade_destreza": -1
+      },
+      "restricao": {
+        "equipamento_visao": true,
+        "distancia_limitada": true
+      },
+      "dano_base": null,
+      "efeito": {
+        "dificuldade_leitura": true,
+        "reconhecimento_lento": true
+      },
+      "usar": null,
+      "elemento": ["contundente"],
+      "nivel": 1,
+      "requisitos": {
+        "idade_minima": 8
+      }
+    }
+  ]
+} 

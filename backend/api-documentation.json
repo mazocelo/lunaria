@@ -1,0 +1,2224 @@
+{
+  "api": {
+    "name": "Role Chat Game API",
+    "version": "1.0.0",
+    "baseUrl": "http://localhost:3000",
+    "description": "API para sistema de RPG online com geração de histórias, personagens e sessões em tempo real"
+  },
+  "authentication": {
+    "type": "JWT Bearer Token",
+    "header": "Authorization: Bearer <token>",
+    "endpoints": {
+      "login": "/auth/login",
+      
+      "register": "/auth/registro"
+    }
+  },
+  "important_notes": {
+    "authentication": "Endpoints que modificam dados requerem autenticação JWT no header Authorization: Bearer <token>",
+    "content_type": "Todos os request bodies devem ser JSON (application/json)",
+    "response_format": "Respostas de sucesso seguem o padrão: { success: true, data/message, ... }. Respostas de erro podem ter { success: false, error } ou apenas { error }",
+    "pagination": "Muitos endpoints de listagem suportam paginação com limit/offset e retornam informações de paginação"
+  },
+  "routes": {
+    "root": {
+      "endpoint": "/",
+      "method": "GET",
+      "authentication": false,
+      "parameters": {},
+      "response": {
+        "success": true,
+        "message": "Role Chat Game API",
+        "version": "1.0.0",
+        "endpoints": {
+          "historias": "/api/historia",
+          "sessoes": "/api/sessao", 
+          "personagens": "/api/personagens",
+          "racas": "/api/racas",
+          "classes": "/api/classes",
+          "vantagens": "/api/vantagens",
+          "auth": "/api/auth",
+          "usuarios": "/api/usuarios",
+          "jogo": "/api/jogo"
+        }
+      }
+    },
+    "authentication": {
+      "registro": {
+        "endpoint": "/auth/registro",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["nome", "email", "senha"],
+        "optional_fields": [],
+        "request_body": {
+          "nome": "string",
+          "email": "string (format: email)",
+          "senha": "string (minimum: 6 characters)"
+        },
+        "responses": {
+          "201": {
+            "success": true,
+            "message": "Usuário registrado com sucesso",
+            "data": {
+              "token": "string (JWT)",
+              "usuario": {
+                "id": "integer",
+                "nome": "string",
+                "email": "string"
+              }
+            }
+          },
+          "400": {
+            "success": false,
+            "error": "string (Nome, email e senha são obrigatórios / Formato de email inválido / Senha deve ter no mínimo 6 caracteres / Este email já está cadastrado)"
+          },
+          "500": {
+            "success": false,
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "login": {
+        "endpoint": "/auth/login",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["email", "senha"],
+        "optional_fields": [],
+        "request_body": {
+          "email": "string (format: email)",
+          "senha": "string"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Login realizado com sucesso",
+            "data": {
+              "token": "string (JWT)",
+              "usuario": {
+                "id": "integer",
+                "nome": "string",
+                "email": "string"
+              }
+            }
+          },
+          "400": {
+            "success": false,
+            "error": "Email e senha são obrigatórios"
+          },
+          "401": {
+            "success": false,
+            "error": "Email ou senha incorretos"
+          },
+          "500": {
+            "success": false,
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "verificar": {
+        "endpoint": "/auth/verificar",
+        "method": "GET",
+        "authentication": true,
+        "required_fields": [],
+        "optional_fields": [],
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Token válido",
+            "data": {
+              "usuario": "object (dados do usuário logado)"
+            }
+          },
+          "401": {
+            "success": false,
+            "error": "Token inválido ou expirado"
+          },
+          "500": {
+            "success": false,
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "renovar": {
+        "endpoint": "/auth/renovar",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["token"],
+        "optional_fields": [],
+        "request_body": {
+          "token": "string (JWT to be renewed)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Token renovado com sucesso",
+            "data": {
+              "token": "string (new JWT)"
+            }
+          },
+          "401": {
+            "success": false,
+            "error": "Token inválido para renovação"
+          }
+        }
+      },
+      "logout": {
+        "endpoint": "/auth/logout",
+        "method": "POST",
+        "authentication": true,
+        "required_fields": [],
+        "optional_fields": [],
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Logout realizado com sucesso"
+          },
+          "401": {
+            "success": false,
+            "error": "Token inválido"
+          }
+        }
+      }
+    },
+    "usuarios": {
+      "listar": {
+        "endpoint": "/usuarios",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": ["limit", "offset"],
+        "query_parameters": {
+          "limit": "integer (default: 50)",
+          "offset": "integer (default: 0)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of user objects",
+            "total": "integer",
+            "offset": "integer",
+            "limit": "integer"
+          },
+          "500": {
+            "success": false,
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "perfil": {
+        "endpoint": "/usuarios/perfil",
+        "method": "GET",
+        "authentication": true,
+        "required_fields": [],
+        "optional_fields": [],
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "object (dados completos do usuário logado)"
+          },
+          "404": {
+            "success": false,
+            "error": "Usuário não encontrado"
+          },
+          "500": {
+            "success": false,
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "obter": {
+        "endpoint": "/usuarios/{id}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (user ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "object (dados do usuário)"
+          },
+          "400": {
+            "success": false,
+            "error": "ID de usuário inválido"
+          },
+          "404": {
+            "success": false,
+            "error": "Usuário não encontrado"
+          },
+          "500": {
+            "success": false,
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "atualizar": {
+        "endpoint": "/usuarios/{id}",
+        "method": "PUT",
+        "authentication": true,
+        "required_fields": ["id"],
+        "optional_fields": ["nome", "email", "senha"],
+        "path_parameters": {
+          "id": "integer (user ID)"
+        },
+        "request_body": {
+          "nome": "string (optional)",
+          "email": "string (optional)",
+          "senha": "string (optional, minimum: 6 characters)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Usuário atualizado com sucesso",
+            "data": "object (dados atualizados do usuário)"
+          },
+          "400": {
+            "success": false,
+            "error": "string (validação de dados)"
+          },
+          "403": {
+            "success": false,
+            "error": "Você só pode editar seu próprio perfil"
+          },
+          "404": {
+            "success": false,
+            "error": "Usuário não encontrado"
+          },
+          "500": {
+            "success": false,
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "deletar": {
+        "endpoint": "/usuarios/{id}",
+        "method": "DELETE",
+        "authentication": true,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (user ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Usuário deletado com sucesso"
+          },
+          "403": {
+            "success": false,
+            "error": "Permissão negada"
+          },
+          "404": {
+            "success": false,
+            "error": "Usuário não encontrado"
+          },
+          "500": {
+            "success": false,
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "estatisticas": {
+        "endpoint": "/usuarios/{id}/estatisticas",
+        "method": "GET",
+        "authentication": true,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (user ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": {
+              "usuario": "object",
+              "estatisticas": "object (contadores e métricas do usuário)"
+            }
+          },
+          "403": {
+            "success": false,
+            "error": "Permissão negada"
+          },
+          "404": {
+            "success": false,
+            "error": "Usuário não encontrado"
+          },
+          "500": {
+            "success": false,
+            "error": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "historias": {
+      "criar": {
+        "endpoint": "/historias/create",
+        "method": "POST",
+        "authentication": true,
+        "required_fields": ["temas"],
+        "optional_fields": ["nome", "descricao", "maximo_de_participantes", "participantes", "temas_disponiveis"],
+        "request_body": {
+          "nome": "string (optional - será gerado automaticamente se não fornecido)",
+          "temas": "string",
+          "descricao": "string (optional)",
+          "maximo_de_participantes": "integer (optional, 1-10, default: 5)",
+          "participantes": "array of strings (optional)",
+          "temas_disponiveis": "array of strings (optional)"
+        },
+        "responses": {
+          "201": {
+            "success": true,
+            "message": "História criada com prólogo gerado automaticamente",
+            "data": {
+              "id": "integer",
+              "nome": "string",
+              "temas": "string",
+              "maximo_de_participantes": "integer",
+              "participantes": "array",
+              "descricao": "string",
+              "prologo": "string (AI generated)",
+              "status": "string",
+              "criada_em": "datetime",
+              "atualizada_em": "datetime",
+              "id_usuario": "integer",
+              "temas_utilizados": "array of strings",
+              "titulo_gerado": "string or null (se foi gerado automaticamente)"
+            }
+          },
+          "400": {
+            "error": "string (Temas são obrigatórios / Máximo de participantes deve estar entre 1 e 10)"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "listar": {
+        "endpoint": "/historias",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": ["status", "temas", "limit", "offset", "todas"],
+        "query_parameters": {
+          "status": "string (optional)",
+          "temas": "string (optional)",
+          "limit": "integer (default: 20)",
+          "offset": "integer (default: 0)",
+          "todas": "boolean (true para listar todas, false para filtrar por usuário logado)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of historia objects",
+            "pagination": {
+              "total": "integer",
+              "limit": "integer",
+              "offset": "integer",
+              "hasMore": "boolean"
+            },
+            "filtrado_por_usuario": "integer or null"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "obter": {
+        "endpoint": "/historias/{id}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (historia ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "object (dados completos da história)"
+          },
+          "403": {
+            "success": false,
+            "error": "Você não tem permissão para acessar esta história"
+          },
+          "404": {
+            "success": false,
+            "error": "História não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "atualizar": {
+        "endpoint": "/historias/{id}",
+        "method": "PUT",
+        "authentication": true,
+        "required_fields": ["id"],
+        "optional_fields": ["nome", "temas", "descricao", "maximo_de_participantes", "status"],
+        "path_parameters": {
+          "id": "integer (historia ID)"
+        },
+        "request_body": {
+          "nome": "string (optional)",
+          "temas": "string (optional)",
+          "descricao": "string (optional)",
+          "maximo_de_participantes": "integer (optional)",
+          "status": "string (optional)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "História atualizada com sucesso",
+            "data": "object (dados atualizados da história)"
+          },
+          "400": {
+            "error": "string (erro de validação)"
+          },
+          "403": {
+            "success": false,
+            "error": "Permissão negada"
+          },
+          "404": {
+            "success": false,
+            "error": "História não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "deletar": {
+        "endpoint": "/historias/{id}",
+        "method": "DELETE",
+        "authentication": true,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (historia ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "História deletada com sucesso"
+          },
+          "403": {
+            "success": false,
+            "error": "Permissão negada"
+          },
+          "404": {
+            "success": false,
+            "error": "História não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "gerar_com_ia": {
+        "endpoint": "/historias/gerar-ia",
+        "method": "POST",
+        "authentication": true,
+        "required_fields": ["tema"],
+        "optional_fields": ["genero"],
+        "request_body": {
+          "tema": "string",
+          "genero": "string (optional)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "object (história gerada com IA)"
+          },
+          "400": {
+            "error": "string (erro de validação)"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "gerar_aventura_completa": {
+        "endpoint": "/historias/gerar-aventura-completa",
+        "method": "POST",
+        "authentication": true,
+        "required_fields": ["tema"],
+        "optional_fields": ["genero"],
+        "request_body": {
+          "tema": "string",
+          "genero": "string (optional)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "aventura": {
+              "titulo": "string",
+              "descricao": "string",
+              "objetivos": "array of strings"
+            }
+          },
+          "400": {
+            "error": "string (erro de validação)"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "personagens": {
+      "criar": {
+        "endpoint": "/personagem",
+        "method": "POST",
+        "authentication": true,
+        "required_fields": ["nome", "historia_id"],
+        "optional_fields": ["nivel", "pontos_totais", "pontos_iniciais", "background", "raca_id", "classe_id", "forca", "inteligencia", "carisma", "destreza", "constituicao", "agilidade", "jogador_id", "vantagens", "desvantagens", "equipamentos", "sugestao_background"],
+        "request_body": {
+          "nome": "string",
+          "historia_id": "integer",
+          "nivel": "integer (1-20, default: 1)",
+          "pontos_totais": "integer (default: 0)",
+          "pontos_iniciais": "integer (default: 0)",
+          "background": "string (optional)",
+          "raca_id": "integer (optional)",
+          "classe_id": "integer (optional)",
+          "forca": "integer (1-20, default: 10)",
+          "inteligencia": "integer (1-20, default: 10)",
+          "carisma": "integer (1-20, default: 10)",
+          "destreza": "integer (1-20, default: 10)",
+          "constituicao": "integer (1-20, default: 10)",
+          "agilidade": "integer (1-20, default: 10)",
+          "jogador_id": "integer (optional)",
+          "vantagens": "array of integers (optional)",
+          "desvantagens": "array of integers (optional)",
+          "equipamentos": "array of integers (optional)",
+          "sugestao_background": "string (optional - 'guiado' para gerar automaticamente)"
+        },
+        "responses": {
+          "201": {
+            "success": true,
+            "message": "Personagem criado com sucesso",
+            "data": {
+              "id": "integer",
+              "nome": "string",
+              "nivel": "integer",
+              "pontos_totais": "integer",
+              "pontos_iniciais": "integer",
+              "background": "string (pode ser gerado automaticamente)",
+              "raca_id": "integer",
+              "classe_id": "integer",
+              "forca": "integer",
+              "inteligencia": "integer",
+              "carisma": "integer",
+              "destreza": "integer",
+              "constituicao": "integer",
+              "agilidade": "integer",
+              "historia_id": "integer",
+              "jogador_id": "integer",
+              "id_usuario": "integer",
+              "classe": "string (nome da classe)",
+              "raca": "string (nome da raça)",
+              "vantagens": "array of objects (vantagem objects with full details)",
+              "desvantagens": "array of objects (desvantagem objects with full details)",
+              "equipamentos": "array of objects (equipamento objects with full details)",
+              "criado_em": "datetime",
+              "atualizado_em": "datetime"
+            }
+          },
+          "400": {
+            "error": "string (Nome e história são obrigatórios / Nível deve estar entre 1 e 20 / etc.)"
+          },
+          "404": {
+            "error": "História não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "listar": {
+        "endpoint": "/personagem",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": ["historia_id", "jogador_id", "status", "limit", "offset", "todos"],
+        "query_parameters": {
+          "historia_id": "integer (optional)",
+          "jogador_id": "integer (optional)",
+          "status": "string (optional)",
+          "limit": "integer (default: 20)",
+          "offset": "integer (default: 0)",
+          "todos": "boolean (true para listar todos, false para filtrar por usuário)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of personagem objects (with full relationships)",
+            "pagination": {
+              "total": "integer",
+              "limit": "integer",
+              "offset": "integer",
+              "hasMore": "boolean"
+            },
+            "filtrado_por_usuario": "integer or null"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "obter": {
+        "endpoint": "/personagem/{id}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (personagem ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "object (personagem completo com relacionamentos)"
+          },
+          "403": {
+            "success": false,
+            "error": "Você não tem permissão para acessar este personagem"
+          },
+          "404": {
+            "success": false,
+            "error": "Personagem não encontrado"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "atualizar": {
+        "endpoint": "/personagem/{id}",
+        "method": "PUT",
+        "authentication": true,
+        "required_fields": ["id"],
+        "optional_fields": ["nome", "nivel", "pontos_totais", "pontos_iniciais", "background", "raca_id", "classe_id", "forca", "inteligencia", "carisma", "destreza", "constituicao", "agilidade", "vantagens", "desvantagens", "equipamentos", "status"],
+        "path_parameters": {
+          "id": "integer (personagem ID)"
+        },
+        "request_body": {
+          "nome": "string (optional)",
+          "nivel": "integer (1-20, optional)",
+          "pontos_totais": "integer (optional)",
+          "pontos_iniciais": "integer (optional)",
+          "background": "string (optional)",
+          "raca_id": "integer (optional)",
+          "classe_id": "integer (optional)",
+          "forca": "integer (1-20, optional)",
+          "inteligencia": "integer (1-20, optional)",
+          "carisma": "integer (1-20, optional)",
+          "destreza": "integer (1-20, optional)",
+          "constituicao": "integer (1-20, optional)",
+          "agilidade": "integer (1-20, optional)",
+          "vantagens": "array of integers (optional, replaces all)",
+          "desvantagens": "array of integers (optional, replaces all)",
+          "equipamentos": "array of integers (optional, replaces all)",
+          "status": "string (optional)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Personagem atualizado com sucesso",
+            "data": "object (personagem atualizado com relacionamentos)"
+          },
+          "400": {
+            "error": "string (erro de validação)"
+          },
+          "403": {
+            "success": false,
+            "error": "Permissão negada"
+          },
+          "404": {
+            "success": false,
+            "error": "Personagem não encontrado"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "deletar": {
+        "endpoint": "/personagem/{id}",
+        "method": "DELETE",
+        "authentication": true,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (personagem ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Personagem deletado com sucesso"
+          },
+          "403": {
+            "success": false,
+            "error": "Permissão negada"
+          },
+          "404": {
+            "success": false,
+            "error": "Personagem não encontrado"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "gerar_background": {
+        "endpoint": "/personagem/{id}/background",
+        "method": "POST",
+        "authentication": true,
+        "required_fields": ["id"],
+        "optional_fields": ["temas_disponiveis", "tipo"],
+        "path_parameters": {
+          "id": "integer (personagem ID)"
+        },
+        "request_body": {
+          "temas_disponiveis": "array of strings (optional)",
+          "tipo": "string [normal, detalhado] (default: normal)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Background gerado com sucesso",
+            "data": "object (personagem com background gerado)"
+          },
+          "404": {
+            "success": false,
+            "error": "Personagem não encontrado"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "por_historia": {
+        "endpoint": "/personagem/historia/{historia_id}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["historia_id"],
+        "optional_fields": ["search", "status", "limit", "offset"],
+        "path_parameters": {
+          "historia_id": "integer (historia ID)"
+        },
+        "query_parameters": {
+          "search": "string (optional)",
+          "status": "string (optional)",
+          "limit": "integer (default: 20)",
+          "offset": "integer (default: 0)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of personagem objects",
+            "historia": {
+              "id": "integer",
+              "nome": "string",
+              "temas": "array of strings",
+              "status": "string"
+            },
+            "pagination": {
+              "total": "integer",
+              "limit": "integer",
+              "offset": "integer",
+              "hasMore": "boolean"
+            },
+            "message": "string"
+          },
+          "404": {
+            "success": false,
+            "error": "História não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "vantagens": {
+        "adicionar": {
+          "endpoint": "/personagem/{id}/vantagens",
+          "method": "POST",
+          "authentication": false,
+          "required_fields": ["id", "vantagem_id"],
+          "optional_fields": [],
+          "path_parameters": {
+            "id": "integer (personagem ID)"
+          },
+          "request_body": {
+            "vantagem_id": "integer"
+          },
+          "responses": {
+            "200": {
+              "success": true,
+              "message": "Vantagem adicionada com sucesso"
+            },
+            "400": {
+              "error": "string (erro de validação)"
+            },
+            "404": {
+              "error": "Personagem ou vantagem não encontrado"
+            },
+            "500": {
+              "error": "Erro interno do servidor"
+            }
+          }
+        },
+        "remover": {
+          "endpoint": "/personagem/{id}/vantagens/{vantagem_id}",
+          "method": "DELETE",
+          "authentication": false,
+          "required_fields": ["id", "vantagem_id"],
+          "optional_fields": [],
+          "path_parameters": {
+            "id": "integer (personagem ID)",
+            "vantagem_id": "integer (vantagem ID)"
+          },
+          "responses": {
+            "200": {
+              "success": true,
+              "message": "Vantagem removida com sucesso"
+            },
+            "404": {
+              "error": "Personagem não encontrado"
+            },
+            "500": {
+              "error": "Erro interno do servidor"
+            }
+          }
+        },
+        "listar": {
+          "endpoint": "/personagem/{id}/vantagens",
+          "method": "GET",
+          "authentication": false,
+          "required_fields": ["id"],
+          "optional_fields": [],
+          "path_parameters": {
+            "id": "integer (personagem ID)"
+          },
+          "responses": {
+            "200": {
+              "success": true,
+              "data": "array of vantagem objects (full details)"
+            },
+            "404": {
+              "error": "Personagem não encontrado"
+            },
+            "500": {
+              "error": "Erro interno do servidor"
+            }
+          }
+        }
+      },
+      "desvantagens": {
+        "adicionar": {
+          "endpoint": "/personagem/{id}/desvantagens",
+          "method": "POST",
+          "authentication": false,
+          "required_fields": ["id", "desvantagem_id"],
+          "optional_fields": [],
+          "path_parameters": {
+            "id": "integer (personagem ID)"
+          },
+          "request_body": {
+            "desvantagem_id": "integer"
+          },
+          "responses": {
+            "200": {
+              "success": true,
+              "message": "Desvantagem adicionada com sucesso"
+            },
+            "400": {
+              "error": "string (erro de validação)"
+            },
+            "404": {
+              "error": "Personagem ou desvantagem não encontrado"
+            },
+            "500": {
+              "error": "Erro interno do servidor"
+            }
+          }
+        },
+        "remover": {
+          "endpoint": "/personagem/{id}/desvantagens/{desvantagem_id}",
+          "method": "DELETE",
+          "authentication": false,
+          "required_fields": ["id", "desvantagem_id"],
+          "optional_fields": [],
+          "path_parameters": {
+            "id": "integer (personagem ID)",
+            "desvantagem_id": "integer (desvantagem ID)"
+          },
+          "responses": {
+            "200": {
+              "success": true,
+              "message": "Desvantagem removida com sucesso"
+            },
+            "404": {
+              "error": "Personagem não encontrado"
+            },
+            "500": {
+              "error": "Erro interno do servidor"
+            }
+          }
+        },
+        "listar": {
+          "endpoint": "/personagem/{id}/desvantagens",
+          "method": "GET",
+          "authentication": false,
+          "required_fields": ["id"],
+          "optional_fields": [],
+          "path_parameters": {
+            "id": "integer (personagem ID)"
+          },
+          "responses": {
+            "200": {
+              "success": true,
+              "data": "array of desvantagem objects (full details)"
+            },
+            "404": {
+              "error": "Personagem não encontrado"
+            },
+            "500": {
+              "error": "Erro interno do servidor"
+            }
+          }
+        }
+      },
+      "equipamentos": {
+        "adicionar": {
+          "endpoint": "/personagem/{id}/equipamentos",
+          "method": "POST",
+          "authentication": false,
+          "required_fields": ["id", "equipamento_id"],
+          "optional_fields": [],
+          "path_parameters": {
+            "id": "integer (personagem ID)"
+          },
+          "request_body": {
+            "equipamento_id": "integer"
+          },
+          "responses": {
+            "200": {
+              "success": true,
+              "message": "Equipamento adicionado com sucesso"
+            },
+            "400": {
+              "error": "string (erro de validação)"
+            },
+            "404": {
+              "error": "Personagem ou equipamento não encontrado"
+            },
+            "500": {
+              "error": "Erro interno do servidor"
+            }
+          }
+        },
+        "remover": {
+          "endpoint": "/personagem/{id}/equipamentos/{equipamento_id}",
+          "method": "DELETE",
+          "authentication": false,
+          "required_fields": ["id", "equipamento_id"],
+          "optional_fields": [],
+          "path_parameters": {
+            "id": "integer (personagem ID)",
+            "equipamento_id": "integer (equipamento ID)"
+          },
+          "responses": {
+            "200": {
+              "success": true,
+              "message": "Equipamento removido com sucesso"
+            },
+            "404": {
+              "error": "Personagem não encontrado"
+            },
+            "500": {
+              "error": "Erro interno do servidor"
+            }
+          }
+        },
+        "listar": {
+          "endpoint": "/personagem/{id}/equipamentos",
+          "method": "GET",
+          "authentication": false,
+          "required_fields": ["id"],
+          "optional_fields": [],
+          "path_parameters": {
+            "id": "integer (personagem ID)"
+          },
+          "responses": {
+            "200": {
+              "success": true,
+              "data": "array of equipamento objects (full details)"
+            },
+            "404": {
+              "error": "Personagem não encontrado"
+            },
+            "500": {
+              "error": "Erro interno do servidor"
+            }
+          }
+        }
+      }
+    },
+    "classes": {
+      "criar": {
+        "endpoint": "/classes",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["nome"],
+        "optional_fields": ["custo", "descricao", "bonus"],
+        "request_body": {
+          "nome": "string",
+          "custo": "integer (default: 0)",
+          "descricao": "string (optional)",
+          "bonus": "object (optional)"
+        },
+        "responses": {
+          "201": {
+            "success": true,
+            "message": "Classe criada com sucesso",
+            "data": "object (classe criada)"
+          },
+          "400": {
+            "error": "string (Nome é obrigatório / Custo deve ser maior ou igual a 0 / Já existe uma classe com este nome)"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "listar": {
+        "endpoint": "/classes",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": ["limit", "offset"],
+        "query_parameters": {
+          "limit": "integer (default: 50)",
+          "offset": "integer (default: 0)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of classe objects",
+            "total": "integer",
+            "offset": "integer",
+            "limit": "integer"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "buscar": {
+        "endpoint": "/classes/buscar",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["termo"],
+        "optional_fields": [],
+        "query_parameters": {
+          "termo": "string"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of classe objects"
+          },
+          "400": {
+            "error": "Termo de busca é obrigatório"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "obter": {
+        "endpoint": "/classes/{id}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (classe ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "object (classe completa)"
+          },
+          "404": {
+            "error": "Classe não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "racas": {
+      "criar": {
+        "endpoint": "/racas",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["nome"],
+        "optional_fields": ["custo", "descricao", "bonus"],
+        "request_body": {
+          "nome": "string",
+          "custo": "integer (default: 0)",
+          "descricao": "string (optional)",
+          "bonus": "object (optional)"
+        },
+        "responses": {
+          "201": {
+            "success": true,
+            "message": "Raça criada com sucesso",
+            "data": "object (raça criada)"
+          },
+          "400": {
+            "error": "string (Nome é obrigatório / Custo deve ser maior ou igual a 0 / Já existe uma raça com este nome)"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "listar": {
+        "endpoint": "/racas",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": ["limit", "offset"],
+        "query_parameters": {
+          "limit": "integer (default: 50)",
+          "offset": "integer (default: 0)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of raca objects",
+            "total": "integer",
+            "offset": "integer",
+            "limit": "integer"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "buscar": {
+        "endpoint": "/racas/buscar",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["termo"],
+        "optional_fields": [],
+        "query_parameters": {
+          "termo": "string"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of raca objects"
+          },
+          "400": {
+            "error": "Termo de busca é obrigatório"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "obter": {
+        "endpoint": "/racas/{id}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (raca ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "object (raça completa)"
+          },
+          "404": {
+            "error": "Raça não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "vantagens": {
+      "criar": {
+        "endpoint": "/vantagens",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["nome", "descricao"],
+        "optional_fields": ["custo", "tipo", "bonus", "restricao", "dano_base", "efeito", "usar", "elemento", "nivel", "requisitos"],
+        "request_body": {
+          "nome": "string",
+          "descricao": "string",
+          "custo": "integer (min: 0, default: 0)",
+          "tipo": "array [ativa, passiva, reacao, ritual] (default: [ativa])",
+          "bonus": "object (default: {})",
+          "restricao": "object (default: {})",
+          "dano_base": "string (optional)",
+          "efeito": "object (default: {})",
+          "usar": "integer (optional)",
+          "elemento": "array of strings (optional)",
+          "nivel": "integer (1-20, default: 1)",
+          "requisitos": "object (default: {})"
+        },
+        "responses": {
+          "201": {
+            "success": true,
+            "message": "Vantagem criada com sucesso",
+            "data": "object (vantagem criada)"
+          },
+          "400": {
+            "error": "string (Nome e descrição são obrigatórios / Já existe uma vantagem com este nome)"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "listar": {
+        "endpoint": "/vantagens",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": ["tipo", "elemento", "nivel", "usar", "search", "limit", "offset"],
+        "query_parameters": {
+          "tipo": "string (optional)",
+          "elemento": "string (optional)",
+          "nivel": "integer (optional)",
+          "usar": "integer (optional)",
+          "search": "string (optional)",
+          "limit": "integer (default: 50)",
+          "offset": "integer (default: 0)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of vantagem objects",
+            "pagination": {
+              "total": "integer",
+              "limit": "integer",
+              "offset": "integer",
+              "hasMore": "boolean"
+            }
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "obter": {
+        "endpoint": "/vantagens/{id}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (vantagem ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "object (vantagem completa)"
+          },
+          "404": {
+            "error": "Vantagem não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "por_elemento": {
+        "endpoint": "/vantagens/elemento/{elemento}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["elemento"],
+        "optional_fields": [],
+        "path_parameters": {
+          "elemento": "string (elemento name)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of vantagem objects"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "por_tipo": {
+        "endpoint": "/vantagens/tipo/{tipo}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["tipo"],
+        "optional_fields": [],
+        "path_parameters": {
+          "tipo": "string (tipo name)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of vantagem objects"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "por_nivel": {
+        "endpoint": "/vantagens/nivel/{nivel}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["nivel"],
+        "optional_fields": [],
+        "path_parameters": {
+          "nivel": "integer (nivel value)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of vantagem objects"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "buscar": {
+        "endpoint": "/vantagens/buscar",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["termo"],
+        "optional_fields": [],
+        "query_parameters": {
+          "termo": "string"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of vantagem objects"
+          },
+          "400": {
+            "error": "Termo de busca é obrigatório"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "estatisticas": {
+        "endpoint": "/vantagens/estatisticas",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": [],
+        "responses": {
+          "200": {
+            "success": true,
+            "data": {
+              "total": "integer",
+              "porNivel": "array of objects",
+              "porUsar": "array of objects"
+            }
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "desvantagens": {
+      "criar": {
+        "endpoint": "/desvantagens",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["nome", "descricao"],
+        "optional_fields": ["custo", "tipo", "bonus", "restricao", "dano_base", "efeito", "usar", "elemento", "nivel", "requisitos"],
+        "request_body": {
+          "nome": "string",
+          "descricao": "string",
+          "custo": "integer (min: 0, default: 0)",
+          "tipo": "array [ativa, passiva, reacao, ritual] (default: [ativa])",
+          "bonus": "object (default: {})",
+          "restricao": "object (default: {})",
+          "dano_base": "string (optional)",
+          "efeito": "object (default: {})",
+          "usar": "integer (optional)",
+          "elemento": "array of strings (optional)",
+          "nivel": "integer (1-20, default: 1)",
+          "requisitos": "object (default: {})"
+        },
+        "responses": {
+          "201": {
+            "success": true,
+            "message": "Desvantagem criada com sucesso",
+            "data": "object (desvantagem criada)"
+          },
+          "400": {
+            "error": "string (Nome e descrição são obrigatórios / Já existe uma desvantagem com este nome)"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "listar": {
+        "endpoint": "/desvantagens",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": ["tipo", "elemento", "nivel", "usar", "search", "limit", "offset"],
+        "query_parameters": {
+          "tipo": "string (optional)",
+          "elemento": "string (optional)",
+          "nivel": "integer (optional)",
+          "usar": "integer (optional)",
+          "search": "string (optional)",
+          "limit": "integer (default: 50)",
+          "offset": "integer (default: 0)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of desvantagem objects",
+            "pagination": {
+              "total": "integer",
+              "limit": "integer",
+              "offset": "integer",
+              "hasMore": "boolean"
+            }
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "obter": {
+        "endpoint": "/desvantagens/{id}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["id"],
+        "optional_fields": [],
+        "path_parameters": {
+          "id": "integer (desvantagem ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "object (desvantagem completa)"
+          },
+          "404": {
+            "error": "Desvantagem não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "por_elemento": {
+        "endpoint": "/desvantagens/elemento/{elemento}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["elemento"],
+        "optional_fields": [],
+        "path_parameters": {
+          "elemento": "string (elemento name)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of desvantagem objects"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "por_tipo": {
+        "endpoint": "/desvantagens/tipo/{tipo}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["tipo"],
+        "optional_fields": [],
+        "path_parameters": {
+          "tipo": "string (tipo name)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of desvantagem objects"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "por_nivel": {
+        "endpoint": "/desvantagens/nivel/{nivel}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["nivel"],
+        "optional_fields": [],
+        "path_parameters": {
+          "nivel": "integer (nivel value)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of desvantagem objects"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "buscar": {
+        "endpoint": "/desvantagens/buscar",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["termo"],
+        "optional_fields": [],
+        "query_parameters": {
+          "termo": "string"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of desvantagem objects"
+          },
+          "400": {
+            "error": "Termo de busca é obrigatório"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "estatisticas": {
+        "endpoint": "/desvantagens/estatisticas",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": [],
+        "responses": {
+          "200": {
+            "success": true,
+            "data": {
+              "total": "integer",
+              "porNivel": "array of objects",
+              "porUsar": "array of objects"
+            }
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "sessoes": {
+      "iniciar": {
+        "endpoint": "/sessoes/{historiaId}/iniciar",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["historiaId"],
+        "optional_fields": ["salaId", "jogadores", "mestre"],
+        "path_parameters": {
+          "historiaId": "integer (historia ID)"
+        },
+        "request_body": {
+          "salaId": "string (optional, auto-generated)",
+          "jogadores": "array of strings (optional)",
+          "mestre": "string (optional, default: 'Mestre do Sistema')"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Sessão iniciada com sucesso",
+            "data": {
+              "salaId": "string",
+              "sessao": {
+                "historiaId": "string",
+                "historiaNome": "string",
+                "tema": "string",
+                "mestre": "string",
+                "jogadores": "array of strings",
+                "maxJogadores": "integer",
+                "estadoJogo": {
+                  "cena": "string",
+                  "npcs": "array",
+                  "inventario": "array",
+                  "clima": "string",
+                  "tempo": "string"
+                },
+                "mensagens": "array of objects"
+              }
+            }
+          },
+          "400": {
+            "success": false,
+            "error": "string (História não está ativa / Máximo de X participantes permitido)"
+          },
+          "404": {
+            "success": false,
+            "error": "História não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "obter": {
+        "endpoint": "/sessoes/{salaId}",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["salaId"],
+        "optional_fields": [],
+        "path_parameters": {
+          "salaId": "string (sala ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "object (dados completos da sessão)"
+          },
+          "404": {
+            "success": false,
+            "error": "Sessão não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "adicionar_mensagem": {
+        "endpoint": "/sessoes/{salaId}/mensagem",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["salaId", "autor", "tipo", "conteudo"],
+        "optional_fields": [],
+        "path_parameters": {
+          "salaId": "string (sala ID)"
+        },
+        "request_body": {
+          "autor": "string",
+          "tipo": "string [mestre, jogador, sistema, npc]",
+          "conteudo": "string"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Mensagem adicionada com sucesso",
+            "data": "object (sessão atualizada)"
+          },
+          "400": {
+            "success": false,
+            "error": "string (Autor, tipo e conteúdo são obrigatórios / Tipo de mensagem inválido)"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "atualizar_estado": {
+        "endpoint": "/sessoes/{salaId}/estado",
+        "method": "PUT",
+        "authentication": false,
+        "required_fields": ["salaId", "estadoJogo"],
+        "optional_fields": [],
+        "path_parameters": {
+          "salaId": "string (sala ID)"
+        },
+        "request_body": {
+          "estadoJogo": "object"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Estado do jogo atualizado com sucesso",
+            "data": "object (sessão atualizada)"
+          },
+          "400": {
+            "success": false,
+            "error": "Estado do jogo é obrigatório"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "adicionar_jogador": {
+        "endpoint": "/sessoes/{salaId}/jogador",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["salaId", "nome"],
+        "optional_fields": ["personagem"],
+        "path_parameters": {
+          "salaId": "string (sala ID)"
+        },
+        "request_body": {
+          "nome": "string",
+          "personagem": "string (optional)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Jogador adicionado com sucesso",
+            "data": "object (sessão atualizada)"
+          },
+          "400": {
+            "success": false,
+            "error": "string (erro de validação)"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "remover_jogador": {
+        "endpoint": "/sessoes/{salaId}/jogador/{nomeJogador}",
+        "method": "DELETE",
+        "authentication": false,
+        "required_fields": ["salaId", "nomeJogador"],
+        "optional_fields": [],
+        "path_parameters": {
+          "salaId": "string (sala ID)",
+          "nomeJogador": "string (player name)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Jogador removido com sucesso",
+            "data": "object (sessão atualizada)"
+          },
+          "404": {
+            "success": false,
+            "error": "Jogador não encontrado"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "finalizar": {
+        "endpoint": "/sessoes/{salaId}/finalizar",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["salaId"],
+        "optional_fields": [],
+        "path_parameters": {
+          "salaId": "string (sala ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Sessão finalizada com sucesso"
+          },
+          "404": {
+            "success": false,
+            "error": "Sessão não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "renovar": {
+        "endpoint": "/sessoes/{salaId}/renovar",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["salaId"],
+        "optional_fields": [],
+        "path_parameters": {
+          "salaId": "string (sala ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Sessão renovada com sucesso"
+          },
+          "404": {
+            "success": false,
+            "error": "Sessão não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "estatisticas": {
+        "endpoint": "/sessoes/{salaId}/estatisticas",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": ["salaId"],
+        "optional_fields": [],
+        "path_parameters": {
+          "salaId": "string (sala ID)"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "data": {
+              "totalMensagens": "integer",
+              "totalJogadores": "integer",
+              "tempoAtivo": "string"
+            }
+          },
+          "404": {
+            "success": false,
+            "error": "Sessão não encontrada"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "listar_ativas": {
+        "endpoint": "/sessoes",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": [],
+        "responses": {
+          "200": {
+            "success": true,
+            "data": "array of sessao objects"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "temas": {
+      "listar": {
+        "endpoint": "/temas",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": [],
+        "responses": {
+          "200": {
+            "success": true,
+            "data": [
+              {
+                "id": "integer",
+                "nome": "string",
+                "descricao": "string"
+              }
+            ]
+          },
+          "500": {
+            "success": false,
+            "error": "Erro ao buscar temas"
+          }
+        }
+      }
+    },
+    "websocket": {
+      "stats": {
+        "endpoint": "/websocket/stats",
+        "method": "GET",
+        "authentication": false,
+        "required_fields": [],
+        "optional_fields": [],
+        "responses": {
+          "200": {
+            "success": true,
+            "data": {
+              "connectedUsers": "integer",
+              "activeRooms": "integer",
+              "totalRooms": "integer"
+            }
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "broadcast": {
+        "endpoint": "/websocket/broadcast",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["event", "data"],
+        "optional_fields": [],
+        "request_body": {
+          "event": "string",
+          "data": "object"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Mensagem broadcast enviada com sucesso"
+          },
+          "400": {
+            "success": false,
+            "error": "event e data são obrigatórios"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "mensagem_sala": {
+        "endpoint": "/websocket/room/{roomId}/message",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["roomId", "event", "data"],
+        "optional_fields": [],
+        "path_parameters": {
+          "roomId": "string (room ID)"
+        },
+        "request_body": {
+          "event": "string",
+          "data": "object"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Mensagem enviada para sala {roomId}"
+          },
+          "400": {
+            "success": false,
+            "error": "event e data são obrigatórios"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      },
+      "mensagem_usuario": {
+        "endpoint": "/websocket/user/{userId}/message",
+        "method": "POST",
+        "authentication": false,
+        "required_fields": ["userId", "event", "data"],
+        "optional_fields": [],
+        "path_parameters": {
+          "userId": "string (user ID)"
+        },
+        "request_body": {
+          "event": "string",
+          "data": "object"
+        },
+        "responses": {
+          "200": {
+            "success": true,
+            "message": "Mensagem enviada para usuário {userId}"
+          },
+          "400": {
+            "success": false,
+            "error": "event e data são obrigatórios"
+          },
+          "500": {
+            "error": "Erro interno do servidor"
+          }
+        }
+      }
+    }
+  },
+  "data_models": {
+    "Usuario": {
+      "id": "integer",
+      "nome": "string",
+      "email": "string (unique)",
+      "senha": "string (hashed)",
+      "role": "string",
+      "criado_em": "datetime",
+      "atualizado_em": "datetime"
+    },
+    "Historia": {
+      "id": "integer",
+      "nome": "string",
+      "temas": "string",
+      "descricao": "string",
+      "prologo": "string (AI generated)",
+      "maximo_de_participantes": "integer",
+      "participantes": "array of strings",
+      "status": "string",
+      "id_usuario": "integer (foreign key)",
+      "criada_em": "datetime",
+      "atualizada_em": "datetime"
+    },
+    "Personagem": {
+      "id": "integer",
+      "nome": "string",
+      "nivel": "integer (1-20)",
+      "pontos_totais": "integer",
+      "pontos_iniciais": "integer",
+      "background": "string",
+      "raca_id": "integer (foreign key)",
+      "classe_id": "integer (foreign key)",
+      "forca": "integer (1-20)",
+      "inteligencia": "integer (1-20)",
+      "carisma": "integer (1-20)",
+      "destreza": "integer (1-20)",
+      "constituicao": "integer (1-20)",
+      "agilidade": "integer (1-20)",
+      "historia_id": "integer (foreign key)",
+      "jogador_id": "integer (foreign key)",
+      "id_usuario": "integer (foreign key)",
+      "status": "string",
+      "classe": "string (nome da classe)",
+      "raca": "string (nome da raça)",
+      "vantagens": "array of vantagem objects",
+      "desvantagens": "array of desvantagem objects",
+      "equipamentos": "array of equipamento objects",
+      "criado_em": "datetime",
+      "atualizado_em": "datetime"
+    },
+    "Classe": {
+      "id": "integer",
+      "nome": "string",
+      "custo": "integer",
+      "descricao": "string",
+      "bonus": "object (JSON)"
+    },
+    "Raca": {
+      "id": "integer",
+      "nome": "string",
+      "custo": "integer",
+      "descricao": "string",
+      "bonus": "object (JSON)"
+    },
+    "Vantagem": {
+      "id": "integer",
+      "nome": "string",
+      "descricao": "string",
+      "custo": "integer",
+      "tipo": "array [ativa, passiva, reacao, ritual]",
+      "bonus": "object (JSON)",
+      "restricao": "object (JSON)",
+      "dano_base": "string",
+      "efeito": "object (JSON)",
+      "usar": "integer (1=acao, 2=reacao, 3=movimento)",
+      "elemento": "array of strings",
+      "nivel": "integer (1-20)",
+      "requisitos": "object (JSON)",
+      "criada_em": "datetime",
+      "atualizada_em": "datetime"
+    },
+    "Desvantagem": {
+      "id": "integer",
+      "nome": "string",
+      "descricao": "string",
+      "custo": "integer",
+      "tipo": "array [ativa, passiva, reacao, ritual]",
+      "bonus": "object (JSON)",
+      "restricao": "object (JSON)",
+      "dano_base": "string",
+      "efeito": "object (JSON)",
+      "usar": "integer (1=acao, 2=reacao, 3=movimento)",
+      "elemento": "array of strings",
+      "nivel": "integer (1-20)",
+      "requisitos": "object (JSON)",
+      "criada_em": "datetime",
+      "atualizada_em": "datetime"
+    },
+    "Sessao": {
+      "salaId": "string",
+      "historiaId": "string",
+      "historiaNome": "string",
+      "tema": "string",
+      "mestre": "string",
+      "jogadores": "array of strings",
+      "maxJogadores": "integer",
+      "estadoJogo": {
+        "cena": "string",
+        "npcs": "array",
+        "inventario": "array",
+        "clima": "string",
+        "tempo": "string"
+      },
+      "mensagens": "array of objects"
+    },
+    "Tema": {
+      "id": "integer",
+      "nome": "string",
+      "descricao": "string"
+    }
+  },
+  "error_responses": {
+    "400": {
+      "description": "Bad Request - Invalid data or missing required fields",
+      "formats": [
+        {
+          "success": false,
+          "error": "string (detailed validation message)"
+        },
+        {
+          "error": "string (simplified error message)"
+        }
+      ]
+    },
+    "401": {
+      "description": "Unauthorized - Invalid or missing authentication token",
+      "format": {
+        "success": false,
+        "error": "string"
+      }
+    },
+    "403": {
+      "description": "Forbidden - Insufficient permissions",
+      "format": {
+        "success": false,
+        "error": "string"
+      }
+    },
+    "404": {
+      "description": "Not Found - Resource not found",
+      "formats": [
+        {
+          "success": false,
+          "error": "string"
+        },
+        {
+          "error": "string"
+        }
+      ]
+    },
+    "500": {
+      "description": "Internal Server Error",
+      "formats": [
+        {
+          "success": false,
+          "error": "Erro interno do servidor"
+        },
+        {
+          "error": "Erro interno do servidor"
+        }
+      ]
+    }
+  },
+  "websocket_events": {
+    "connection": "User connects to a room",
+    "disconnect": "User disconnects from a room",
+    "chat_message": "Chat message sent in room",
+    "game_action": "Game action performed",
+    "game_state_update": "Game state changed",
+    "player_join": "Player joins game session",
+    "player_leave": "Player leaves game session",
+    "adventure_start": "Adventure/game session started",
+    "master_message": "Message from game master AI",
+    "dice_roll": "Dice roll result",
+    "character_update": "Character stats/info updated"
+  }
+} 

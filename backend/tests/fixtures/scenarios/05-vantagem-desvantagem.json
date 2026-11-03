@@ -1,0 +1,169 @@
+{
+  "id": "05-vantagem-desvantagem",
+  "titulo": "Modificadores contextuais — vantagem em investigacao, desvantagem em social",
+  "versao": "1.0.0",
+  "personagem": {
+    "nome": "Moruxis",
+    "classe": "Paladino",
+    "raca": "Minotauro",
+    "nivel": 1,
+    "atributos": {
+      "forca": 10,
+      "inteligencia": 10,
+      "carisma": 7,
+      "destreza": 14,
+      "constituicao": 10,
+      "agilidade": 14
+    },
+    "magias": [
+      {
+        "id": "luz_divina",
+        "nome": "Luz Divina",
+        "escola": "evocacao",
+        "custo_mana": 3,
+        "dano_base": "1d8",
+        "atributo": "carisma",
+        "descricao": "Lanca radiante contra inimigo"
+      }
+    ],
+    "habilidades": [],
+    "vantagens": [
+      {
+        "id": "mente_labirintica",
+        "nome": "Mente Labirintica",
+        "efeito": "bonus_teste",
+        "atributo_afetado": "inteligencia",
+        "bonus": 2,
+        "contexto": "investigacao e puzzles"
+      }
+    ],
+    "desvantagens": [
+      {
+        "id": "intimidador",
+        "nome": "Aparencia Intimidadora",
+        "efeito": "penalidade_teste",
+        "atributo_afetado": "carisma",
+        "penalidade": -2,
+        "contexto": "interacoes sociais"
+      }
+    ],
+    "equipamentos": [
+      {
+        "id": "espada_longa",
+        "nome": "Espada Longa",
+        "dano": "1d8",
+        "tipo": "melee",
+        "bonus_ataque": 1
+      }
+    ]
+  },
+  "estadoInicial": {
+    "hp": 30,
+    "hpMax": 30,
+    "mana": 10,
+    "manaMax": 10,
+    "status": [],
+    "cooldowns": {},
+    "concentracao": null,
+    "efeitos_ativos": [],
+    "emCombate": false,
+    "turno": 0,
+    "xp": 0
+  },
+  "inimigos": [],
+  "historia": {
+    "nome": "Cenario de Teste - Vantagens e Desvantagens",
+    "temas": ["Fantasia", "Investigacao", "Social"],
+    "prologo": "Moruxis chega a uma vila onde um misterio precisa ser resolvido. Ha uma biblioteca antiga com pistas e um mercador desconfiado que precisa ser convencido a ajudar.",
+    "mestreConfig": {
+      "nome": "Mestre Teste",
+      "personalidade": "Direto e mecanico, prioriza clareza sobre floreio narrativo. Sempre respeita as regras mecanicas. Solicita testes de atributo quando apropriado.",
+      "temperatura": 0.6,
+      "tags": ["teste", "vantagem", "desvantagem", "social", "investigacao"]
+    }
+  },
+  "acoes": [
+    {
+      "tipo": "iniciar_turno"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Examino os livros antigos na biblioteca procurando pistas sobre o misterio",
+      "gameIntent": {
+        "categoria": "exploracao",
+        "tipo": "investigar",
+        "teste": "inteligencia",
+        "contexto": "investigacao"
+      },
+      "_comentario": "Teste de Inteligencia em contexto de investigacao. Mente Labirintica aplica +2 ao modificador."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Analiso o padrao dos simbolos no mapa, tentando decifrar o puzzle",
+      "gameIntent": {
+        "categoria": "exploracao",
+        "tipo": "investigar",
+        "teste": "inteligencia",
+        "contexto": "puzzles"
+      },
+      "_comentario": "Outro teste de Inteligencia em contexto de puzzle. Mente Labirintica aplica +2 novamente."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Vou ao mercador e tento convence-lo a me dar informacoes sobre o artefato",
+      "gameIntent": {
+        "categoria": "social",
+        "tipo": "persuadir",
+        "teste": "carisma",
+        "contexto": "interacao social"
+      },
+      "_comentario": "Teste de Carisma em contexto social. Aparencia Intimidadora aplica -2 ao modificador."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Tento intimidar o guarda para que me deixe passar",
+      "gameIntent": {
+        "categoria": "social",
+        "tipo": "persuadir",
+        "teste": "carisma",
+        "contexto": "interacao social"
+      },
+      "_comentario": "Outro teste de Carisma em contexto social. Aparencia Intimidadora aplica -2 novamente."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    }
+  ],
+  "condicoesDeParada": {
+    "qualquerUma": [
+      "acoes_esgotadas"
+    ]
+  },
+  "invariantes": [
+    "resposta_ia_parseavel",
+    "hp_nunca_negativo",
+    "hp_nunca_acima_maximo",
+    "mana_nunca_negativa",
+    "mana_nunca_acima_maximo",
+    "vantagem_aplica_bonus_no_contexto_correto",
+    "desvantagem_aplica_penalidade_no_contexto_correto",
+    "alvos_referenciados_por_id"
+  ]
+}

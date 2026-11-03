@@ -1,0 +1,28 @@
+import { detectProvider } from '../Mestre/config.js';
+import logger from '../../helpers/logger.js';
+
+const log = logger.child({ module: 'reviewer-config' });
+
+const modelName = process.env.REVIEWER_MODEL || 'gemini-2.5-flash-lite';
+
+export const REVIEWER_CONFIG = {
+  enabled: process.env.REVIEWER_ENABLED !== 'false',
+  model: {
+    name: modelName,
+    provider: detectProvider(modelName),
+    temperature: 0.1,
+    maxTokens: 2000,
+    timeout: Math.max(5000, parseInt(process.env.REVIEWER_TIMEOUT_MS) || 10000),
+  },
+  failOpen: true,
+  circuitBreaker: {
+    maxFailures: 5,
+    cooldownMs: 5 * 60 * 1000,
+  },
+};
+
+if (REVIEWER_CONFIG.enabled) {
+  log.info({ model: modelName, provider: REVIEWER_CONFIG.model.provider }, 'Revisores habilitados');
+}
+
+export default REVIEWER_CONFIG;

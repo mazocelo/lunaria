@@ -1,0 +1,390 @@
+{
+  "runId": "run_20260318_150606_a22d",
+  "cenarioId": "06-acao-invalida",
+  "cenarioVersao": "1.0.0",
+  "cenarioHash": "sha256:c57e076f427b",
+  "modelo": "gemini-2.5-flash",
+  "provider": "gemini",
+  "redisPrefix": "test_run_run_20260318_150606_a22d_gemini:",
+  "statusExecucao": "concluida",
+  "erroExecucao": null,
+  "iniciadoEm": "2026-03-18T18:06:06.554Z",
+  "finalizadoEm": "2026-03-18T18:06:16.424Z",
+  "duracaoMs": 9870,
+  "metricas": {
+    "turnosExecutados": 4,
+    "respostasParseadas": 4,
+    "errosParse": 0,
+    "rolagensAutomaticas": 0,
+    "latenciaMediaMs": 2463,
+    "latenciaMaxMs": 9853,
+    "tokensInput": null,
+    "tokensOutput": null,
+    "custoEstimado": null
+  },
+  "condicaoDeParada": "acoes_esgotadas",
+  "turnos": [
+    {
+      "turno": 1,
+      "acaoJogador": {
+        "tipo": "iniciar_turno"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "A densa folhagem se abre para revelar uma clareira úmida, onde um **Goblin Saqueador** de pele esverdeada e olhos injetados vasculha um saco de pano surrado. Ele está ajoelhado, alheio à sua presença por um instante, mas o farfalhar de suas passadas ou o brilho da armadura de Moruxis o alerta. Com um guincho agudo e um movimento rápido, o goblin se vira, revelando uma cimitarra enferrujada em sua mão e um escudo improvisado no outro braço. Seus olhos pequenos fixam-se em Moruxis, e uma expressão de malícia se forma em seu rosto, seguida por um grito de guerra estridente. Ele se ergue, assumindo uma postura agressiva, pronto para defender seu saque.",
+      "respostaIA": {
+        "narracao": "A densa folhagem se abre para revelar uma clareira úmida, onde um **Goblin Saqueador** de pele esverdeada e olhos injetados vasculha um saco de pano surrado. Ele está ajoelhado, alheio à sua presença por um instante, mas o farfalhar de suas passadas ou o brilho da armadura de Moruxis o alerta. Com um guincho agudo e um movimento rápido, o goblin se vira, revelando uma cimitarra enferrujada em sua mão e um escudo improvisado no outro braço. Seus olhos pequenos fixam-se em Moruxis, e uma expressão de malícia se forma em seu rosto, seguida por um grito de guerra estridente. Ele se ergue, assumindo uma postura agressiva, pronto para defender seu saque.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "clareira na floresta",
+          "hora_ficcional": "dia",
+          "npcs_presentes": [
+            {
+              "nome": "Goblin Saqueador",
+              "tipo": "humanoide",
+              "status": "hostil"
+            }
+          ],
+          "memoria_semantica": [],
+          "terreno": "floresta umida",
+          "tensao": "combate iminente",
+          "ameacas": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 9853,
+      "tempoTurnoTotalMs": 9853
+    },
+    {
+      "turno": 2,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Bola de Fogo no inimigo",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "bola_de_fogo",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "{\"narracao\":\"[BLOQUEADO] magia 'bola_de_fogo' nao existe na ficha\",\"fimDeTurno\":false,\"solicitaDados\":{\"solicita\":false},\"acoes\":[]}",
+      "respostaIA": {
+        "narracao": "[BLOQUEADO] magia 'bola_de_fogo' nao existe na ficha",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false
+        },
+        "acoes": []
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "bloqueado": true,
+        "motivo": "magia 'bola_de_fogo' nao existe na ficha"
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 0,
+      "tempoTurnoTotalMs": 0
+    },
+    {
+      "turno": 3,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Ataco com minha alabarda",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "atacar",
+          "arma": "alabarda",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "{\"narracao\":\"[BLOQUEADO] arma 'alabarda' nao existe no inventario\",\"fimDeTurno\":false,\"solicitaDados\":{\"solicita\":false},\"acoes\":[]}",
+      "respostaIA": {
+        "narracao": "[BLOQUEADO] arma 'alabarda' nao existe no inventario",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false
+        },
+        "acoes": []
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "bloqueado": true,
+        "motivo": "arma 'alabarda' nao existe no inventario"
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 0,
+      "tempoTurnoTotalMs": 0
+    },
+    {
+      "turno": 4,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Uso Escudo Sagrado para me proteger",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "habilidadeId": "escudo_sagrado",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "{\"narracao\":\"[BLOQUEADO] habilidade 'escudo_sagrado' nao existe na ficha\",\"fimDeTurno\":false,\"solicitaDados\":{\"solicita\":false},\"acoes\":[]}",
+      "respostaIA": {
+        "narracao": "[BLOQUEADO] habilidade 'escudo_sagrado' nao existe na ficha",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false
+        },
+        "acoes": []
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "bloqueado": true,
+        "motivo": "habilidade 'escudo_sagrado' nao existe na ficha"
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 0,
+      "tempoTurnoTotalMs": 0
+    }
+  ],
+  "estadoFinal": {
+    "jogador": {
+      "hp": 30,
+      "hpMax": 30,
+      "mana": 10,
+      "manaMax": 10,
+      "xpGanho": 0,
+      "status": []
+    },
+    "inimigos": [
+      {
+        "id": "goblin_1",
+        "hp": 12,
+        "hpMax": 12,
+        "status": []
+      }
+    ],
+    "combateAtivo": true,
+    "resultado": "indefinido",
+    "resultadoDetalhe": null
+  }
+}

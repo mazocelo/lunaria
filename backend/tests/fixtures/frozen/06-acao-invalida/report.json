@@ -1,0 +1,40 @@
+{
+  "cenarioId": "06-acao-invalida",
+  "cenarioVersao": "1.0.0",
+  "geradoEm": "2026-03-18T18:08:22.204Z",
+  "modelos": {
+    "groq": {
+      "statusExecucao": "concluida",
+      "turnos": 4,
+      "latenciaMediaMs": 59505,
+      "invariantes": {
+        "total": 7,
+        "passaram": 7,
+        "falharam": 0
+      },
+      "falhas": []
+    },
+    "gemini": {
+      "statusExecucao": "concluida",
+      "turnos": 4,
+      "latenciaMediaMs": 2463,
+      "invariantes": {
+        "total": 7,
+        "passaram": 7,
+        "falharam": 0
+      },
+      "falhas": []
+    },
+    "sonnet": {
+      "statusExecucao": "concluida",
+      "turnos": 4,
+      "latenciaMediaMs": 16175,
+      "invariantes": {
+        "total": 7,
+        "passaram": 7,
+        "falharam": 0
+      },
+      "falhas": []
+    }
+  }
+}

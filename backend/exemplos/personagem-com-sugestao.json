@@ -1,0 +1,95 @@
+{
+  "exemplos": {
+    "criar_personagem_nobre": {
+      "descricao": "Criar um personagem nobre com background automático",
+      "endpoint": "POST /personagens",
+      "body": {
+        "nome": "Lord Alexander",
+        "historia_id": 1,
+        "gerar_background": true,
+        "sugestao_background": "nobre",
+        "temas_disponiveis": ["fantasia", "medieval", "nobreza"],
+        "nivel": 8,
+        "forca": 12,
+        "inteligencia": 14,
+        "carisma": 18,
+        "destreza": 10,
+        "constituicao": 12,
+        "agilidade": 13
+      }
+    },
+    "criar_personagem_carpinteiro": {
+      "descricao": "Criar um personagem carpinteiro com background automático",
+      "endpoint": "POST /personagens",
+      "body": {
+        "nome": "Thorin",
+        "historia_id": 1,
+        "gerar_background": true,
+        "sugestao_background": "carpinteiro",
+        "temas_disponiveis": ["fantasia", "medieval", "artesanato"],
+        "nivel": 3,
+        "forca": 16,
+        "inteligencia": 12,
+        "carisma": 10,
+        "destreza": 14,
+        "constituicao": 14,
+        "agilidade": 11
+      }
+    },
+    "criar_personagem_aventureiro": {
+      "descricao": "Criar um personagem aventureiro com background automático",
+      "endpoint": "POST /personagens",
+      "body": {
+        "nome": "Elena",
+        "historia_id": 1,
+        "gerar_background": true,
+        "sugestao_background": "aventureiro",
+        "temas_disponiveis": ["fantasia", "aventura", "exploracao"],
+        "nivel": 5,
+        "forca": 14,
+        "inteligencia": 12,
+        "carisma": 14,
+        "destreza": 16,
+        "constituicao": 12,
+        "agilidade": 15
+      }
+    },
+    "gerar_background_existente": {
+      "descricao": "Gerar background para um personagem existente",
+      "endpoint": "POST /personagens/1/gerar-background",
+      "body": {
+        "tipo": "detalhado",
+        "sugestao_background": "mago",
+        "temas_disponiveis": ["fantasia", "magia", "academia"]
+      }
+    }
+  },
+  "sugestoes_comuns": [
+    "nobre",
+    "carpinteiro", 
+    "aventureiro",
+    "mago",
+    "guerreiro",
+    "ladino",
+    "clerigo",
+    "ranger",
+    "bardo",
+    "ferreiro",
+    "mercador",
+    "caçador",
+    "curandeiro",
+    "soldado",
+    "marinheiro",
+    "campones",
+    "artesao",
+    "erudito",
+    "monge",
+    "paladino"
+  ],
+  "notas": {
+    "sugestao_background": "A sugestão influencia a origem, profissão ou estilo de vida do personagem no background gerado",
+    "gerar_background": "Quando true, gera automaticamente um background baseado na sugestão",
+    "temas_disponiveis": "Lista de temas que influenciam o contexto do background",
+    "tipo": "Pode ser 'normal' ou 'detalhado' para backgrounds mais elaborados"
+  }
+} 

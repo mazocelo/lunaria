@@ -1,0 +1,15 @@
+[Unit]
+Description=Lunaria Worker (BullMQ)
+After=network.target redis.service
+
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/opt/role-chat-game/backend
+ExecStart=/usr/bin/node bin/worker
+Restart=always
+RestartSec=5
+EnvironmentFile=/opt/role-chat-game/backend/.env
+
+[Install]
+WantedBy=multi-user.target

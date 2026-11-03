@@ -1,0 +1,138 @@
+name: CI/CD Backend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Validate & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --include=dev
+
+      - name: Prisma Generate
+        run: npx prisma generate
+
+      - name: Syntax Check
+        run: |
+          node --check bin/www
+          node --check bin/worker
+
+  deploy:
+    name: Deploy to VPS
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -e
+            cd /opt/role-chat-game/backend
+
+            read_env_value() {
+              local key="$1"
+              local file="$2"
+              local line value
+              line=$(grep -m1 "^${key}=" "$file" || true)
+              if [ -z "$line" ]; then
+                return 1
+              fi
+              value="${line#*=}"
+              value="${value%$'\r'}"
+              if [ "${value#\"}" != "$value" ] && [ "${value%\"}" != "$value" ]; then
+                value="${value#\"}"
+                value="${value%\"}"
+              elif [ "${value#\'}" != "$value" ] && [ "${value%\'}" != "$value" ]; then
+                value="${value#\'}"
+                value="${value%\'}"
+              fi
+              printf '%s' "$value"
+            }
+
+            if [ ! -f .env ]; then
+              echo "ERROR: .env ausente em /opt/role-chat-game/backend"
+              exit 1
+            fi
+
+            DATABASE_URL="$(read_env_value DATABASE_URL .env || true)"
+            UPSTASH_REDIS_URL="$(read_env_value UPSTASH_REDIS_URL .env || true)"
+            export DATABASE_URL
+            export UPSTASH_REDIS_URL
+
+            if [ -z "$DATABASE_URL" ]; then
+              echo "ERROR: DATABASE_URL ausente no .env"
+              exit 1
+            fi
+
+            # Acquire deploy lock (antes do pull — sem corrida)
+            if [ -f /tmp/lunaria-deploy.lock ]; then
+              echo "ERROR: Deploy locked by $(cat /tmp/lunaria-deploy.lock)"
+              exit 1
+            fi
+            echo "backend:$(date -Iseconds)" > /tmp/lunaria-deploy.lock
+            trap 'rm -f /tmp/lunaria-deploy.lock' EXIT
+
+            # Garantir PM2 disponivel
+            export PATH="$PATH:/usr/local/bin:$HOME/.npm-global/bin"
+            command -v pm2 >/dev/null 2>&1 || { echo "ERROR: pm2 nao encontrado — rode 'npm install -g pm2' na VPS"; exit 1; }
+
+            # Preflight checks
+            pg_isready -d "$DATABASE_URL" -t 5 || { echo "ERROR: DB inacessivel"; exit 1; }
+            redis-cli -u "$UPSTASH_REDIS_URL" ping 2>/dev/null || echo "WARN: Redis check indisponivel (continuando)"
+
+            # Salvar SHA pre-deploy para rollback
+            PRE_DEPLOY_SHA=$(git rev-parse HEAD)
+
+            # Deploy
+            git pull --ff-only origin main
+            npm ci --include=dev
+            npx prisma generate
+
+            # Atualizar lock com SHA real
+            echo "backend:$(git rev-parse --short HEAD):$(date -Iseconds)" > /tmp/lunaria-deploy.lock
+
+            # Backup
+            BACKUP_FILE="/opt/backups/lunaria-$(date +%Y%m%d-%H%M%S).dump"
+            mkdir -p /opt/backups
+            pg_dump --dbname="$DATABASE_URL" --no-owner --no-acl -Fc > "$BACKUP_FILE" || { echo "ERROR: backup falhou"; exit 1; }
+
+            # Parar worker antes da migracao (evitar codigo stale)
+            pm2 stop lunaria-worker || true
+
+            # Migrate + Restart (zero-downtime reload)
+            npx prisma migrate deploy
+            pm2 reload /opt/role-chat-game/backend/ecosystem.config.cjs
+            sleep 5
+
+            # Healthcheck com rollback para SHA pre-deploy
+            if ! curl -sf http://localhost:3001/health | grep -q '"status":"ok"'; then
+              echo "ERROR: healthcheck falhou — iniciando rollback para $PRE_DEPLOY_SHA"
+              if [ -n "$BACKUP_FILE" ] && [ -f "$BACKUP_FILE" ]; then
+                pg_restore --dbname="$DATABASE_URL" --clean --if-exists --no-owner "$BACKUP_FILE" || true
+              fi
+              git reset --hard "$PRE_DEPLOY_SHA"
+              npm ci --include=dev
+              npx prisma generate
+              pm2 reload /opt/role-chat-game/backend/ecosystem.config.cjs
+              echo "Rollback concluido"
+              exit 1
+            fi
+            echo "Deploy OK"

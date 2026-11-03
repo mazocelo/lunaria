@@ -1,0 +1,200 @@
+{
+  "id": "04-efeitos-status",
+  "titulo": "Buff com duracao — aplicacao, persistencia e expiracao",
+  "versao": "1.0.0",
+  "personagem": {
+    "nome": "Moruxis",
+    "classe": "Paladino",
+    "raca": "Minotauro",
+    "nivel": 1,
+    "atributos": {
+      "forca": 10,
+      "inteligencia": 10,
+      "carisma": 7,
+      "destreza": 14,
+      "constituicao": 10,
+      "agilidade": 14
+    },
+    "magias": [
+      {
+        "id": "luz_divina",
+        "nome": "Luz Divina",
+        "escola": "evocacao",
+        "custo_mana": 3,
+        "dano_base": "1d8",
+        "atributo": "carisma",
+        "descricao": "Lanca radiante contra inimigo"
+      },
+      {
+        "id": "protecao_mal",
+        "nome": "Protecao contra o Mal",
+        "escola": "abjuracao",
+        "custo_mana": 2,
+        "tipo": "buff",
+        "duracao_turnos": 3
+      }
+    ],
+    "habilidades": [
+      {
+        "id": "investida",
+        "nome": "Investida",
+        "tipo": "ataque",
+        "recurso": "cooldown",
+        "cooldown_turnos": 2,
+        "bonus_dano": 4
+      }
+    ],
+    "vantagens": [],
+    "desvantagens": [],
+    "equipamentos": [
+      {
+        "id": "espada_longa",
+        "nome": "Espada Longa",
+        "dano": "1d8",
+        "tipo": "melee",
+        "bonus_ataque": 1
+      }
+    ]
+  },
+  "estadoInicial": {
+    "hp": 30,
+    "hpMax": 30,
+    "mana": 10,
+    "manaMax": 10,
+    "status": [],
+    "cooldowns": {},
+    "concentracao": null,
+    "efeitos_ativos": [],
+    "emCombate": false,
+    "turno": 0,
+    "xp": 0
+  },
+  "inimigos": [
+    {
+      "id": "esqueleto_1",
+      "nome": "Esqueleto Maldito",
+      "hp": 20,
+      "hpMax": 20,
+      "ataque": 4,
+      "dano": "1d6",
+      "esquiva": 7,
+      "armadura": 1,
+      "xp": 30,
+      "status": []
+    }
+  ],
+  "historia": {
+    "nome": "Cenario de Teste - Efeitos de Status",
+    "temas": ["Fantasia"],
+    "prologo": "Moruxis encontra um esqueleto maldito emergindo de uma cripta. O paladino decide usar sua magia protetora antes de atacar a criatura profana.",
+    "mestreConfig": {
+      "nome": "Mestre Teste",
+      "personalidade": "Direto e mecanico, prioriza clareza sobre floreio narrativo. Sempre respeita as regras mecanicas.",
+      "temperatura": 0.6,
+      "tags": ["teste", "efeitos", "buff", "duracao"]
+    }
+  },
+  "acoes": [
+    {
+      "tipo": "iniciar_turno"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Lanço Protecao contra o Mal em mim mesmo",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "magiaId": "protecao_mal",
+        "alvo": "self"
+      },
+      "_comentario": "Turno 1: Buff aplicado. efeitos_ativos inclui Protecao contra o Mal com duracao 3. Mana 10 -> 8."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Ataco o esqueleto com minha espada",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "atacar",
+        "arma": "espada_longa",
+        "alvo": "esqueleto_1"
+      },
+      "_comentario": "Turno 2: Buff ainda ativo (duracao 2 restante). Ataque normal."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Ataco o esqueleto novamente com a espada",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "atacar",
+        "arma": "espada_longa",
+        "alvo": "esqueleto_1"
+      },
+      "_comentario": "Turno 3: Buff ainda ativo (duracao 1 restante). Ataque normal."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Lanço Luz Divina no esqueleto",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "magiaId": "luz_divina",
+        "alvo": "esqueleto_1"
+      },
+      "_comentario": "Turno 4: Buff Protecao contra o Mal EXPIROU (duracao decrementou para 0). Deve ter sido removido de efeitos_ativos. Mana 8 -> 5."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    },
+    {
+      "tipo": "mensagem",
+      "texto": "Uso Investida para finalizar o esqueleto",
+      "gameIntent": {
+        "categoria": "combate",
+        "tipo": "usar_habilidade",
+        "habilidadeId": "investida",
+        "alvo": "esqueleto_1"
+      },
+      "_comentario": "Turno 5: Buff ja removido. Confirma que efeitos_ativos esta vazio."
+    },
+    {
+      "tipo": "rolar_dado",
+      "quando": "se_solicitado",
+      "estrategia": "auto"
+    }
+  ],
+  "condicoesDeParada": {
+    "qualquerUma": [
+      "combate_finalizado",
+      "acoes_esgotadas",
+      "jogador_derrotado"
+    ]
+  },
+  "invariantes": [
+    "resposta_ia_parseavel",
+    "hp_nunca_negativo",
+    "hp_nunca_acima_maximo",
+    "mana_nunca_negativa",
+    "mana_nunca_acima_maximo",
+    "mana_descontada_ao_usar_magia",
+    "dano_aplicado_quando_ataque_sucede",
+    "equipamento_usado_existe_no_inventario",
+    "alvos_referenciados_por_id"
+  ]
+}

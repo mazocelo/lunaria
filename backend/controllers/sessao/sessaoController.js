@@ -1,0 +1,511 @@
+import db from '../../Model/index.js';
+import gerenciadorSessoes from '../../redis/sessoes.js';
+import sessaoSnapshotService from '../../services/sessaoSnapshot.js';
+import { asyncHandler } from '../../middleware/errorHandler.js';
+import logger from '../../helpers/logger.js';
+const log = logger.child({ module: 'sessaoController' });
+
+/**
+ * Controller para gerenciar sessões de RPG
+ */
+class SessaoController {
+  
+  /**
+   * Iniciar uma sessão de RPG
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async iniciarSessao(req, res, next) {
+    try {
+      const { historiaId } = req.params;
+      const { salaId, jogadores, mestre } = req.body;
+      
+      log.info({ historiaId: historiaId }, 'Iniciando sessão para história ID');
+      
+      // Verificar se a história existe
+      const historia = await db.Historia.findById(parseInt(historiaId));
+      
+      if (!historia) {
+        return res.status(404).json({
+          success: false,
+          error: 'História não encontrada'
+        });
+      }
+      
+      if (historia.status !== 'ativa') {
+        return res.status(400).json({
+          success: false,
+          error: 'História não está ativa'
+        });
+      }
+      
+      // Validar número de jogadores
+      if (jogadores && jogadores.length > historia.maximo_de_participantes) {
+        return res.status(400).json({
+          success: false,
+          error: `Máximo de ${historia.maximo_de_participantes} participantes permitido`
+        });
+      }
+      
+      // Gerar ID da sala se não fornecido
+      const salaIdFinal = salaId || `sala_${historiaId}_${Date.now()}`;
+      
+      // Criar sessão no Redis
+      const dadosSessao = {
+        historiaId: historiaId,
+        historiaNome: historia.nome,
+        tema: historia.tema,
+        mestre: mestre || 'Mestre do Sistema',
+        jogadores: jogadores || [],
+        maxJogadores: historia.maximo_de_participantes,
+        estadoJogo: {
+          cena: 'Início da Aventura',
+          npcs: [],
+          inventario: [],
+          clima: 'Ensolarado',
+          tempo: 'Dia'
+        },
+        mensagens: []
+      };
+      
+      const sessao = await gerenciadorSessoes.criarSessao(salaIdFinal, dadosSessao);
+      
+      log.info({ salaIdFinal: salaIdFinal }, 'Sessão iniciada com sucesso');
+      
+      res.status(200).json({
+        success: true,
+        message: 'Sessão iniciada com sucesso',
+        data: {
+          salaId: salaIdFinal,
+          sessao: sessao
+        }
+      });
+      
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao iniciar sessão');
+      next(error);
+    }
+  }
+  
+  /**
+   * Obter sessão ativa
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async obterSessao(req, res, next) {
+    try {
+      const { salaId } = req.params;
+      
+      log.info({ salaId: salaId }, 'Buscando sessão');
+      
+      const sessao = await gerenciadorSessoes.obterSessao(salaId);
+      
+      if (!sessao) {
+        return res.status(404).json({
+          success: false,
+          error: 'Sessão não encontrada'
+        });
+      }
+      
+      log.info('Sessão encontrada');
+      
+      res.status(200).json({
+        success: true,
+        data: sessao
+      });
+      
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao obter sessão');
+      next(error);
+    }
+  }
+  
+  /**
+   * Adicionar mensagem à sessão
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async adicionarMensagem(req, res, next) {
+    try {
+      const { salaId } = req.params;
+      const { autor, tipo, conteudo } = req.body;
+      
+      log.info({ salaId: salaId }, 'Adicionando mensagem à sessão');
+      
+      if (!autor || !tipo || !conteudo) {
+        return res.status(400).json({
+          success: false,
+          error: 'Autor, tipo e conteúdo são obrigatórios'
+        });
+      }
+      
+      // Validar tipo de mensagem
+      const tiposValidos = ['mestre', 'jogador', 'sistema', 'npc'];
+      if (!tiposValidos.includes(tipo)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Tipo de mensagem inválido. Tipos válidos: mestre, jogador, sistema, npc'
+        });
+      }
+      
+      const mensagem = {
+        autor,
+        tipo,
+        conteudo
+      };
+      
+      const sessao = await gerenciadorSessoes.adicionarMensagem(salaId, mensagem);
+      
+      log.info('Mensagem adicionada com sucesso');
+      
+      res.status(200).json({
+        success: true,
+        message: 'Mensagem adicionada com sucesso',
+        data: sessao
+      });
+      
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao adicionar mensagem');
+      next(error);
+    }
+  }
+  
+  /**
+   * Atualizar estado do jogo
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async atualizarEstadoJogo(req, res, next) {
+    try {
+      const { salaId } = req.params;
+      const { estadoJogo } = req.body;
+      
+      log.info({ salaId: salaId }, 'Atualizando estado do jogo na sessão');
+      
+      if (!estadoJogo) {
+        return res.status(400).json({
+          success: false,
+          error: 'Estado do jogo é obrigatório'
+        });
+      }
+      
+      const sessao = await gerenciadorSessoes.atualizarEstadoJogo(salaId, estadoJogo);
+      
+      log.info('Estado do jogo atualizado com sucesso');
+      
+      res.status(200).json({
+        success: true,
+        message: 'Estado do jogo atualizado com sucesso',
+        data: sessao
+      });
+      
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao atualizar estado do jogo');
+      next(error);
+    }
+  }
+  
+  /**
+   * Adicionar jogador à sessão
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async adicionarJogador(req, res, next) {
+    try {
+      const { salaId } = req.params;
+      const { nomeJogador } = req.body;
+      
+      log.info({ salaId: salaId }, 'Adicionando jogador à sessão');
+      
+      if (!nomeJogador) {
+        return res.status(400).json({
+          success: false,
+          error: 'Nome do jogador é obrigatório'
+        });
+      }
+      
+      const sessao = await gerenciadorSessoes.obterSessao(salaId);
+      
+      if (!sessao) {
+        return res.status(404).json({
+          success: false,
+          error: 'Sessão não encontrada'
+        });
+      }
+      
+      // Verificar se já atingiu o limite de jogadores
+      if (sessao.jogadores.length >= sessao.maxJogadores) {
+        return res.status(400).json({
+          success: false,
+          error: 'Sessão já atingiu o limite máximo de jogadores'
+        });
+      }
+      
+      // Verificar se jogador já existe
+      if (sessao.jogadores.includes(nomeJogador)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Jogador já está na sessão'
+        });
+      }
+      
+      // Adicionar jogador
+      const jogadoresAtualizados = [...sessao.jogadores, nomeJogador];
+      const sessaoAtualizada = await gerenciadorSessoes.atualizarSessao(salaId, {
+        jogadores: jogadoresAtualizados
+      });
+      
+      log.info('Jogador adicionado com sucesso');
+      
+      res.status(200).json({
+        success: true,
+        message: 'Jogador adicionado com sucesso',
+        data: sessaoAtualizada
+      });
+      
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao adicionar jogador');
+      next(error);
+    }
+  }
+  
+  /**
+   * Remover jogador da sessão
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async removerJogador(req, res, next) {
+    try {
+      const { salaId, nomeJogador } = req.params;
+      
+      log.info({ salaId: salaId }, 'Removendo jogador da sessão');
+      
+      const sessao = await gerenciadorSessoes.obterSessao(salaId);
+      
+      if (!sessao) {
+        return res.status(404).json({
+          success: false,
+          error: 'Sessão não encontrada'
+        });
+      }
+      
+      // Verificar se jogador existe
+      if (!sessao.jogadores.includes(nomeJogador)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Jogador não está na sessão'
+        });
+      }
+      
+      // Remover jogador
+      const jogadoresAtualizados = sessao.jogadores.filter(j => j !== nomeJogador);
+      const sessaoAtualizada = await gerenciadorSessoes.atualizarSessao(salaId, {
+        jogadores: jogadoresAtualizados
+      });
+      
+      log.info('Jogador removido com sucesso');
+      
+      res.status(200).json({
+        success: true,
+        message: 'Jogador removido com sucesso',
+        data: sessaoAtualizada
+      });
+      
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao remover jogador');
+      next(error);
+    }
+  }
+  
+  /**
+   * Finalizar sessão
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async finalizarSessao(req, res, next) {
+    try {
+      const { salaId } = req.params;
+
+      log.info({ salaId: salaId }, 'Finalizando sessão');
+
+      // Forçar snapshot antes de finalizar (preservar último estado)
+      const sessaoAtual = await gerenciadorSessoes.obterSessao(salaId);
+      if (sessaoAtual) {
+        try {
+          await sessaoSnapshotService.salvarSnapshot(salaId, sessaoAtual);
+          log.info('Snapshot final salvo antes de finalizar sessão');
+        } catch (snapErr) {
+          log.error({ err: snapErr }, 'Erro ao salvar snapshot final (continuando)');
+        }
+      }
+
+      const finalizada = await gerenciadorSessoes.finalizarSessao(salaId);
+
+      if (!finalizada) {
+        return res.status(404).json({
+          success: false,
+          error: 'Sessão não encontrada'
+        });
+      }
+
+      log.info('Sessão finalizada com sucesso');
+
+      res.status(200).json({
+        success: true,
+        message: 'Sessão finalizada com sucesso'
+      });
+
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao finalizar sessão');
+      next(error);
+    }
+  }
+  
+  /**
+   * Listar sessões ativas
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async listarSessoesAtivas(req, res, next) {
+    try {
+      log.info('Listando sessões ativas...');
+      
+      const sessoes = await gerenciadorSessoes.listarSessoesAtivas();
+      
+      log.info({ sessoes_length: sessoes.length }, 'sessões ativas encontradas');
+      
+      res.status(200).json({
+        success: true,
+        data: sessoes
+      });
+      
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao listar sessões');
+      next(error);
+    }
+  }
+  
+  /**
+   * Renovar sessão (estender TTL)
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async renovarSessao(req, res, next) {
+    try {
+      const { salaId } = req.params;
+      
+      log.info({ salaId: salaId }, 'Renovando sessão');
+      
+      const renovada = await gerenciadorSessoes.renovarSessao(salaId);
+      
+      if (!renovada) {
+        return res.status(404).json({
+          success: false,
+          error: 'Sessão não encontrada'
+        });
+      }
+      
+      log.info('Sessão renovada com sucesso');
+      
+      res.status(200).json({
+        success: true,
+        message: 'Sessão renovada com sucesso'
+      });
+      
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao renovar sessão');
+      next(error);
+    }
+  }
+  
+  /**
+   * Obter estatísticas da sessão
+   * @param {Object} req - Request object
+   * @param {Object} res - Response object
+   * @param {Function} next - Next middleware
+   */
+  async obterEstatisticas(req, res, next) {
+    try {
+      const { salaId } = req.params;
+      
+      log.info({ salaId: salaId }, 'Obtendo estatísticas da sessão');
+      
+      const sessao = await gerenciadorSessoes.obterSessao(salaId);
+      
+      if (!sessao) {
+        return res.status(404).json({
+          success: false,
+          error: 'Sessão não encontrada'
+        });
+      }
+      
+      // Calcular estatísticas
+      const estatisticas = {
+        totalMensagens: sessao.mensagens.length,
+        mensagensPorTipo: sessao.mensagens.reduce((acc, msg) => {
+          acc[msg.tipo] = (acc[msg.tipo] || 0) + 1;
+          return acc;
+        }, {}),
+        totalJogadores: sessao.jogadores.length,
+        tempoAtivo: Date.now() - new Date(sessao.criadaEm).getTime(),
+        status: sessao.status
+      };
+      
+      log.info('Estatísticas obtidas com sucesso');
+      
+      res.status(200).json({
+        success: true,
+        data: estatisticas
+      });
+
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao obter estatísticas');
+      next(error);
+    }
+  }
+
+  /**
+   * Atualizar campos de uma mensagem específica (ex: scene_image)
+   * Usa WATCH/MULTI/EXEC via atualizarSessao para evitar race conditions
+   */
+  async atualizarCampoMensagem(req, res, next) {
+    try {
+      const { salaId, mensagemId } = req.params;
+      const { campos } = req.body;
+
+      if (!campos || typeof campos !== 'object') {
+        return res.status(400).json({ success: false, error: 'campos é obrigatório' });
+      }
+
+      const sessao = await gerenciadorSessoes.obterSessao(salaId);
+      if (!sessao) {
+        return res.status(404).json({ success: false, error: 'Sessão não encontrada' });
+      }
+
+      const mensagens = sessao.mensagens || [];
+      const idx = mensagens.findIndex(m => String(m.id) === String(mensagemId) || String(m.timestamp) === String(mensagemId));
+      if (idx === -1) {
+        return res.status(404).json({ success: false, error: 'Mensagem não encontrada' });
+      }
+
+      mensagens[idx] = { ...mensagens[idx], ...campos };
+      await gerenciadorSessoes.atualizarSessao(salaId, { mensagens });
+
+      res.json({ success: true });
+    } catch (error) {
+      log.error({ err: error }, 'Erro ao atualizar campo da mensagem');
+      next(error);
+    }
+  }
+}
+
+export default new SessaoController(); 

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste WebSocket - Role Chat Game</title>
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .input-group {
+            margin: 10px 0;
+        }
+        input, button {
+            padding: 8px 12px;
+            margin: 2px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .form-group {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group h3 {
+            margin-top: 0;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 Teste WebSocket - Role Chat Game</h1>
+        
+        <div id="status" class="status disconnected">
+            Desconectado
+        </div>
+
+        <div class="form-group">
+            <h3>🔗 Conexão</h3>
+            <div class="input-group">
+                <input type="text" id="serverUrl" value="http://localhost:3001" placeholder="URL do servidor">
+                <button onclick="connect()">Conectar</button>
+                <button onclick="disconnect()" disabled id="disconnectBtn">Desconectar</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <h3>🔐 Autenticação</h3>
+            <div class="input-group">
+                <input type="text" id="userId" value="user123" placeholder="User ID">
+                <input type="text" id="username" value="Jogador1" placeholder="Username">
+                <input type="text" id="sessionId" value="session456" placeholder="Session ID">
+                <button onclick="authenticate()" disabled id="authBtn">Autenticar</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <h3>🎮 Sala</h3>
+            <div class="input-group">
+                <input type="text" id="roomId" value="sala_123" placeholder="Room ID">
+                <button onclick="joinRoom()" disabled id="joinBtn">Entrar na Sala</button>
+                <button onclick="leaveRoom()" disabled id="leaveBtn">Sair da Sala</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <h3>💬 Chat</h3>
+            <div class="input-group">
+                <input type="text" id="message" placeholder="Digite sua mensagem">
+                <select id="messageType">
+                    <option value="chat">Chat</option>
+                    <option value="system">Sistema</option>
+                    <option value="gm">GM</option>
+                    <option value="narrative">Narrativa</option>
+                </select>
+                <button onclick="sendMessage()" disabled id="sendBtn">Enviar</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <h3>⚔️ Ação RPG</h3>
+            <div class="input-group">
+                <input type="text" id="action" placeholder="Ação (ex: attack, move, cast)">
+                <input type="text" id="target" placeholder="Alvo (ex: goblin, door)">
+                <input type="text" id="description" placeholder="Descrição da ação">
+                <button onclick="sendAction()" disabled id="actionBtn">Enviar Ação</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <h3>🎲 Rolagem</h3>
+            <div class="input-group">
+                <input type="text" id="dice" value="1d20" placeholder="Dados (ex: 1d20, 2d6)">
+                <input type="number" id="result" value="15" placeholder="Resultado">
+                <input type="text" id="rollDescription" placeholder="Descrição da rolagem">
+                <button onclick="sendDiceRoll()" disabled id="rollBtn">Enviar Rolagem</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <h3>📊 Status</h3>
+            <div class="input-group">
+                <input type="text" id="statusText" value="ready" placeholder="Status">
+                <input type="text" id="statusDetails" value='{"hp": 20, "mp": 15}' placeholder="Detalhes (JSON)">
+                <button onclick="updateStatus()" disabled id="statusBtn">Atualizar Status</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <h3>📝 Log de Eventos</h3>
+            <div id="log" class="log"></div>
+            <button onclick="clearLog()">Limpar Log</button>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isAuthenticated = false;
+        let currentRoom = null;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'black';
+            logDiv.innerHTML += `<div style="color: ${color}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(connected) {
+            const statusDiv = document.getElementById('status');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const authBtn = document.getElementById('authBtn');
+
+            if (connected) {
+                statusDiv.textContent = 'Conectado';
+                statusDiv.className = 'status connected';
+                disconnectBtn.disabled = false;
+                authBtn.disabled = false;
+            } else {
+                statusDiv.textContent = 'Desconectado';
+                statusDiv.className = 'status disconnected';
+                disconnectBtn.disabled = true;
+                authBtn.disabled = true;
+                isAuthenticated = false;
+                currentRoom = null;
+                updateButtons();
+            }
+        }
+
+        function updateButtons() {
+            const joinBtn = document.getElementById('joinBtn');
+            const leaveBtn = document.getElementById('leaveBtn');
+            const sendBtn = document.getElementById('sendBtn');
+            const actionBtn = document.getElementById('actionBtn');
+            const rollBtn = document.getElementById('rollBtn');
+            const statusBtn = document.getElementById('statusBtn');
+
+            joinBtn.disabled = !isAuthenticated;
+            leaveBtn.disabled = !currentRoom;
+            sendBtn.disabled = !currentRoom;
+            actionBtn.disabled = !currentRoom;
+            rollBtn.disabled = !currentRoom;
+            statusBtn.disabled = !currentRoom;
+        }
+
+        function connect() {
+            const serverUrl = document.getElementById('serverUrl').value;
+            
+            try {
+                socket = io(serverUrl, {
+                    transports: ['websocket', 'polling']
+                });
+
+                socket.on('connect', () => {
+                    log('✅ Conectado ao servidor', 'success');
+                    updateStatus(true);
+                });
+
+                socket.on('disconnect', (reason) => {
+                    log(`❌ Desconectado: ${reason}`, 'error');
+                    updateStatus(false);
+                });
+
+                socket.on('error', (data) => {
+                    log(`❌ Erro: ${data.message}`, 'error');
+                });
+
+                socket.on('authenticated', (data) => {
+                    log(`✅ Autenticado como ${data.username}`, 'success');
+                    isAuthenticated = true;
+                    updateButtons();
+                });
+
+                socket.on('user_joined', (data) => {
+                    log(`👋 ${data.username} entrou na sala ${data.roomId}`, 'info');
+                });
+
+                socket.on('user_left', (data) => {
+                    log(`👋 ${data.username} saiu da sala ${data.roomId}`, 'info');
+                });
+
+                socket.on('chat_message', (data) => {
+                    log(`💬 ${data.username}: ${data.message}`, 'info');
+                });
+
+                socket.on('rpg_action', (data) => {
+                    log(`⚔️ ${data.username} executou: ${data.action}`, 'info');
+                });
+
+                socket.on('dice_roll', (data) => {
+                    log(`🎲 ${data.username} rolou ${data.dice}: ${data.result}`, 'info');
+                });
+
+                socket.on('status_update', (data) => {
+                    log(`📊 ${data.username} atualizou status: ${data.status}`, 'info');
+                });
+
+            } catch (error) {
+                log(`❌ Erro ao conectar: ${error.message}`, 'error');
+            }
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+                updateStatus(false);
+                log('🔌 Desconectado do servidor', 'info');
+            }
+        }
+
+        function authenticate() {
+            if (!socket) return;
+
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+            const sessionId = document.getElementById('sessionId').value;
+
+            socket.emit('authenticate', { userId, username, sessionId });
+            log(`🔐 Autenticando como ${username}...`, 'info');
+        }
+
+        function joinRoom() {
+            if (!socket || !isAuthenticated) return;
+
+            const roomId = document.getElementById('roomId').value;
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+
+            socket.emit('join_room', { roomId, userId, username });
+            currentRoom = roomId;
+            updateButtons();
+            log(`🎮 Entrando na sala ${roomId}...`, 'info');
+        }
+
+        function leaveRoom() {
+            if (!socket || !currentRoom) return;
+
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+
+            socket.emit('leave_room', { roomId: currentRoom, userId, username });
+            log(`👋 Saindo da sala ${currentRoom}...`, 'info');
+            currentRoom = null;
+            updateButtons();
+        }
+
+        function sendMessage() {
+            if (!socket || !currentRoom) return;
+
+            const message = document.getElementById('message').value;
+            const type = document.getElementById('messageType').value;
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+
+            if (!message.trim()) return;
+
+            socket.emit('chat_message', {
+                roomId: currentRoom,
+                userId,
+                username,
+                message,
+                type
+            });
+
+            document.getElementById('message').value = '';
+            log(`📤 Enviando mensagem: ${message}`, 'info');
+        }
+
+        function sendAction() {
+            if (!socket || !currentRoom) return;
+
+            const action = document.getElementById('action').value;
+            const target = document.getElementById('target').value;
+            const description = document.getElementById('description').value;
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+
+            if (!action.trim()) return;
+
+            socket.emit('rpg_action', {
+                roomId: currentRoom,
+                userId,
+                username,
+                action,
+                target,
+                description
+            });
+
+            log(`📤 Enviando ação: ${action}`, 'info');
+        }
+
+        function sendDiceRoll() {
+            if (!socket || !currentRoom) return;
+
+            const dice = document.getElementById('dice').value;
+            const result = document.getElementById('result').value;
+            const description = document.getElementById('rollDescription').value;
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+
+            if (!dice.trim() || !result) return;
+
+            socket.emit('dice_roll', {
+                roomId: currentRoom,
+                userId,
+                username,
+                dice,
+                result: parseInt(result),
+                description
+            });
+
+            log(`📤 Enviando rolagem: ${dice} = ${result}`, 'info');
+        }
+
+        function updateStatus() {
+            if (!socket || !currentRoom) return;
+
+            const status = document.getElementById('statusText').value;
+            const detailsText = document.getElementById('statusDetails').value;
+            const userId = document.getElementById('userId').value;
+            const username = document.getElementById('username').value;
+
+            let details = {};
+            try {
+                details = JSON.parse(detailsText);
+            } catch (e) {
+                log('❌ Detalhes devem ser JSON válido', 'error');
+                return;
+            }
+
+            socket.emit('status_update', {
+                roomId: currentRoom,
+                userId,
+                username,
+                status,
+                details
+            });
+
+            log(`📤 Atualizando status: ${status}`, 'info');
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        // Permitir enviar mensagem com Enter
+        document.getElementById('message').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Inicializar
+        updateStatus(false);
+        log('🚀 Página carregada. Conecte-se ao servidor para começar.', 'info');
+    </script>
+</body>
+</html> 

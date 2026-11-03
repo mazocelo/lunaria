@@ -1,0 +1,559 @@
+{
+  "runId": "run_20260318_110156_e0fc",
+  "cenarioId": "02-magia-com-custo",
+  "cenarioVersao": "1.0.0",
+  "cenarioHash": "sha256:83232582e436",
+  "modelo": "claude-sonnet-4-6",
+  "provider": "sonnet",
+  "redisPrefix": "test_run_run_20260318_110156_e0fc_sonnet:",
+  "statusExecucao": "concluida",
+  "erroExecucao": null,
+  "iniciadoEm": "2026-03-18T14:01:56.177Z",
+  "finalizadoEm": "2026-03-18T14:03:14.252Z",
+  "duracaoMs": 78075,
+  "metricas": {
+    "turnosExecutados": 5,
+    "respostasParseadas": 5,
+    "errosParse": 0,
+    "rolagensAutomaticas": 0,
+    "latenciaMediaMs": 15613,
+    "latenciaMaxMs": 19579,
+    "tokensInput": null,
+    "tokensOutput": null,
+    "custoEstimado": null
+  },
+  "condicaoDeParada": "acoes_esgotadas",
+  "turnos": [
+    {
+      "turno": 1,
+      "acaoJogador": {
+        "tipo": "iniciar_turno"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": false
+      },
+      "respostaBruta": "A clareira se abre entre árvores retorcidas, a luz do sol cortando o verde em faixas douradas. O cheiro de terra úmida e folhas apodrecidas paira no ar. No centro, um **goblin saqueador** vasculha um saco rasgado, jogando ossos e trapos para os lados com mãos nervosas — claramente à procura de algo valioso.\n\nO goblin levanta o nariz. Fareja. Seus olhos amarelos e bulbosos giram na direção de Moruxis — dois metros de minotauro, chifres largos, espada longa reluzindo na bainha. Por um segundo, o goblin congela.\n\nDepois, mostra os dentes.\n\n— **Carne grande! Carne estúpida entrar na minha clareira!** — grasna ele, erguendo uma faca enferrujada com uma confiança desproporcional ao tamanho da lâmina.\n\n🎲 O goblin assume postura de ataque. Iniciativa — quem age primeiro?",
+      "respostaIA": {
+        "narracao": "A clareira se abre entre árvores retorcidas, a luz do sol cortando o verde em faixas douradas. O cheiro de terra úmida e folhas apodrecidas paira no ar. No centro, um **goblin saqueador** vasculha um saco rasgado, jogando ossos e trapos para os lados com mãos nervosas — claramente à procura de algo valioso.\n\nO goblin levanta o nariz. Fareja. Seus olhos amarelos e bulbosos giram na direção de Moruxis — dois metros de minotauro, chifres largos, espada longa reluzindo na bainha. Por um segundo, o goblin congela.\n\nDepois, mostra os dentes.\n\n— **Carne grande! Carne estúpida entrar na minha clareira!** — grasna ele, erguendo uma faca enferrujada com uma confiança desproporcional ao tamanho da lâmina.\n\n🎲 O goblin assume postura de ataque. Iniciativa — quem age primeiro?",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Clareira na floresta",
+          "hora_ficcional": "dia",
+          "npcs_presentes": [
+            {
+              "id": null,
+              "nome": "Goblin Saqueador",
+              "status": "hostil"
+            }
+          ],
+          "memoria_semantica": [],
+          "terreno": "clareira aberta",
+          "tensao": "combate iminente",
+          "ameacas": [
+            "Goblin Saqueador armado com faca enferrujada"
+          ]
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 19579,
+      "tempoTurnoTotalMs": 19579
+    },
+    {
+      "turno": 2,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "A estrada de terra batida se abre entre colinas cobertas de grama alta. O sol da tarde projeta sombras longas. Moruxis caminha com passos pesados — cascos contra pedra soltam um som surdo e ritmado. Ao longe, uma aldeia pequena aparece no horizonte: telhados de palha, uma torre de madeira, fumaça fina subindo de duas chaminés.\n\nNão há movimento visível nas estradas. Silêncio demais para uma tarde comum.",
+      "respostaIA": {
+        "narracao": "A estrada de terra batida se abre entre colinas cobertas de grama alta. O sol da tarde projeta sombras longas. Moruxis caminha com passos pesados — cascos contra pedra soltam um som surdo e ritmado. Ao longe, uma aldeia pequena aparece no horizonte: telhados de palha, uma torre de madeira, fumaça fina subindo de duas chaminés.\n\nNão há movimento visível nas estradas. Silêncio demais para uma tarde comum.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Estrada — entrada da aldeia",
+          "hora_ficcional": "tarde",
+          "npcs_presentes": [],
+          "memoria_semantica": [],
+          "terreno": "estrada de terra, campo aberto",
+          "tensao": "alerta",
+          "ameacas": [
+            "aldeia silenciosa — ausência de guardas no posto"
+          ]
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 12834,
+      "tempoTurnoTotalMs": 12834
+    },
+    {
+      "turno": 3,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanço Protecao contra o Mal em mim mesmo",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "protecao_mal",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "A névoa da manhã ainda rasteja pelo chão de pedra quando Moruxis abre os olhos. Chifres roçam o teto baixo da estalagem — um lembrete constante de que o mundo não foi construído para minotauros. O cheiro de palha úmida e gordura de vela preenche o ar. Lá fora, o vilarejo começa a despertar: um ferreiro bate o bigorna, galinhas cacarejam, e alguém, em algum lugar próximo, grita.",
+      "respostaIA": {
+        "narracao": "A névoa da manhã ainda rasteja pelo chão de pedra quando Moruxis abre os olhos. Chifres roçam o teto baixo da estalagem — um lembrete constante de que o mundo não foi construído para minotauros. O cheiro de palha úmida e gordura de vela preenche o ar. Lá fora, o vilarejo começa a despertar: um ferreiro bate o bigorna, galinhas cacarejam, e alguém, em algum lugar próximo, grita.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Estalagem — vilarejo desconhecido",
+          "hora_ficcional": "Manhã cedo",
+          "npcs_presentes": [],
+          "memoria_semantica": [],
+          "terreno": "urbano",
+          "tensao": "alerta",
+          "ameacas": [
+            "grito no mercado — origem desconhecida"
+          ]
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "protecao_mal",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 5,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 12771,
+      "tempoTurnoTotalMs": 12772
+    },
+    {
+      "turno": 4,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina novamente no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 5,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "O vento frio da manhã varre a estrada de terra batida enquanto Moruxis avança com passos pesados. Seus cascos reverberam contra o solo pedregoso, e o cheiro de pinho mistura-se com o de húmus úmido. A floresta à beira do caminho é densa — troncos escuros, galhos entrelaçados, sombras que não se dissipam mesmo com o sol ainda baixo no horizonte.\n\nAo longe, uma placa de madeira entalhada marca a entrada de uma pequena vila. As letras estão desgastadas, mas legíveis: **Pedra Funda**. Fumaça sobe de duas ou três chaminés. Um cão late uma vez e para.",
+      "respostaIA": {
+        "narracao": "O vento frio da manhã varre a estrada de terra batida enquanto Moruxis avança com passos pesados. Seus cascos reverberam contra o solo pedregoso, e o cheiro de pinho mistura-se com o de húmus úmido. A floresta à beira do caminho é densa — troncos escuros, galhos entrelaçados, sombras que não se dissipam mesmo com o sol ainda baixo no horizonte.\n\nAo longe, uma placa de madeira entalhada marca a entrada de uma pequena vila. As letras estão desgastadas, mas legíveis: **Pedra Funda**. Fumaça sobe de duas ou três chaminés. Um cão late uma vez e para.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Estrada — entrada de Pedra Funda",
+          "hora_ficcional": "Manhã cedo",
+          "npcs_presentes": [
+            {
+              "id": null,
+              "nome": "Homem do avental",
+              "descricao": "Aldeão, parado na soleira, segurando vassoura"
+            }
+          ],
+          "memoria_semantica": [],
+          "terreno": "estrada de terra, beira de floresta",
+          "tensao": "alerta",
+          "ameacas": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 2,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 18395,
+      "tempoTurnoTotalMs": 18395
+    },
+    {
+      "turno": 5,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Ataco o goblin com minha arma",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "atacar",
+          "arma": "espada_longa",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 2,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "O sol ainda está alto quando Moruxis pisa na estrada de terra batida que corta o vale. Seus cascos ecoam no chão seco, levantando pequenas nuvens de poeira a cada passo. A paisagem ao redor é de campos abertos com arbustos espinhosos e algumas árvores retorcidas — terreno simples, mas com poucos lugares para se esconder.\n\nNão há missão definida ainda. Apenas o horizonte à frente e o peso da espada longa no quadril.",
+      "respostaIA": {
+        "narracao": "O sol ainda está alto quando Moruxis pisa na estrada de terra batida que corta o vale. Seus cascos ecoam no chão seco, levantando pequenas nuvens de poeira a cada passo. A paisagem ao redor é de campos abertos com arbustos espinhosos e algumas árvores retorcidas — terreno simples, mas com poucos lugares para se esconder.\n\nNão há missão definida ainda. Apenas o horizonte à frente e o peso da espada longa no quadril.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "Estrada do Vale — a 2 léguas de Pedra Seca",
+          "hora_ficcional": "tarde",
+          "npcs_presentes": [],
+          "memoria_semantica": [],
+          "terreno": "campo aberto, estrada de terra",
+          "tensao": "alerta",
+          "ameacas": [
+            "aviso misterioso na placa da estrada"
+          ]
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "atacar",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": "espada_longa",
+        "magiaId": null,
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 2,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 14487,
+      "tempoTurnoTotalMs": 14487
+    }
+  ],
+  "estadoFinal": {
+    "jogador": {
+      "hp": 30,
+      "hpMax": 30,
+      "mana": 0,
+      "manaMax": 10,
+      "xpGanho": 0,
+      "status": []
+    },
+    "inimigos": [
+      {
+        "id": "goblin_1",
+        "hp": 12,
+        "hpMax": 12,
+        "status": []
+      }
+    ],
+    "combateAtivo": true,
+    "resultado": "indefinido",
+    "resultadoDetalhe": null
+  }
+}

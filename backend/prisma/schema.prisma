@@ -1,0 +1,1002 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Sistema {
+  lunaria
+  tresdet
+  dnd5e
+  daemon // TODO: not yet implemented
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model classes {
+  id                 Int                  @id(map: "classe_pkey") @default(autoincrement())
+  nome               String               @db.VarChar(100)
+  custo              Int                  @default(0)
+  descricao          String?
+  bonus              String?
+  imagem             String?              @db.VarChar(500)
+  sistema            Sistema              @default(lunaria)
+  ferramentas        ferramentas[]
+  habilidades_magias habilidades_magias[]
+  hm_classe          hm_classe[]
+  hm_slots_classe    hm_slots_classe[]
+  personagens        personagens[]
+  receitas           receitas[]
+
+  @@unique([nome, sistema], map: "classes_nome_sistema_key")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model desvantagens {
+  id                     Int                      @id(map: "descantagens_pkey") @default(autoincrement())
+  nome                   String
+  descricao              String
+  custo                  Int                      @default(0)
+  tipo                   String[]                 @default(["ativa"]) @db.VarChar(255)
+  bonus                  Json?
+  restricao              Json?
+  dano_base              String?
+  efeito                 Json?                    @db.Json
+  usar                   Int?
+  elemento               String[]                 @db.VarChar(255)
+  nivel                  Int                      @default(1)
+  requisitos             Json?
+  criada_em              DateTime?                @db.Timestamptz(6)
+  atualizada_em          DateTime?                @db.Timestamptz(6)
+  imagem                 String?                  @db.VarChar(500)
+  sistema                Sistema                  @default(lunaria)
+  personagem_desvantagem personagem_desvantagem[]
+
+  @@unique([nome, sistema], map: "desvantagens_nome_sistema_key")
+  @@index([nivel], map: "idx_desvantagem_nivel")
+  @@index([usar], map: "idx_desvantagem_usar")
+}
+
+model raridades {
+  id           Int            @id @default(autoincrement())
+  nome         String         @unique @db.VarChar(50)
+  cor          String?        @db.VarChar(30)
+  ordem        Int            @default(0)
+  equipamentos equipamentos[]
+  ingredientes ingredientes[]
+  monstros     monstros[]
+}
+
+model categorias_equipamento {
+  id           Int            @id @default(autoincrement())
+  nome         String         @unique @db.VarChar(100)
+  icone        String?        @db.VarChar(10)
+  ordem        Int            @default(0)
+  equipamentos equipamentos[]
+}
+
+model categorias_monstro {
+  id       Int        @id @default(autoincrement())
+  nome     String     @unique @db.VarChar(100)
+  icone    String?    @db.VarChar(10)
+  ordem    Int        @default(0)
+  monstros monstros[]
+}
+
+model equipamentos {
+  id                     Int                      @id(map: "equipamento_pkey") @default(autoincrement())
+  nome                   String
+  descricao              String?
+  tipo                   String[]
+  bonus                  Json?                    @default("[]")
+  dano_base              String?
+  elemento               String[]                 @default([])
+  requisitos             Json?
+  imagem                 String?                  @db.VarChar(500)
+  numero                 Int?
+  origem_lore            String?
+  propriedades           String[]                 @default([])
+  cargas                 Int?
+  usos_por_dia           Int?
+  vinculo                Json?
+  categoria_id           Int?
+  raridade_id            Int?
+  peso                   Float?
+  preco_sugerido         String?
+  preco                  Int                      @default(0)
+  sistema                Sistema                  @default(lunaria)
+  categoria_rel          categorias_equipamento?  @relation(fields: [categoria_id], references: [id])
+  raridade_rel           raridades?               @relation(fields: [raridade_id], references: [id])
+  monstro_loot           monstro_loot[]
+  personagem_equipamento personagem_equipamento[]
+  receitas               receitas[]
+
+  @@unique([nome, sistema], map: "equipamentos_nome_sistema_key")
+  @@index([categoria_id], map: "idx_equipamento_categoria")
+  @@index([raridade_id], map: "idx_equipamento_raridade")
+  @@index([numero], map: "idx_equipamento_numero")
+}
+
+model historias {
+  id                      Int                     @id @default(autoincrement())
+  nome                    String                  @db.VarChar(255)
+  maximo_de_participantes Int?
+  prologo                 String?
+  descricao               String?
+  status                  String?                 @default("ativa") @db.VarChar(255)
+  criada_em               DateTime?               @db.Timestamptz(6)
+  atualizada_em           DateTime?               @db.Timestamptz(6)
+  id_usuario              Int?
+  temas                   Int[]
+  deleted_at              DateTime?               @db.Timestamptz(6)
+  mestre_id               Int?
+  imagem                  String?                 @db.VarChar(500)
+  mapas                   Json?
+  publica                 Boolean                 @default(false)
+  roteiro                 Json?
+  roteiro_status          String?                 @db.VarChar(50)
+  estilo_imagem           String?                 @default("fantasy_painting") @db.VarChar(50)
+  config                  Json?
+  mestre_tier             String?                 @default("poeta") @db.VarChar(20)
+  sistema                 Sistema                 @default(lunaria)
+  usuarios                usuarios?               @relation(fields: [id_usuario], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_historias_id_usuario")
+  mestres                 mestres?                @relation(fields: [mestre_id], references: [id], onUpdate: NoAction, map: "fk_historias_mestre_id")
+  historias_convite       historias_convite[]
+  historias_personagens   historias_personagens[]
+  roteiro_versoes         roteiro_versoes[]
+  sessoes_jogo            sessoes_jogo[]
+
+  @@index([id_usuario])
+  @@index([id_usuario, deleted_at])
+  @@index([mestre_id])
+  @@index([status])
+  @@index([deleted_at])
+}
+
+model personagem_desvantagem {
+  personagem_id  Int
+  desvantagem_id Int          @map("habilidade_id")
+  desvantagens   desvantagens @relation(fields: [desvantagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  personagens    personagens  @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "personagem_habilidade_personagem_id_fkey")
+
+  @@id([personagem_id, desvantagem_id], map: "personagem_habilidade_pkey")
+}
+
+model personagem_equipamento {
+  personagem_id  Int
+  equipamento_id Int
+  quantidade     Int          @default(1)
+  equipado       Boolean      @default(false)
+  equipamentos   equipamentos @relation(fields: [equipamento_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  personagens    personagens  @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([personagem_id, equipamento_id])
+}
+
+model personagem_vantagem {
+  vantagem_id   Int         @map("desvantagem_id")
+  personagem_id Int
+  vantagens     vantagens   @relation(fields: [vantagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  personagens   personagens @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([personagem_id, vantagem_id])
+}
+
+model personagens {
+  id                        Int                        @id(map: "personagem_pkey") @default(autoincrement())
+  nome                      String
+  nivel                     Int?                       @default(1)
+  pontos_totais             Int?                       @default(0)
+  pontos_iniciais           Int?                       @default(0)
+  background                String?
+  raca_id                   Int?
+  classe_id                 Int?
+  criado_em                 DateTime?                  @db.Timestamptz(6)
+  atualizado_em             DateTime?                  @db.Timestamptz(6)
+  id_usuario                Int?
+  deleted_at                DateTime?                  @db.Timestamptz(6)
+  imagem                    String?                    @db.VarChar(500)
+  pontos_atributo_pendentes Int?                       @default(0)
+  xp_atual                  Int?                       @default(0)
+  xp_proximo_nivel          Int?                       @default(100)
+  hp_atual                  Int?
+  mp_atual                  Int?
+  moedas                    Int                        @default(0)
+  voice_id                  String?                    @db.VarChar(100)
+  voice_provider            String?                    @db.VarChar(50)
+  sistema                   Sistema                    @default(lunaria)
+  stats_sistema             Json?
+  atributos_personagem      atributos_personagem[]
+  hm_personagem             hm_personagem[]
+  historias_personagens     historias_personagens[]
+  personagem_desvantagem    personagem_desvantagem[]
+  personagem_equipamento    personagem_equipamento[]
+  personagem_item_tresdet   personagem_item_tresdet[]
+  personagem_magia_tresdet  personagem_magia_tresdet[]
+  personagem_sessao         personagem_sessao[]
+  personagem_vantagem       personagem_vantagem[]
+  usuarios                  usuarios?                  @relation(fields: [id_usuario], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_personagens_id_usuario")
+  classes                   classes?                   @relation(fields: [classe_id], references: [id])
+  racas                     racas?                     @relation(fields: [raca_id], references: [id])
+
+  @@index([id_usuario])
+  @@index([id_usuario, deleted_at])
+  @@index([deleted_at])
+  @@index([classe_id])
+  @@index([raca_id])
+  @@index([sistema])
+}
+
+model atributos_personagem {
+  id            Int    @id @default(autoincrement())
+  personagem_id Int
+  nome          String @db.VarChar(50)
+  valor         Int
+
+  personagens personagens @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
+
+  @@unique([personagem_id, nome])
+  @@index([personagem_id])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model racas {
+  id                 Int                  @id(map: "raca_pkey") @default(autoincrement())
+  nome               String               @db.VarChar(100)
+  custo              Int                  @default(0)
+  descricao          String?
+  bonus              String?
+  imagem             String?              @db.VarChar(500)
+  sistema            Sistema              @default(lunaria)
+  mult_raca          Int?                 @default(5)
+  pode_magia         Boolean              @default(true)
+  habilidades_magias habilidades_magias[]
+  hm_raca            hm_raca[]
+  personagens        personagens[]
+
+  @@unique([nome, sistema], map: "racas_nome_sistema_key")
+}
+
+model temas {
+  id        Int     @id @default(autoincrement())
+  nome      String  @unique @db.VarChar(255)
+  descricao String? @db.VarChar(255)
+}
+
+model usuarios {
+  id                  Int                 @id @default(autoincrement())
+  nome                String              @db.VarChar(100)
+  email               String              @unique @db.VarChar(150)
+  senha               String              @db.VarChar(255)
+  role                String?             @default("player") @db.VarChar(20)
+  deleted_at          DateTime?           @db.Timestamptz(6)
+  reset_token         String?             @db.VarChar(500)
+  reset_token_expires DateTime?           @db.Timestamptz(6)
+  avatar              String?             @db.VarChar(500)
+  bio                 String?             @db.VarChar(500)
+  preferencias        Json?               @default("{}")
+  privacidade         Json?               @default("{}")
+  amizades_recebidas  amizades[]          @relation("amizade_receiver")
+  amizades_enviadas   amizades[]          @relation("amizade_requester")
+  api_usage           api_usage[]
+  feed_comentarios    feed_comentarios[]
+  feed_curtidas       feed_curtidas[]
+  feed_posts          feed_posts[]
+  historias           historias[]
+  historias_convite   historias_convite[]
+  mestres             mestres[]
+  personagens         personagens[]
+  roteiro_reviews     roteiro_versoes[]   @relation("roteiro_reviewer")
+
+  @@index([deleted_at])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model vantagens {
+  id                    Int                   @id(map: "habilidade_pkey") @default(autoincrement())
+  nome                  String
+  descricao             String
+  custo                 Int                   @default(0)
+  tipo                  String[]              @default(["ativa"]) @db.VarChar(255)
+  bonus                 Json?
+  restricao             Json?
+  dano_base             String?
+  efeito                Json?                 @db.Json
+  usar                  Int?
+  elemento              String[]              @db.VarChar(255)
+  nivel                 Int                   @default(1)
+  requisitos            Json?
+  criada_em             DateTime?             @db.Timestamptz(6)
+  atualizada_em         DateTime?             @db.Timestamptz(6)
+  imagem                String?               @db.VarChar(500)
+  sistema               Sistema               @default(lunaria)
+  subtipo               String?               @db.VarChar(50)
+  vantagens_inclusas    Json?
+  desvantagens_inclusas Json?
+  personagem_vantagem   personagem_vantagem[]
+
+  @@unique([nome, sistema], map: "vantagens_nome_sistema_key")
+  @@index([nivel], map: "idx_habilidade_nivel")
+  @@index([usar], map: "idx_habilidade_usar")
+  @@index([nivel], map: "idx_vantagem_nivel")
+  @@index([usar], map: "idx_vantagem_usar")
+}
+
+model historias_personagens {
+  id            Int         @id @default(autoincrement())
+  historia_id   Int
+  personagem_id Int
+  papel         String?     @db.VarChar(50)
+  historias     historias   @relation(fields: [historia_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_historia")
+  personagens   personagens @relation(fields: [personagem_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_personagem")
+
+  @@unique([historia_id, personagem_id], map: "unq_historia_personagem")
+  @@index([personagem_id])
+}
+
+model historias_convite {
+  id            Int       @id @default(autoincrement())
+  historia_id   Int
+  usuario_id    Int
+  status        String    @default("pendente") @db.VarChar(20)
+  criado_em     DateTime? @default(now()) @db.Timestamp(6)
+  respondido_em DateTime? @db.Timestamp(6)
+  historias     historias @relation(fields: [historia_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_historia")
+  usuarios      usuarios  @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_usuario")
+
+  @@unique([historia_id, usuario_id], map: "unq_convite")
+  @@index([usuario_id])
+  @@index([status])
+}
+
+model mestres {
+  id               Int         @id @default(autoincrement())
+  nome             String      @db.VarChar(100)
+  descricao        String?
+  personalidade    String?
+  modelo           String?     @default("gemini-2.5-flash") @db.VarChar(100)
+  temperatura      Float?      @default(0.9)
+  max_tokens       Int?        @default(8000)
+  tom_narrativo    String?     @db.VarChar(255)
+  regras_especiais String?
+  imagem           String?     @db.VarChar(500)
+  voice_id         String?     @db.VarChar(100)
+  voice_provider   String?     @default("elevenlabs") @db.VarChar(50)
+  id_usuario       Int
+  criado_em        DateTime?   @default(now()) @db.Timestamptz(6)
+  atualizado_em    DateTime?   @db.Timestamptz(6)
+  deleted_at       DateTime?   @db.Timestamptz(6)
+  tags             String[]    @default([])
+  historias        historias[]
+  usuarios         usuarios    @relation(fields: [id_usuario], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_mestres_id_usuario")
+
+  @@unique([id_usuario, nome])
+  @@index([id_usuario])
+  @@index([deleted_at])
+}
+
+model monstros {
+  id                  Int                   @id @default(autoincrement())
+  nome                String                @db.VarChar(150)
+  descricao           String?
+  tipo                String[]              @default(["besta"]) @db.VarChar(50)
+  nivel_min           Int                   @default(1)
+  nivel_max           Int                   @default(10)
+  hp_base             Int                   @default(15)
+  ataque_base         Int                   @default(2)
+  defesa_base         Int                   @default(10)
+  dano_base           String                @default("1d6") @db.VarChar(20)
+  habilidades         Json?                 @default("[]")
+  elemento            String[]              @default([]) @db.VarChar(50)
+  temas               Int[]                 @default([])
+  xp_base             Int                   @default(50)
+  imagem              String?               @db.VarChar(500)
+  criado_em           DateTime?             @default(now()) @db.Timestamptz(6)
+  atualizado_em       DateTime?             @db.Timestamptz(6)
+  raridade_id         Int?
+  categoria_id        Int?
+  habitat             String[]              @default([]) @db.VarChar(100)
+  imunidades          String[]              @default([]) @db.VarChar(50)
+  resistencias        Json?                 @default("{}")
+  tamanho             String?               @default("medio") @db.VarChar(30)
+  escala              String?               @default("ningen") @db.VarChar(20)
+  velocidade          Json?                 @default("{\"terrestre\": 30}")
+  mult_raca           Int?                  @default(5)
+  armadura_natural    Int?                  @default(0)
+  sistema             Sistema               @default(lunaria)
+  atributos_monstro   atributos_monstro[]
+  monstro_ingrediente monstro_ingrediente[]
+  monstro_loot        monstro_loot[]
+  categoria_rel       categorias_monstro?   @relation(fields: [categoria_id], references: [id])
+  raridade_rel        raridades?            @relation(fields: [raridade_id], references: [id])
+
+  @@unique([nome, sistema], map: "monstros_nome_sistema_key")
+  @@index([nivel_min, nivel_max], map: "idx_monstro_nivel")
+  @@index([raridade_id], map: "idx_monstro_raridade")
+  @@index([categoria_id], map: "idx_monstro_categoria")
+}
+
+model atributos_monstro {
+  id         Int    @id @default(autoincrement())
+  monstro_id Int
+  nome       String @db.VarChar(50)
+  valor      Int
+
+  monstros monstros @relation(fields: [monstro_id], references: [id], onDelete: Cascade)
+
+  @@unique([monstro_id, nome])
+  @@index([monstro_id])
+}
+
+model sessoes_jogo {
+  id                Int                 @id @default(autoincrement())
+  historia_id       Int
+  sala_id           String              @unique @db.VarChar(100)
+  estado            Json
+  mensagens         Json
+  resumos           Json?
+  jogadores         Json
+  status            String              @default("ativa") @db.VarChar(20)
+  rodada_atual      Int                 @default(0)
+  fase              String?             @db.VarChar(50)
+  iniciada_em       DateTime?           @db.Timestamptz(6)
+  finalizada_em     DateTime?           @db.Timestamptz(6)
+  ultimo_snapshot   DateTime            @default(now()) @db.Timestamptz(6)
+  criada_em         DateTime            @default(now()) @db.Timestamptz(6)
+  atualizada_em     DateTime            @updatedAt @db.Timestamptz(6)
+  personagem_sessao personagem_sessao[]
+  historia          historias           @relation(fields: [historia_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([historia_id])
+  @@index([status])
+  @@index([historia_id, status])
+}
+
+model elementos {
+  id        Int     @id @default(autoincrement())
+  nome      String  @unique @db.VarChar(30)
+  descricao String?
+  cor       String? @db.VarChar(30)
+  icone     String? @db.VarChar(10)
+  ordem     Int?    @default(0)
+}
+
+model focus_elementais {
+  id        Int     @id @default(autoincrement())
+  nome      String  @unique @db.VarChar(30)
+  label     String  @db.VarChar(50)
+  descricao String?
+  emoji     String? @db.VarChar(10)
+  cor       String? @db.VarChar(30)
+  ordem     Int     @default(0)
+}
+
+model magias_tresdet {
+  id              Int     @id @default(autoincrement())
+  nome            String  @unique @db.VarChar(120)
+  descricao       String
+  escola          String  @db.VarChar(50)
+  custo_pm        String  @db.VarChar(50)
+  alcance         String  @db.VarChar(30)
+  duracao         String  @db.VarChar(50)
+  tipo            String  @default("dano") @db.VarChar(30)
+  exigencias      String? @db.VarChar(200)
+  focus_requisito Json?
+  efeito          Json?
+  nivel_minimo    Int     @default(1)
+
+  personagem_magia_tresdet personagem_magia_tresdet[]
+
+  @@index([escola])
+  @@index([tipo])
+}
+
+model amizades {
+  id            Int       @id @default(autoincrement())
+  requester_id  Int
+  receiver_id   Int
+  status        String    @default("pendente") @db.VarChar(20)
+  criado_em     DateTime  @default(now()) @db.Timestamptz(6)
+  atualizado_em DateTime? @db.Timestamptz(6)
+  receiver      usuarios  @relation("amizade_receiver", fields: [receiver_id], references: [id], onDelete: Cascade)
+  requester     usuarios  @relation("amizade_requester", fields: [requester_id], references: [id], onDelete: Cascade)
+
+  @@unique([requester_id, receiver_id], map: "unq_amizade")
+  @@index([receiver_id])
+  @@index([status])
+  @@index([receiver_id, status])
+}
+
+model feed_posts {
+  id            Int                @id @default(autoincrement())
+  user_id       Int
+  tipo          String             @default("post") @db.VarChar(20)
+  conteudo      Json
+  entidade_tipo String?            @db.VarChar(50)
+  entidade_id   Int?
+  visibilidade  String             @default("amigos") @db.VarChar(20)
+  deleted_at    DateTime?          @db.Timestamptz(6)
+  criado_em     DateTime           @default(now()) @db.Timestamptz(6)
+  comentarios   feed_comentarios[]
+  curtidas      feed_curtidas[]
+  usuario       usuarios           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([visibilidade])
+  @@index([criado_em])
+  @@index([deleted_at])
+  @@index([user_id, deleted_at, criado_em])
+}
+
+model feed_curtidas {
+  id        Int        @id @default(autoincrement())
+  post_id   Int
+  user_id   Int
+  criado_em DateTime   @default(now()) @db.Timestamptz(6)
+  post      feed_posts @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  usuario   usuarios   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([post_id, user_id], map: "unq_curtida")
+}
+
+model feed_comentarios {
+  id         Int        @id @default(autoincrement())
+  post_id    Int
+  user_id    Int
+  texto      String
+  deleted_at DateTime?  @db.Timestamptz(6)
+  criado_em  DateTime   @default(now()) @db.Timestamptz(6)
+  post       feed_posts @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  usuario    usuarios   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([post_id])
+}
+
+model personagem_sessao {
+  id                    Int          @id @default(autoincrement())
+  sessao_jogo_id        Int
+  personagem_id         Int
+  usuario_id            Int
+  nome                  String       @db.VarChar(200)
+  nivel_inicio          Int          @default(1)
+  xp_inicio             Int          @default(0)
+  atributos_snapshot    Json
+  equipamentos_inicio   Json         @default("[]")
+  vantagens_snapshot    Json         @default("[]")
+  desvantagens_snapshot Json         @default("[]")
+  classe_nome           String?      @db.VarChar(100)
+  raca_nome             String?      @db.VarChar(100)
+  hp_atual              Int?
+  hp_max                Int?
+  mana_atual            Int?
+  mana_max              Int?
+  xp_ganho              Int          @default(0)
+  nivel_fim             Int?
+  itens_ganhos          Json         @default("[]")
+  itens_perdidos        Json         @default("[]")
+  status_efeitos        Json         @default("[]")
+  status                String       @default("ativa") @db.VarChar(20)
+  merged_at             DateTime?    @db.Timestamptz(6)
+  criado_em             DateTime     @default(now()) @db.Timestamptz(6)
+  atualizado_em         DateTime     @updatedAt @db.Timestamptz(6)
+  personagem            personagens  @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
+  sessao_jogo           sessoes_jogo @relation(fields: [sessao_jogo_id], references: [id], onDelete: Cascade)
+
+  @@unique([sessao_jogo_id, personagem_id])
+  @@index([sessao_jogo_id])
+  @@index([personagem_id])
+  @@index([usuario_id])
+}
+
+model habilidades_magias {
+  id                  Int             @id @default(autoincrement())
+  nome                String          @db.VarChar(100)
+  descricao           String
+  custo_mana          Int             @default(0)
+  dano_base           String?         @db.VarChar(50)
+  tipo                String          @default("dano") @db.VarChar(30)
+  elemento            String?         @db.VarChar(50)
+  nivel_requerido     Int             @default(1)
+  cooldown_turnos     Int             @default(0)
+  classe_id           Int?
+  efeito              Json?
+  alvo                String          @default("inimigo") @db.VarChar(30)
+  alcance             String          @default("medio") @db.VarChar(30)
+  area_efeito         Json?
+  tempo_conjuracao    String          @default("acao") @db.VarChar(30)
+  usa_concentracao    Boolean         @default(false)
+  categoria           String          @default("combate_fisico") @db.VarChar(30)
+  escola_magia        String?         @db.VarChar(30)
+  escalamento         Json?
+  pre_requisito       Json?
+  raca_id             Int?
+  usos_por_descanso   Int?
+  componente_material Json?
+  saving_throw        String?         @db.VarChar(30)
+  imagem              String?         @db.VarChar(500)
+  sistema             Sistema         @default(lunaria)
+  classe              classes?        @relation(fields: [classe_id], references: [id])
+  raca                racas?          @relation(fields: [raca_id], references: [id])
+  hm_classe           hm_classe[]
+  hm_raca             hm_raca[]
+  hm_personagem       hm_personagem[]
+  receitas            receitas[]
+
+  @@unique([nome, sistema], map: "habilidades_magias_nome_sistema_key")
+  @@index([classe_id])
+  @@index([nivel_requerido])
+  @@index([raca_id])
+  @@index([categoria])
+  @@index([escola_magia])
+  @@index([nome])
+  @@map("habilidades_magias")
+}
+
+model hm_classe {
+  id                 Int                @id @default(autoincrement())
+  habilidade_id      Int
+  classe_id          Int
+  habilidades_magias habilidades_magias @relation(fields: [habilidade_id], references: [id], onDelete: Cascade)
+  classes            classes            @relation(fields: [classe_id], references: [id], onDelete: Cascade)
+
+  @@unique([habilidade_id, classe_id])
+  @@index([classe_id])
+}
+
+model hm_raca {
+  id                 Int                @id @default(autoincrement())
+  habilidade_id      Int
+  raca_id            Int
+  habilidades_magias habilidades_magias @relation(fields: [habilidade_id], references: [id], onDelete: Cascade)
+  racas              racas              @relation(fields: [raca_id], references: [id], onDelete: Cascade)
+
+  @@unique([habilidade_id, raca_id])
+  @@index([raca_id])
+}
+
+model hm_personagem {
+  id                 Int                @id @default(autoincrement())
+  personagem_id      Int
+  habilidade_id      Int
+  origem             String             @default("criacao")
+  created_at         DateTime           @default(now())
+  personagens        personagens        @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
+  habilidades_magias habilidades_magias @relation(fields: [habilidade_id], references: [id], onDelete: Cascade)
+
+  @@unique([personagem_id, habilidade_id])
+  @@index([personagem_id])
+}
+
+model hm_slots_classe {
+  id        Int     @id @default(autoincrement())
+  classe_id Int
+  nivel     Int
+  slots     Int     @default(0)
+  classes   classes @relation(fields: [classe_id], references: [id], onDelete: Cascade)
+
+  @@unique([classe_id, nivel])
+}
+
+model monstro_loot {
+  id             Int          @id @default(autoincrement())
+  monstro_id     Int
+  equipamento_id Int
+  drop_rate      Float        @default(0.1)
+  min_quantidade Int          @default(1)
+  max_quantidade Int          @default(1)
+  nivel_minimo   Int          @default(1)
+  criado_em      DateTime?    @default(now()) @db.Timestamptz(6)
+  equipamento    equipamentos @relation(fields: [equipamento_id], references: [id], onDelete: Cascade)
+  monstro        monstros     @relation(fields: [monstro_id], references: [id], onDelete: Cascade)
+
+  @@unique([monstro_id, equipamento_id])
+  @@index([monstro_id])
+}
+
+model api_usage {
+  id            Int      @id @default(autoincrement())
+  user_id       Int
+  provider      String   @db.VarChar(50)
+  tipo          String   @db.VarChar(50)
+  modelo        String?  @db.VarChar(100)
+  input_tokens  Int?
+  output_tokens Int?
+  caracteres    Int?
+  custo_usd     Float?   @default(0)
+  duracao_ms    Int?
+  metadata      Json?    @default("{}")
+  criado_em     DateTime @default(now()) @db.Timestamptz(6)
+  usuarios      usuarios @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([provider])
+  @@index([tipo])
+  @@index([criado_em])
+}
+
+model tts_cache {
+  id            Int      @id @default(autoincrement())
+  cache_key     String   @unique @db.VarChar(128)
+  provider      String   @db.VarChar(50)
+  voice_id      String   @db.VarChar(100)
+  caracteres    Int
+  audio_data    Bytes?
+  tamanho_bytes Int
+  criado_em     DateTime @default(now()) @db.Timestamptz(6)
+  audio_url     String?
+
+  @@index([cache_key])
+}
+
+model analytics_eventos {
+  id        Int      @id @default(autoincrement())
+  tipo      String   @db.VarChar(100)
+  dados     Json?    @default("{}")
+  user_id   Int?
+  criado_em DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([tipo])
+  @@index([criado_em])
+  @@index([user_id])
+}
+
+model ai_jobs {
+  id              String    @id @default(cuid())
+  queue           String    @db.VarChar(50)
+  entity_type     String    @db.VarChar(50)
+  entity_id       String    @db.VarChar(100)
+  owner_user_id   Int?
+  status          String    @db.VarChar(20)
+  bullmq_job_id   String?   @unique @db.VarChar(191)
+  request_payload Json?
+  attempts_total  Int       @default(2)
+  attempts_made   Int       @default(0)
+  last_error      String?
+  queued_at       DateTime  @default(now()) @db.Timestamptz(6)
+  started_at      DateTime? @db.Timestamptz(6)
+  finished_at     DateTime? @db.Timestamptz(6)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @updatedAt @db.Timestamptz(6)
+  request_prompt  String?
+  response_text   String?
+
+  @@index([queue, status])
+  @@index([entity_type, entity_id, created_at])
+  @@index([owner_user_id, created_at])
+}
+
+model roteiro_versoes {
+  id             Int       @id @default(autoincrement())
+  historia_id    Int
+  versao         Int       @default(1)
+  modo           String    @db.VarChar(30)
+  temperatura    Float
+  modelo         String    @db.VarChar(60)
+  roteiro        Json
+  ativa          Boolean   @default(false)
+  metadados      Json?
+  criado_em      DateTime  @default(now()) @db.Timestamptz(6)
+  status         String    @default("draft") @db.VarChar(20)
+  reviewer_id    Int?
+  reviewed_at    DateTime? @db.Timestamptz(6)
+  review_comment String?
+  historia       historias @relation(fields: [historia_id], references: [id], onDelete: Cascade)
+  reviewer       usuarios? @relation("roteiro_reviewer", fields: [reviewer_id], references: [id])
+
+  @@index([historia_id, criado_em])
+  @@index([historia_id, ativa])
+  @@index([historia_id, status])
+}
+
+model ingredientes {
+  id                   Int                   @id @default(autoincrement())
+  nome                 String                @unique @db.VarChar(100)
+  descricao            String?
+  tipo                 String                @default("material") @db.VarChar(30)
+  raridade_id          Int?
+  preco_base           Int                   @default(1)
+  peso                 Float?                @default(0.1)
+  icone                String?               @db.VarChar(10)
+  empilhavel           Boolean               @default(true)
+  max_pilha            Int                   @default(99)
+  raridade_rel         raridades?            @relation(fields: [raridade_id], references: [id])
+  monstro_ingrediente  monstro_ingrediente[]
+  receita_ingredientes receita_ingrediente[]
+
+  @@index([tipo])
+  @@index([raridade_id])
+}
+
+model ferramentas {
+  id                  Int                  @id @default(autoincrement())
+  nome                String               @unique @db.VarChar(100)
+  descricao           String?
+  tipo                String               @default("kit") @db.VarChar(30)
+  preco_base          Int                  @default(50)
+  peso                Float?               @default(2.0)
+  classe_id           Int?
+  classe              classes?             @relation(fields: [classe_id], references: [id])
+  receita_ferramentas receita_ferramenta[]
+
+  @@index([classe_id])
+}
+
+model receitas {
+  id                   Int                   @id @default(autoincrement())
+  nome                 String                @unique @db.VarChar(150)
+  descricao            String?
+  categoria            String                @default("pocao") @db.VarChar(30)
+  habilidade_id        Int?
+  equipamento_id       Int?
+  quantidade_resultado Int                   @default(1)
+  nivel_requerido      Int                   @default(1)
+  classe_id            Int?
+  dificuldade          Int                   @default(10)
+  atributo_teste       String                @default("inteligencia") @db.VarChar(30)
+  tempo_fabricacao     Int                   @default(1)
+  tempo_fora_combate   Int?                  @default(30)
+  descoberta           Boolean               @default(false)
+  criado_em            DateTime?             @default(now()) @db.Timestamptz(6)
+  ferramentas_rel      receita_ferramenta[]
+  ingredientes_rel     receita_ingrediente[]
+  classe               classes?              @relation(fields: [classe_id], references: [id])
+  equipamento          equipamentos?         @relation(fields: [equipamento_id], references: [id])
+  habilidade           habilidades_magias?   @relation(fields: [habilidade_id], references: [id])
+
+  @@index([classe_id])
+  @@index([categoria])
+  @@index([nivel_requerido])
+  @@index([habilidade_id])
+}
+
+model receita_ingrediente {
+  id             Int          @id @default(autoincrement())
+  receita_id     Int
+  ingrediente_id Int
+  quantidade     Int          @default(1)
+  consumido      Boolean      @default(true)
+  ingrediente    ingredientes @relation(fields: [ingrediente_id], references: [id], onDelete: Cascade)
+  receita        receitas     @relation(fields: [receita_id], references: [id], onDelete: Cascade)
+
+  @@unique([receita_id, ingrediente_id])
+  @@index([receita_id])
+}
+
+model receita_ferramenta {
+  id            Int         @id @default(autoincrement())
+  receita_id    Int
+  ferramenta_id Int
+  obrigatoria   Boolean     @default(true)
+  ferramenta    ferramentas @relation(fields: [ferramenta_id], references: [id], onDelete: Cascade)
+  receita       receitas    @relation(fields: [receita_id], references: [id], onDelete: Cascade)
+
+  @@unique([receita_id, ferramenta_id])
+  @@index([receita_id])
+}
+
+model monstro_ingrediente {
+  id             Int          @id @default(autoincrement())
+  monstro_id     Int
+  ingrediente_id Int
+  drop_rate      Float        @default(0.3)
+  min_quantidade Int          @default(1)
+  max_quantidade Int          @default(3)
+  nivel_minimo   Int          @default(1)
+  ingrediente    ingredientes @relation(fields: [ingrediente_id], references: [id], onDelete: Cascade)
+  monstro        monstros     @relation(fields: [monstro_id], references: [id], onDelete: Cascade)
+
+  @@unique([monstro_id, ingrediente_id])
+  @@index([monstro_id])
+}
+
+enum enum_alcance {
+  toque
+  curto
+  medio
+  longo
+  extremo
+  pessoal
+  ilimitado
+}
+
+enum enum_area_tipo {
+  nenhuma
+  esfera
+  cone
+  linha
+  cubo
+  cilindro
+}
+
+enum enum_tempo_conjuracao {
+  instantaneo
+  acao
+  turno_cheio
+  ritual
+  preparacao
+}
+
+enum enum_categoria_habilidade {
+  combate_fisico
+  magia_ofensiva
+  magia_defensiva
+  cura
+  suporte
+  controle
+  utilidade
+  social
+  crafting
+}
+
+enum enum_escola_magia {
+  nenhuma
+  evocacao
+  abjuracao
+  necromancia
+  ilusao
+  transmutacao
+  adivinhacao
+  encantamento
+  conjuracao
+  universal
+}
+
+enum enum_categoria_receita {
+  pocao
+  veneno
+  bomba
+  armadilha
+  pergaminho
+  municao
+  comida
+  equipamento
+  engenhoca
+  kit
+}
+
+model itens_tresdet {
+  id              Int     @id @default(autoincrement())
+  nome            String  @db.VarChar(200)
+  descricao       String?
+  tipo            String  @db.VarChar(30)
+  custo_pe        Int     @default(0)
+  preco_moedas    Int     @default(0)
+  poderes         Json?
+  efeito          String?
+  empilhavel      Boolean @default(false)
+  raridade        String? @db.VarChar(30)
+  imagem          String? @db.VarChar(500)
+  magia_vinculada String? @db.VarChar(200)
+
+  personagem_item_tresdet personagem_item_tresdet[]
+
+  @@unique([nome])
+}
+
+model personagem_item_tresdet {
+  personagem_id Int
+  item_id       Int
+  quantidade    Int     @default(1)
+  equipado      Boolean @default(false)
+
+  personagens personagens   @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
+  item        itens_tresdet @relation(fields: [item_id], references: [id], onDelete: Cascade)
+
+  @@id([personagem_id, item_id])
+}
+
+model personagem_magia_tresdet {
+  id               Int      @id @default(autoincrement())
+  personagem_id    Int
+  magia_tresdet_id Int
+  origem           String   @default("criacao") @db.VarChar(30)
+  created_at       DateTime @default(now())
+
+  personagens    personagens    @relation(fields: [personagem_id], references: [id], onDelete: Cascade)
+  magias_tresdet magias_tresdet @relation(fields: [magia_tresdet_id], references: [id], onDelete: Cascade)
+
+  @@unique([personagem_id, magia_tresdet_id])
+  @@index([personagem_id])
+}

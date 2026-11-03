@@ -1,0 +1,675 @@
+{
+  "runId": "run_20260318_150713_7fef",
+  "cenarioId": "02-magia-com-custo",
+  "cenarioVersao": "1.0.0",
+  "cenarioHash": "sha256:83232582e436",
+  "modelo": "gemini-2.5-flash",
+  "provider": "gemini",
+  "redisPrefix": "test_run_run_20260318_150713_7fef_gemini:",
+  "statusExecucao": "concluida",
+  "erroExecucao": null,
+  "iniciadoEm": "2026-03-18T18:07:13.427Z",
+  "finalizadoEm": "2026-03-18T18:07:57.361Z",
+  "duracaoMs": 43934,
+  "metricas": {
+    "turnosExecutados": 6,
+    "respostasParseadas": 6,
+    "errosParse": 0,
+    "rolagensAutomaticas": 1,
+    "latenciaMediaMs": 7321,
+    "latenciaMaxMs": 15727,
+    "tokensInput": null,
+    "tokensOutput": null,
+    "custoEstimado": null
+  },
+  "condicaoDeParada": "acoes_esgotadas",
+  "turnos": [
+    {
+      "turno": 1,
+      "acaoJogador": {
+        "tipo": "iniciar_turno"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "O ar da clareira é denso, carregado com o cheiro de terra úmida e folhas secas. À sua frente, um **Goblin Saqueador** de pele esverdeada e olhos injetados, está agachado perto de um tronco caído, examinando um pequeno saco de couro. Ele não parece ter notado sua presença até o momento. Seus músculos tensos e o brilho em seus olhos indicam que você está pronto para invocar a **Luz Divina** ou **Proteção contra o Mal**. \n\nDe repente, o goblin ergue a cabeça, farejando o ar. Seus olhos pequenos e astutos encontram os seus. Um grunhido gutural escapa de sua garganta enquanto ele larga o saco e saca uma cimitarra enferrujada, assumindo uma postura defensiva instintiva. A ameaça é clara. A clareira, antes pacífica, agora é um palco para o confronto.",
+      "respostaIA": {
+        "narracao": "O ar da clareira é denso, carregado com o cheiro de terra úmida e folhas secas. À sua frente, um **Goblin Saqueador** de pele esverdeada e olhos injetados, está agachado perto de um tronco caído, examinando um pequeno saco de couro. Ele não parece ter notado sua presença até o momento. Seus músculos tensos e o brilho em seus olhos indicam que você está pronto para invocar a **Luz Divina** ou **Proteção contra o Mal**. \n\nDe repente, o goblin ergue a cabeça, farejando o ar. Seus olhos pequenos e astutos encontram os seus. Um grunhido gutural escapa de sua garganta enquanto ele larga o saco e saca uma cimitarra enferrujada, assumindo uma postura defensiva instintiva. A ameaça é clara. A clareira, antes pacífica, agora é um palco para o confronto.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": true,
+          "tipo": "d20",
+          "teste": "Agilidade",
+          "dificuldade": "Média",
+          "origem": null
+        },
+        "acoes": [],
+        "metadados": {
+          "local_atual": "clareira na floresta",
+          "hora_ficcional": "dia",
+          "npcs_presentes": [],
+          "memoria_semantica": [],
+          "terreno": "floresta aberta",
+          "tensao": "combate iminente",
+          "ameacas": [
+            "Goblin Saqueador"
+          ]
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": null,
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 8313,
+      "tempoTurnoTotalMs": 8313
+    },
+    {
+      "turno": 2,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 10,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Moruxis, com um rugido gutural, canaliza a energia divina. Uma esfera de luz pura se materializa entre seus chifres, brilhando intensamente antes de ser lançada em direção ao Goblin Saqueador. O brilho ofuscante corta o ar sujo da caverna, mirando o pequeno e ágil inimigo.",
+      "respostaIA": {
+        "narracao": "Moruxis, com um rugido gutural, canaliza a energia divina. Uma esfera de luz pura se materializa entre seus chifres, brilhando intensamente antes de ser lançada em direção ao Goblin Saqueador. O brilho ofuscante corta o ar sujo da caverna, mirando o pequeno e ágil inimigo.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": true,
+          "tipo": "d20",
+          "teste": "Inteligência",
+          "dificuldade": "Média",
+          "origem": "magia:Luz Divina"
+        },
+        "acoes": [
+          {
+            "tipo": "conjurar_magia",
+            "personagem": "Moruxis",
+            "magia_id": null,
+            "nome": "Luz Divina",
+            "custo_mana": 3,
+            "cooldown_turnos": 0,
+            "usa_concentracao": false,
+            "dano_base": "1d8",
+            "elemento": "radiante",
+            "alvo": "Goblin Saqueador"
+          }
+        ],
+        "metadados": {
+          "local_atual": null,
+          "hora_ficcional": null,
+          "npcs_presentes": [],
+          "memoria_semantica": [],
+          "terreno": null,
+          "tensao": "combate iminente",
+          "ameacas": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 4787,
+      "tempoTurnoTotalMs": 4787
+    },
+    {
+      "turno": 3,
+      "acaoJogador": {
+        "tipo": "rolar_dado",
+        "quando": "se_solicitado"
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 12,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "{\"rolagemBruta\":14,\"atributo\":\"inteligencia\",\"atributoNome\":\"Inteligência\",\"valorAtributo\":10,\"modificador\":0,\"bonusNivel\":0,\"bonusVantDesvant\":0,\"detalhesBonus\":[],\"totalModificador\":0,\"total\":14,\"dc\":12,\"dificuldadeNome\":\"Média\",\"sucesso\":true,\"margem\":2,\"critico\":false,\"falha_critica\":false,\"descricaoResultado\":\"Sucesso!\"}",
+      "respostaIA": null,
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "ataque",
+        "sucesso": true,
+        "dano": 7,
+        "danoRolado": 8,
+        "armadura": 1,
+        "alvoId": "goblin_1",
+        "alvoHpRestante": 5
+      },
+      "rolagemAutomatica": {
+        "dado": "d20",
+        "resultado": 14,
+        "teste": "Inteligência",
+        "resolucao": {
+          "rolagemBruta": 14,
+          "atributo": "inteligencia",
+          "atributoNome": "Inteligência",
+          "valorAtributo": 10,
+          "modificador": 0,
+          "bonusNivel": 0,
+          "bonusVantDesvant": 0,
+          "detalhesBonus": [],
+          "totalModificador": 0,
+          "total": 14,
+          "dc": 12,
+          "dificuldadeNome": "Média",
+          "sucesso": true,
+          "margem": 2,
+          "critico": false,
+          "falha_critica": false,
+          "descricaoResultado": "Sucesso!"
+        }
+      },
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 5,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 1,
+      "tempoTurnoTotalMs": 1
+    },
+    {
+      "turno": 4,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanço Protecao contra o Mal em mim mesmo",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "protecao_mal",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 7,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 5,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Uma aura tênue e dourada envolve Moruxis, pulsando com energia protetora. O efeito da magia 'Proteção contra o Mal' se manifesta. O Goblin Saqueador, visivelmente ferido, rosna e mantém sua postura agressiva, os olhos fixos em Moruxis.",
+      "respostaIA": {
+        "narracao": "Uma aura tênue e dourada envolve Moruxis, pulsando com energia protetora. O efeito da magia 'Proteção contra o Mal' se manifesta. O Goblin Saqueador, visivelmente ferido, rosna e mantém sua postura agressiva, os olhos fixos em Moruxis.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [
+          {
+            "tipo": "conjurar_magia",
+            "personagem": "Moruxis",
+            "magia_id": null,
+            "nome": "Protecao contra o Mal",
+            "custo_mana": 2,
+            "usa_concentracao": false
+          },
+          {
+            "tipo": "aplicar_efeito",
+            "personagem": "Moruxis",
+            "nome": "Proteção contra o Mal",
+            "duracao": null
+          }
+        ],
+        "metadados": {
+          "local_atual": null,
+          "hora_ficcional": null,
+          "npcs_presentes": [
+            {
+              "nome": "Goblin Saqueador",
+              "tipo": "humanoide",
+              "status": "ferido"
+            }
+          ],
+          "memoria_semantica": [],
+          "terreno": null,
+          "tensao": "combate ativo",
+          "ameacas": []
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "protecao_mal",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 5,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 5,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 15099,
+      "tempoTurnoTotalMs": 15099
+    },
+    {
+      "turno": 5,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina novamente no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 5,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 5,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "Moruxis levanta sua mão com determinação, e um brilho dourado emana de sua palma. A energia sagrada se condensa rapidamente, formando um projétil radiante. Com um gesto firme, o minotauro lança a luz divina em direção ao Goblin Saqueador, que cambaleia, já ferido. O feixe de energia corta o ar, buscando seu alvo com precisão.",
+      "respostaIA": {
+        "narracao": "Moruxis levanta sua mão com determinação, e um brilho dourado emana de sua palma. A energia sagrada se condensa rapidamente, formando um projétil radiante. Com um gesto firme, o minotauro lança a luz divina em direção ao Goblin Saqueador, que cambaleia, já ferido. O feixe de energia corta o ar, buscando seu alvo com precisão.",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false,
+          "tipo": "d20",
+          "teste": "",
+          "dificuldade": "",
+          "origem": null
+        },
+        "acoes": [
+          {
+            "tipo": "conjurar_magia",
+            "personagem": "Moruxis",
+            "magia_id": 1,
+            "nome": "Luz Divina",
+            "custo_mana": 3,
+            "cooldown_turnos": 0,
+            "usa_concentracao": false,
+            "dano_base": "1d8",
+            "elemento": "radiante",
+            "alvo": "Goblin Saqueador"
+          }
+        ],
+        "metadados": {
+          "local_atual": null,
+          "hora_ficcional": null,
+          "npcs_presentes": [
+            {
+              "nome": "Goblin Saqueador",
+              "status": "ferido"
+            }
+          ],
+          "memoria_semantica": [],
+          "terreno": null,
+          "tensao": "combate ativo",
+          "ameacas": [
+            "Goblin Saqueador"
+          ]
+        }
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "tipo": "usar_habilidade",
+        "alvoId": "goblin_1",
+        "alvoNome": "Goblin Saqueador",
+        "arma": null,
+        "magiaId": "luz_divina",
+        "habilidadeId": null,
+        "pendingRoll": true
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 2,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 5,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 15727,
+      "tempoTurnoTotalMs": 15727
+    },
+    {
+      "turno": 6,
+      "acaoJogador": {
+        "tipo": "mensagem",
+        "texto": "Lanco Luz Divina mais uma vez no goblin",
+        "gameIntent": {
+          "categoria": "combate",
+          "tipo": "usar_habilidade",
+          "magiaId": "luz_divina",
+          "alvo": "goblin_1"
+        }
+      },
+      "estadoAntes": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 2,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 5,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "respostaBruta": "{\"narracao\":\"[BLOQUEADO] mana insuficiente para luz_divina: tem 2, custo 3\",\"fimDeTurno\":false,\"solicitaDados\":{\"solicita\":false},\"acoes\":[]}",
+      "respostaIA": {
+        "narracao": "[BLOQUEADO] mana insuficiente para luz_divina: tem 2, custo 3",
+        "fimDeTurno": false,
+        "solicitaDados": {
+          "solicita": false
+        },
+        "acoes": []
+      },
+      "respostaParseou": true,
+      "erroParse": null,
+      "resolucaoMecanica": {
+        "bloqueado": true,
+        "motivo": "mana insuficiente para luz_divina: tem 2, custo 3"
+      },
+      "rolagemAutomatica": null,
+      "estadoApos": {
+        "jogador": {
+          "hp": 30,
+          "hpMax": 30,
+          "mana": 2,
+          "manaMax": 10,
+          "status": [],
+          "cooldowns": {},
+          "xp": 0
+        },
+        "inimigos": [
+          {
+            "id": "goblin_1",
+            "nome": "Goblin Saqueador",
+            "hp": 5,
+            "hpMax": 12,
+            "ataque": 4,
+            "dano": "1d6",
+            "esquiva": 8,
+            "armadura": 1,
+            "xp": 25,
+            "status": []
+          }
+        ],
+        "combateAtivo": true
+      },
+      "tempoRespostaMs": 0,
+      "tempoTurnoTotalMs": 1
+    }
+  ],
+  "estadoFinal": {
+    "jogador": {
+      "hp": 30,
+      "hpMax": 30,
+      "mana": 2,
+      "manaMax": 10,
+      "xpGanho": 0,
+      "status": []
+    },
+    "inimigos": [
+      {
+        "id": "goblin_1",
+        "hp": 5,
+        "hpMax": 12,
+        "status": []
+      }
+    ],
+    "combateAtivo": true,
+    "resultado": "indefinido",
+    "resultadoDetalhe": null
+  }
+}

@@ -1,0 +1,15 @@
+node_modules
+.env
+.env.local
+.env.development
+.env.production
+.env*.local
+.env.save
+.env.qa
+*.png
+.playwright-mcp/
+scripts/balance-report.html
+piper-voices/
+.backups/
+.qa/
+.drift-inventory.sql

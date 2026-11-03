@@ -1,7 +1,8 @@
 /**
  * Seed completo do banco de dados a partir dos JSONs de catálogo.
  *
- * Lê todos os 10 arquivos JSON de `novidades e mds/catalogos/`
+ * Lê os 10 arquivos JSON de `docs/referencia-design/catalogos/` (raiz do monorepo),
+ * ou da pasta indicada em CATALOGOS_DIR
  * e popula o DB via Prisma.
  *
  * Uso: node seed-from-json.js
@@ -20,7 +21,7 @@ const __dirname = dirname(__filename);
 
 const prisma = new PrismaClient();
 
-const CATALOGOS_DIR = join(__dirname, '..', 'novidades e mds', 'catalogos');
+const CATALOGOS_DIR = process.env.CATALOGOS_DIR || join(__dirname, '..', 'docs', 'referencia-design', 'catalogos');
 
 // ──────────────────────────────────────────────────────────────
 // Helpers

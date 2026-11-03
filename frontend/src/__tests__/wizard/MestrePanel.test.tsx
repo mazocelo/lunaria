@@ -1,0 +1,155 @@
+// src/__tests__/wizard/MestrePanel.test.tsx
+import { describe, it, expect, vi } from 'vitest';
+import { act } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import MestrePanel from '../../Pages/Personagem/Wizard/components/MestrePanel';
+import type { WizardMessage } from '../../Pages/Personagem/Wizard/hooks/useChatState';
+import { montar, clicar, tecla } from '../helpers/montar';
+
+const mensagens: WizardMessage[] = [
+  { role: 'mestre', content: 'Diga-me o nome do herói.', sugestoes: [{ tipo: 'nome', nome: 'Kaelen' }, { tipo: 'nome', nome: 'Runa' }] },
+] as WizardMessage[];
+
+const base = {
+  onFechar: () => {}, enviando: false, inputTexto: '', setInputTexto: () => {},
+  etapaAtual: 'boas_vindas', sistema: 'lunaria', onEnviar: () => {}, onEscolherSugestao: () => {}, isLight: false,
+};
+
+describe('MestrePanel', () => {
+  it('fechado não renderiza o painel', () => {
+    expect(renderToStaticMarkup(<MestrePanel {...base} aberto={false} mensagens={mensagens} />)).toBe('');
+  });
+
+  it('aberto mostra a mensagem, os chips de nome e o botão Mais sugestões', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={mensagens} />);
+    expect(html).toContain('Mestre Criador');
+    expect(html).toContain('Diga-me o nome do herói.');
+    expect(html).toContain('>Kaelen<');
+    expect(html).toContain('>Runa<');
+    expect(html).toContain('Mais sugestões');
+    expect(html).toContain('role="dialog"');
+  });
+
+  it('enviando desabilita chips, input e botão', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={mensagens} enviando={true} />);
+    expect(html).toMatch(/data-sugestao="nome"[^>]*\sdisabled=""/);
+    expect(html).toMatch(/<textarea[^>]*\sdisabled=""/);
+    expect(html).toMatch(/data-acao="enviar-mestre"[^>]*\sdisabled=""/);
+  });
+
+  it('sem mensagens mostra estado vazio', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={[]} />);
+    expect(html).toContain('O Mestre ainda não falou');
+  });
+});
+
+describe('MestrePanel: conversar não grava nem avança (A14/A15)', () => {
+  const enviarPeloForm = (inputTexto: string, etapaAtual: string) => {
+    const onEnviar = vi.fn();
+    const { container, desmontar } = montar(<MestrePanel {...base} aberto={true} mensagens={[]} etapaAtual={etapaAtual} inputTexto={inputTexto} onEnviar={onEnviar} />);
+    act(() => { container.querySelector('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+    desmontar();
+    return onEnviar;
+  };
+
+  it('texto livre em boas_vindas vai com manterEtapa', () => {
+    expect(enviarPeloForm('quero um elfo', 'boas_vindas')).toHaveBeenCalledWith('quero um elfo', { manterEtapa: true });
+  });
+
+  it('texto livre em background vai com manterEtapa', () => {
+    expect(enviarPeloForm('o que combina com um ladino?', 'background')).toHaveBeenCalledWith('o que combina com um ladino?', { manterEtapa: true });
+  });
+
+  it('chips mantêm o comportamento: nome aceita, background envia sem manterEtapa, raça escolhe', () => {
+    const onEnviar = vi.fn();
+    const onEscolherSugestao = vi.fn();
+    const msgs = [{ role: 'mestre', content: 'Opções', sugestoes: [
+      { tipo: 'nome', nome: 'Kaelen' }, { tipo: 'background', nome: 'Órfão do porto' }, { tipo: 'raca', id: 3, nome: 'Elfo' },
+    ] }] as WizardMessage[];
+    const { container, desmontar } = montar(<MestrePanel {...base} aberto={true} mensagens={msgs} onEnviar={onEnviar} onEscolherSugestao={onEscolherSugestao} />);
+    clicar(container.querySelector('[data-sugestao="nome"]'));
+    clicar(container.querySelector('[data-sugestao="background"]'));
+    clicar(container.querySelector('[data-sugestao="raca"]'));
+    expect(onEnviar).toHaveBeenNthCalledWith(1, 'Kaelen', { aceitarNome: true });
+    expect(onEnviar).toHaveBeenNthCalledWith(2, 'Órfão do porto');
+    expect(onEscolherSugestao).toHaveBeenCalledWith(expect.objectContaining({ tipo: 'raca', id: 3 }));
+    desmontar();
+  });
+});
+
+describe('MestrePanel: Mestre pensando (M2)', () => {
+  it('custo do chip no formato único: custa ou devolve', () => {
+    const msgs = [{ role: 'mestre', content: 'Opções', sugestoes: [
+      { tipo: 'vantagem', nome: 'Riqueza', custo: 2 },
+      { tipo: 'desvantagem', nome: 'Fobia', custo: -1 },
+    ] }] as WizardMessage[];
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} etapaAtual="vantagens" mensagens={msgs} />);
+    expect(html).toContain('Custa 2 pts');
+    expect(html).toContain('Devolve 1 pt');
+  });
+
+  it('enviando mostra o indicador no fim da conversa', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={mensagens} enviando={true} />);
+    expect(html).toContain('O Mestre está pensando…');
+    expect(html.indexOf('O Mestre está pensando…')).toBeGreaterThan(html.indexOf('Diga-me o nome do herói.'));
+  });
+
+  it('parado não mostra o indicador', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={mensagens} />);
+    expect(html).not.toContain('O Mestre está pensando');
+  });
+});
+
+describe('MestrePanel: diálogo acessível (M1)', () => {
+  it('é modal', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} mensagens={mensagens} />);
+    expect(html).toMatch(/role="dialog"[^>]*aria-modal="true"|aria-modal="true"[^>]*role="dialog"/);
+  });
+
+  it('ao abrir foca o campo, Esc fecha e ao fechar o foco volta ao botão do cabeçalho', () => {
+    const botao = document.createElement('button');
+    document.body.appendChild(botao);
+    const focoAoFechar = { current: botao };
+    const onFechar = vi.fn();
+    const ui = (aberto: boolean) => <MestrePanel {...base} aberto={aberto} mensagens={mensagens} onFechar={onFechar} focoAoFechar={focoAoFechar} />;
+
+    const { rerender, desmontar } = montar(ui(true));
+    expect(document.activeElement?.id).toBe('mestre-input');
+
+    tecla(document, 'Escape');
+    expect(onFechar).toHaveBeenCalledTimes(1);
+
+    rerender(ui(false));
+    expect(document.activeElement).toBe(botao);
+
+    tecla(document, 'Escape');
+    expect(onFechar).toHaveBeenCalledTimes(1);
+    desmontar();
+    botao.remove();
+  });
+});
+
+describe('MestrePanel: anuncia e marca escolhidas (MA:M3, N-11)', () => {
+  const sug = [{ role: 'mestre', content: 'Opções', sugestoes: [{ tipo: 'vantagem', id: 7, nome: 'Riqueza', descricao: 'Recursos.', custo: 4 }] }] as WizardMessage[];
+
+  it('lista com aria-live e chip escolhido com Remover explícito', () => {
+    const html = renderToStaticMarkup(<MestrePanel {...base} aberto={true} etapaAtual="vantagens" mensagens={sug} selecionados={[7]} onRemover={() => {}} />);
+    expect(html).toMatch(/aria-live="polite"/);
+    expect(html).toContain('Escolhida');
+    expect(html).toContain('aria-label="Remover Riqueza"');
+    expect(html).toContain('Recursos.');
+  });
+
+  it('clique no chip escolhido não alterna; Remover chama onRemover', () => {
+    const onEscolherSugestao = vi.fn();
+    const onRemover = vi.fn();
+    const onFechar = vi.fn();
+    const { container, desmontar } = montar(<MestrePanel {...base} aberto={true} etapaAtual="vantagens" mensagens={sug} selecionados={['7']} onEscolherSugestao={onEscolherSugestao} onRemover={onRemover} onFechar={onFechar} />);
+    clicar(container.querySelector('[data-sugestao="vantagem"]'));
+    expect(onEscolherSugestao).not.toHaveBeenCalled();
+    clicar(container.querySelector('[aria-label="Remover Riqueza"]'));
+    expect(onRemover).toHaveBeenCalledWith('vantagem', 7);
+    expect(onFechar).not.toHaveBeenCalled();
+    desmontar();
+  });
+});

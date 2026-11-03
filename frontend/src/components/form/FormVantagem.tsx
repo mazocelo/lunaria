@@ -1,0 +1,226 @@
+import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useTheme } from '../../contexts/theme';
+
+export interface FormVantagemOption {
+  value: string | number;
+  label: ReactNode;
+  custo?: number | null;
+  tipo?: string | null;
+  descricao?: string | null;
+}
+
+export interface FormVantagemChangeEvent {
+  target: { name?: string; value: string[] };
+}
+
+export interface FormVantagemProps {
+  label?: ReactNode;
+  value?: Array<string | number>;
+  onChange?: (event: FormVantagemChangeEvent) => void;
+  name?: string;
+  options?: FormVantagemOption[];
+  placeholder?: string;
+  required?: boolean;
+  disabled?: boolean;
+  className?: string;
+  error?: string | null;
+  pontosRestantes?: number;
+  vantagemError?: string | null;
+}
+
+const FormVantagem = ({
+  label,
+  value = [],
+  onChange,
+  name,
+  options = [],
+  placeholder = 'Selecione as vantagens e desvantagens',
+  required = false,
+  disabled = false,
+  className = '',
+  error,
+  vantagemError = null,
+}: FormVantagemProps) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const selectId = `vantagem-${name}`;
+  const [isOpen, setIsOpen] = useState(false);
+  const [hoveredOption, setHoveredOption] = useState<FormVantagemOption | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Garantir que value seja sempre um array de strings
+  const safeValue: string[] = Array.isArray(value) ? value.map(String) : [];
+
+  // Fechar dropdown quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Soma custo das vantagens selecionadas
+  const custoTotal = safeValue.reduce((acc, id) => {
+    const vant = options.find((v) => String(v.value) === String(id));
+    return acc + (vant ? Number(vant.custo) || 0 : 0);
+  }, 0);
+
+  // Handler de selecao multipla
+  const handleSelect = (option: FormVantagemOption) => {
+    if (disabled) return;
+    const isSelected = safeValue.includes(String(option.value));
+    const newValue = isSelected
+      ? safeValue.filter((id) => id !== String(option.value))
+      : [...safeValue, String(option.value)];
+    onChange?.({ target: { name, value: newValue } });
+  };
+
+  // Handler para remover vantagem pelo chip
+  const handleRemoveChip = (id: string) => {
+    if (disabled) return;
+    const newValue = safeValue.filter((vantId) => vantId !== id);
+    onChange?.({ target: { name, value: newValue } });
+  };
+
+  return (
+    <div className={`flex flex-col mb-4 ${className}`}>
+      {label && (
+        <label
+          htmlFor={selectId}
+          className={`mb-2 text-sm font-semibold font-modern ${isLight ? 'text-slate-700' : 'text-white'}`}
+        >
+          {label}
+          {required && <span className="text-red-400 ml-1">*</span>}
+        </label>
+      )}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs text-slate-400 font-modern">Pontos utilizados em vantagens/desvantagens: <span className="font-bold text-cyan-400">{custoTotal}</span></span>
+      </div>
+      <div className="relative" ref={dropdownRef}>
+        {/* Select customizado */}
+        <div
+          className={`w-full px-4 py-2 rounded-lg font-modern border focus:outline-none transition-all cursor-pointer
+            ${isLight ? 'bg-white/90 border-slate-300 text-slate-800' : 'bg-[#1e1b4bcc] border-slate-700 text-white'}
+            ${error ? 'border-red-500' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+            ${isOpen ? 'ring-2 ring-purple-500/50' : ''}`}
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+        >
+          <div className="flex flex-wrap gap-2 min-h-[24px]">
+            {safeValue.length === 0 ? (
+              <span className="text-slate-400">{placeholder}</span>
+            ) : (
+              safeValue.map(id => {
+                const vant = options.find(v => String(v.value) === String(id));
+                return vant ? (
+                  <span key={id} className={`rounded px-2 py-0.5 text-xs font-semibold flex items-center gap-1 ${
+                    (vant.custo != null && vant.custo < 0) 
+                      ? 'bg-red-700/80 text-white' 
+                      : 'bg-cyan-700/80 text-white'
+                  }`}>
+                    {vant.label} {vant.custo ? <span className={(vant.custo != null && vant.custo < 0) ? 'text-red-300' : 'text-cyan-300'}>({vant.custo} pts)</span> : null}
+                    <button
+                      type="button"
+                      className="ml-1 text-white/70 hover:text-red-400 focus:outline-none text-lg leading-none w-6 h-6 flex items-center justify-center rounded-full transition-colors duration-150"
+                      onClick={e => { e.stopPropagation(); handleRemoveChip(id); }}
+                      tabIndex={-1}
+                      aria-label="Remover vantagem"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ) : null;
+              })
+            )}
+          </div>
+          <span className={`absolute right-4 top-1/2 -translate-y-1/2 transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+        </div>
+        {/* Dropdown */}
+        {isOpen && !disabled && (
+          <div className="absolute z-50 w-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {options.length === 0 ? (
+              <div className="px-4 py-2 text-slate-400 text-sm">Nenhuma vantagem/desvantagem disponível</div>
+            ) : (
+              options.map((option) => {
+                const isSelected = safeValue.includes(String(option.value));
+                return (
+                  <div
+                    key={option.value}
+                    className={`px-4 py-2 cursor-pointer transition-colors flex items-center justify-between
+                      ${isSelected ? 'bg-purple-600/20 text-purple-300' : 'text-white hover:bg-slate-700'}`}
+                    onClick={() => handleSelect(option)}
+                    onMouseEnter={(e) => {
+                      setHoveredOption(option);
+                      setMousePosition({ x: e.clientX, y: e.clientY });
+                    }}
+                    onMouseLeave={() => setHoveredOption(null)}
+                  >
+                    <span className="font-medium flex-1">{option.label}</span>
+                    <div className="flex items-center space-x-2">
+                      {option.custo && (
+                        <span className={`text-sm ml-2 ${
+                          (option.custo != null && option.custo < 0) ? 'text-red-400' : 'text-cyan-400'
+                        }`}>
+                          {option.custo} pts
+                        </span>
+                      )}
+                      {isSelected && <span className="text-cyan-300">✓</span>}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+        {/* Tooltip de descrição */}
+        {hoveredOption && hoveredOption.descricao && (
+          <div 
+            className="fixed z-50 p-3 rounded-lg shadow-lg max-w-xs bg-slate-800 border border-slate-600 text-white text-sm pointer-events-none"
+            style={{
+              left: mousePosition.x + 10,
+              top: mousePosition.y - 10,
+              transform: 'translateY(-100%)'
+            }}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <div className="font-semibold">{hoveredOption.label}</div>
+              {hoveredOption.tipo && (
+                <span className={`text-xs px-2 py-1 rounded font-medium ${
+                  (hoveredOption.custo != null && hoveredOption.custo < 0) 
+                    ? 'bg-red-500/20 text-red-300' 
+                    : 'bg-cyan-500/20 text-cyan-300'
+                }`}>
+                  {(hoveredOption.custo != null && hoveredOption.custo < 0) ? 'Desvantagem' : 'Vantagem'}
+                </span>
+              )}
+            </div>
+            {hoveredOption.custo && (
+              <div className={`text-xs mb-2 ${
+                (hoveredOption.custo != null && hoveredOption.custo < 0) ? 'text-red-400' : 'text-cyan-400'
+              }`}>
+                Custo: {hoveredOption.custo} pontos
+              </div>
+            )}
+            <div className="text-slate-300 text-xs leading-relaxed">
+              {hoveredOption.descricao}
+            </div>
+            <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-slate-800"></div>
+          </div>
+        )}
+      </div>
+      {vantagemError && (
+        <div className="mt-2 text-xs text-red-400 font-modern animate-pulse">{vantagemError}</div>
+      )}
+      {error && (
+        <p className="mt-1 text-xs text-red-400 font-modern">{error}</p>
+      )}
+    </div>
+  );
+};
+
+export default FormVantagem; 

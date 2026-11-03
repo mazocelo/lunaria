@@ -1,0 +1,58 @@
+name: CI/CD Frontend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    name: Lint, Typecheck & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          npm install --include=dev
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: TypeScript Check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+  deploy:
+    name: Deploy to VPS
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            set -euxo pipefail
+            cd /opt/role-chat-game/frontend
+            git pull --ff-only origin main
+            npm install --include=dev
+            npm run build
+            sudo mkdir -p /var/www/lunaria-front
+            sudo rsync -av --delete dist/ /var/www/lunaria-front/
+            sudo chown -R www-data:www-data /var/www/lunaria-front
+            sudo nginx -t
+            sudo systemctl reload nginx

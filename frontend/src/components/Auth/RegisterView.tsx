@@ -1,0 +1,483 @@
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
+import InputSimples from '../../components/form/inputSimples';
+import Button from '../../components/form/button';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import Notification from '../../components/Notification';
+import ParticlesBackground from '../../components/ParticlesBackground';
+import { ROUTES } from '../../constants/routes';
+import { Eye, EyeOff } from 'lucide-react';
+
+interface RegisterViewProps {
+  onSwitchToLogin: () => void;
+}
+
+interface RegisterFormData {
+  nome: string;
+  email: string;
+  senha: string;
+  confirmSenha: string;
+}
+
+interface RegisterFormErrors {
+  nome?: string;
+  email?: string;
+  senha?: string;
+  confirmSenha?: string;
+}
+
+type StrengthColor = 'red' | 'yellow' | 'green';
+
+interface PasswordStrength {
+  level: 1 | 2 | 3;
+  label: string;
+  color: StrengthColor;
+}
+
+interface NotificationState {
+  type: 'success' | 'error';
+  message: string;
+}
+
+const getPasswordStrength = (password: string): PasswordStrength | null => {
+  if (!password || password.length === 0) return null;
+  const hasLetters = /[a-zA-Z]/.test(password);
+  const hasNumbers = /[0-9]/.test(password);
+  const hasSpecial = /[^a-zA-Z0-9]/.test(password);
+  if (password.length >= 8 && hasLetters && hasNumbers && hasSpecial) return { level: 3, label: 'Forte', color: 'green' };
+  if (password.length >= 8 && hasLetters && hasNumbers) return { level: 2, label: 'Média', color: 'yellow' };
+  return { level: 1, label: 'Fraca', color: 'red' };
+};
+
+const RegisterView = ({ onSwitchToLogin }: RegisterViewProps) => {
+  const { register, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState<RegisterFormData>({
+    nome: '',
+    email: '',
+    senha: '',
+    confirmSenha: '',
+  });
+  const [errors, setErrors] = useState<RegisterFormErrors>({});
+  const [notification, setNotification] = useState<NotificationState | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Redireccionar se já autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      // Usuário já autenticado
+    }
+  }, [isAuthenticated]);
+
+  /**
+   * Atualizar dados do formulario
+   */
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    if (errors[name as keyof RegisterFormErrors]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: '',
+      }));
+    }
+  };
+
+  const validateField = (name: keyof RegisterFormErrors) => {
+    setErrors(prev => {
+      const next = { ...prev };
+      if (name === 'nome') {
+        if (formData.nome && formData.nome.trim().length > 0 && formData.nome.trim().length < 2) {
+          next.nome = 'Nome deve ter pelo menos 2 caracteres';
+        } else {
+          delete next.nome;
+        }
+      }
+      if (name === 'email') {
+        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+          next.email = 'Email inválido';
+        } else {
+          delete next.email;
+        }
+      }
+      if (name === 'senha') {
+        if (formData.senha && formData.senha.length > 0) {
+          if (formData.senha.length < 8) {
+            next.senha = 'Senha deve ter pelo menos 8 caracteres';
+          } else if (!/[A-Z]/.test(formData.senha) || !/[0-9]/.test(formData.senha) || !/[^a-zA-Z0-9]/.test(formData.senha)) {
+            next.senha = 'Senha deve conter maiúscula, número e caractere especial';
+          } else {
+            delete next.senha;
+          }
+        } else {
+          delete next.senha;
+        }
+      }
+      if (name === 'confirmSenha') {
+        if (formData.confirmSenha && formData.senha !== formData.confirmSenha) {
+          next.confirmSenha = 'Senhas não conferem';
+        } else {
+          delete next.confirmSenha;
+        }
+      }
+      return next;
+    });
+  };
+
+  const validateForm = () => {
+    const newErrors: RegisterFormErrors = {};
+
+    // Validação do nome
+    if (!formData.nome.trim()) {
+      newErrors.nome = 'Nome é obrigatório';
+    } else if (formData.nome.trim().length < 2) {
+      newErrors.nome = 'Nome deve ter pelo menos 2 caracteres';
+    }
+
+    // Validação do email
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email é obrigatório';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Email inválido';
+    }
+
+    // Validação da senha
+    if (!formData.senha.trim()) {
+      newErrors.senha = 'Senha é obrigatória';
+    } else if (formData.senha.length < 8) {
+      newErrors.senha = 'Senha deve ter pelo menos 8 caracteres';
+    } else if (!/[A-Z]/.test(formData.senha) || !/[0-9]/.test(formData.senha) || !/[^a-zA-Z0-9]/.test(formData.senha)) {
+      newErrors.senha = 'Senha deve conter maiúscula, número e caractere especial';
+    }
+
+    // Validação da confirmação de senha
+    if (!formData.confirmSenha.trim()) {
+      newErrors.confirmSenha = 'Confirmação de senha é obrigatória';
+    } else if (formData.senha !== formData.confirmSenha) {
+      newErrors.confirmSenha = 'Senhas não conferem';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  /**
+   * Submeter formulario de registro
+   */
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    const registerPayload = {
+      nome: formData.nome,
+      email: formData.email,
+      senha: formData.senha,
+    };
+
+    try {
+      setSubmitting(true);
+      const result = register
+        ? await register(registerPayload)
+        : { success: false, error: 'Funcionalidade de registro em desenvolvimento' } as const;
+
+      if (result.success) {
+        const userNome = 'user' in result ? result.user?.nome ?? formData.nome : formData.nome;
+        setNotification({
+          type: 'success',
+          message: `Conta criada com sucesso! Bem-vindo, ${userNome}!`,
+        });
+
+        // Limpar formulario apos sucesso
+        setFormData({
+          nome: '',
+          email: '',
+          senha: '',
+          confirmSenha: '',
+        });
+
+        // Auto-login: redirecionar diretamente para historias
+        setTimeout(() => {
+          navigate(ROUTES.HISTORIAS);
+        }, 800);
+      } else {
+        setNotification({
+          type: 'error',
+          message: ('error' in result && result.error) || 'Erro ao criar conta',
+        });
+      }
+    } catch {
+      setNotification({
+        type: 'error',
+        message: 'Erro inesperado ao criar conta',
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  /**
+   * Navegar para login
+   */
+  const handleGoToLogin = () => {
+    onSwitchToLogin();
+  };
+
+  return (
+    <div className="min-h-screen relative flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      <ParticlesBackground />
+      
+      {/* Background com gradiente espacial */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-900/40 to-slate-900"></div>
+      
+      {/* Estrelas de fundo */}
+      <div className="absolute inset-0 overflow-hidden">
+        {[...Array(50)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-white/30 rounded-full animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 3}s`,
+              animationDuration: `${2 + Math.random() * 2}s`
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Container principal */}
+      <div className="relative z-10 w-full max-w-md">
+        {/* Card de registro */}
+        <div className="glass p-8 rounded-2xl shadow-2xl border border-purple-500/20 backdrop-blur-xl">
+          
+          {/* Logo e título */}
+          <div className="text-center mb-8">
+            <div className="flex justify-center mb-6">
+              <img 
+                src="/assets/logo_lunaria.png" 
+                alt="Lunaria - The Fable Forge" 
+                className="h-20 w-20 object-contain filter drop-shadow-2xl animate-pulse-slow"
+              />
+            </div>
+            <h1 className="text-3xl font-fantasy text-white mb-2 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              Lunaria - The Fable Forge
+            </h1>
+            <p className="text-purple-200 text-sm font-modern">
+              Comece sua jornada épica
+            </p>
+          </div>
+
+          {/* Formulário de registro */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Campo Nome */}
+            <div className="space-y-2">
+              <label htmlFor="nome" className="text-sm font-medium text-purple-200">
+                Nome
+              </label>
+              <InputSimples
+                id="nome"
+                name="nome"
+                type="text"
+                value={formData.nome}
+                onChange={handleInputChange}
+                onBlur={() => validateField('nome')}
+                className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
+                placeholder="Seu nome completo"
+                disabled={submitting}
+              />
+              {errors.nome && (
+                <p className="text-red-400 text-xs mt-1">{errors.nome}</p>
+              )}
+            </div>
+
+            {/* Campo Email */}
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium text-purple-200">
+                Email
+              </label>
+              <InputSimples
+                id="register-email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                onBlur={() => validateField('email')}
+                className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30"
+                placeholder="seu@email.com"
+                disabled={submitting}
+                autoComplete="email"
+              />
+              {errors.email && (
+                <p className="text-red-400 text-xs mt-1">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Campo Senha */}
+            <div className="space-y-2">
+              <label htmlFor="senha" className="text-sm font-medium text-purple-200">
+                Senha
+              </label>
+              <div className="relative [&>div]:relative [&>div>input]:pr-10">
+                <InputSimples
+                  id="register-senha"
+                  name="senha"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.senha}
+                  onChange={handleInputChange}
+                  onBlur={() => validateField('senha')}
+                  className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
+                  placeholder="••••••••"
+                  disabled={submitting}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 bottom-2 text-purple-300 hover:text-purple-200 transition-colors focus:outline-none z-10"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+              </div>
+              {errors.senha && (
+                <p className="text-red-400 text-xs mt-1">{errors.senha}</p>
+              )}
+              {/* Indicador de força de senha */}
+              {formData.senha && (() => {
+                const strength = getPasswordStrength(formData.senha);
+                if (!strength) return null;
+                const colors: Record<StrengthColor, string> = { red: 'bg-red-500', yellow: 'bg-yellow-500', green: 'bg-green-500' };
+                const textColors: Record<StrengthColor, string> = { red: 'text-red-400', yellow: 'text-yellow-400', green: 'text-green-400' };
+                return (
+                  <div className="mt-2">
+                    <div className="flex gap-1 h-1.5 rounded-full overflow-hidden">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className={`flex-1 rounded-full transition-colors duration-300 ${i <= strength.level ? colors[strength.color] : 'bg-slate-600/50'}`} />
+                      ))}
+                    </div>
+                    <p className={`text-xs mt-1 ${textColors[strength.color]}`}>{strength.label}</p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Campo Confirmação de Senha */}
+            <div className="space-y-2">
+              <label htmlFor="confirmSenha" className="text-sm font-medium text-purple-200">
+                Confirmar Senha
+              </label>
+              <div className="relative [&>div]:relative [&>div>input]:pr-10">
+                <InputSimples
+                  id="register-confirm-senha"
+                  name="confirmSenha"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmSenha}
+                  onChange={handleInputChange}
+                  onBlur={() => validateField('confirmSenha')}
+                  className="input-rpg w-full bg-slate-800/50 border-purple-500/30 text-white placeholder-purple-300/50 focus:border-purple-400 focus:ring-purple-400/30 mb-0"
+                  placeholder="••••••••"
+                  disabled={submitting}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 bottom-2 text-purple-300 hover:text-purple-200 transition-colors focus:outline-none z-10"
+                  tabIndex={-1}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={20} />
+                  ) : (
+                    <Eye size={20} />
+                  )}
+                </button>
+              </div>
+              {errors.confirmSenha && (
+                <p className="text-red-400 text-xs mt-1">{errors.confirmSenha}</p>
+              )}
+            </div>
+
+            {/* Botão de registro */}
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="w-full btn-rpg h-12 text-base font-semibold bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-cyan-500/25 mt-6"
+            >
+              {submitting ? (
+                <div className="flex items-center justify-center gap-2">
+                  <LoadingSpinner size="sm" />
+                  <span>Criando conta...</span>
+                </div>
+              ) : (
+                'Criar Conta Épica'
+              )}
+            </Button>
+          </form>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-purple-500/30"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-slate-800/50 px-4 text-purple-300 font-modern">
+                Já tem uma conta?
+              </span>
+            </div>
+          </div>
+
+          {/* Link para login */}
+          <div className="text-center">
+            <button
+              type="button"
+              className="text-purple-400 hover:text-purple-300 transition-colors font-modern text-sm hover:underline"
+              onClick={handleGoToLogin}
+            >
+              ← Voltar para login
+            </button>
+          </div>
+
+          {/* Efeito de brilho no card */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-cyan-500/10 to-purple-500/10 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center mt-8">
+          <p className="text-purple-300/60 text-xs font-modern">
+            © 2024 Lunaria - The Fable Forge. Todos os direitos reservados.
+          </p>
+        </div>
+      </div>
+
+      {/* Notificações */}
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
+
+      {/* Efeitos visuais adicionais */}
+      <div className="absolute top-20 right-20 w-32 h-32 bg-cyan-500/10 rounded-full filter blur-xl animate-pulse"></div>
+      <div className="absolute bottom-20 left-20 w-40 h-40 bg-purple-500/10 rounded-full filter blur-xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      <div className="absolute top-1/2 right-10 w-20 h-20 bg-cyan-400/10 rounded-full filter blur-lg animate-float"></div>
+    </div>
+  );
+};
+
+export default RegisterView; 

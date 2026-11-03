@@ -1,0 +1,511 @@
+import { useSocketStore } from '../../../store/index';
+import type { EtapaJogoRPGModel } from './EtapaJogoRPG.model';
+import { BarChart3, ChevronLeft, ChevronRight, Swords, Users, X } from 'lucide-react';
+import { RPGActions } from '../../RPGActions';
+import BackgroundEffects from '../Shared/BackgroundEffects';
+import PainelJogadores from '../Chat/PainelJogadores';
+import ChatArea from '../Chat/ChatArea';
+import ActionDock from '../Chat/ActionDock';
+import MestrePensandoBanner from '../Chat/MestrePensandoBanner';
+import SessionHeader from '../Chat/SessionHeader';
+import StatusPersonagem from '../Gameplay/StatusPersonagem';
+import RolagemDadosInicial from '../Gameplay/RolagemDadosInicial';
+import BatalhaUI from '../Gameplay/BatalhaUI';
+import InventarioPanel from '../Gameplay/InventarioPanel';
+import LevelUpCelebration from '../Gameplay/LevelUpCelebration';
+import SessionRecap from '../Gameplay/SessionRecap';
+import NotificationManager from '../NotificationManager';
+import BarraStatusCompacta from '../Gameplay/BarraStatusCompacta';
+import FichaPersonagemModal from '../Modals/FichaPersonagemModal';
+import GrimorioModal from '../Modals/GrimorioModal';
+import SceneTransition from '../Shared/SceneTransition';
+import SessionGallery from '../Shared/SessionGallery';
+import { PARTICLES } from '../../../constants/game';
+import { useTTS } from '../../../hooks/useTTS';
+
+type EtapaJogoRPGViewProps = EtapaJogoRPGModel & { [key: string]: unknown };
+
+const EtapaJogoRPGView = (props: EtapaJogoRPGViewProps) => {
+  const tts = useTTS();
+  const {
+    historia,
+    personagemSelecionado,
+    participantes,
+    mensagens,
+    user,
+    onSair,
+    effectiveVoiceId,
+    effectiveVoiceProvider,
+    faseJogo,
+    rodadaAtual,
+    turnoAtual,
+    ordemJogadores,
+    resultadosDados,
+    ehMeuTurno,
+    combateAtivo,
+    combateFase,
+    combateMonstros,
+    combateJogadores,
+    combateRodada,
+    combateResultado,
+    combateLog,
+    combateXpGanho,
+    combateOrdemIniciativa,
+    combateTurnoAtual,
+    combateIniciativaPendente,
+    combateIniciativaModificador,
+    sessionRecap,
+    clearSessionRecap,
+    levelUpData,
+    setLevelUpData,
+    mensagemAtual,
+    combatIntentAtual,
+    clearCombatIntent,
+    handleMensagemChange,
+    handleKeyPress,
+    handleEnviarMensagem,
+    handleRolarDados,
+    handleRolarDadoInicial,
+    handleIniciarTurno,
+    handleExecutarAcao,
+    handleUsarHabilidade,
+    handleUsarMagia,
+    handleUsarEquipamento,
+    fichaModalAberta,
+    fichaSelecionada,
+    fichaCarregando,
+    fichaErro,
+    tituloFicha,
+    fecharFichaModal,
+    handleVerMinhaFicha,
+    handleVerFichaJogador,
+    mobileDrawer,
+    setMobileDrawer,
+    showActions,
+    toggleActions,
+    rightPanelExpanded,
+    setRightPanelExpanded,
+    showRodadaInfo,
+    setShowRodadaInfo,
+    rodadaDropdownRef,
+    inventarioAberto,
+    setInventarioAberto,
+    grimorioAberto,
+    setGrimorioAberto,
+    habilidadesPersonagem,
+    magiasPersonagem,
+    cooldownsHabilidades,
+    concentracaoAtiva,
+    infoPersonagem,
+    jogadoresExibir,
+    dadosSolicitados,
+    dadoSolicitadoInfo,
+    aguardandoMestre,
+    mestrePensando,
+    mestreTimedOut,
+    mestreStale,
+    activeMestreRequestStatus,
+    mestreRequestIsMine,
+    handleMestreBannerAction,
+    jaRolouDadoInicial: _jaRolouDadoInicial,
+    cooldownLocal,
+    rolando,
+    entidadesComImagem,
+    contextoImagemCena,
+    handleSceneImageGenerated,
+    sceneTransitionImage,
+    handleSceneTransitionDone,
+    sessionImages,
+    turnoIniciado,
+    turnoStatus,
+    ordemDefinida,
+    manaAtual,
+    manaMax,
+  } = props;
+
+  const panelTitle = showActions ? 'Acoes RPG' : 'Painel recolhido';
+
+  return (
+    <div className="h-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-hidden">
+      <NotificationManager />
+      <SceneTransition image={sceneTransitionImage as unknown as Parameters<typeof SceneTransition>[0]['image']} onDone={handleSceneTransitionDone} />
+      <SessionGallery images={sessionImages as unknown as Parameters<typeof SessionGallery>[0]['images']} />
+      <BackgroundEffects particleCount={PARTICLES.GAME_SCREEN_COUNT} />
+
+      <div className="relative z-10 h-screen flex flex-col">
+        <SessionHeader
+          {...({
+            faseJogo,
+            rodadaAtual,
+            turnoAtual,
+            ehMeuTurno,
+            ordemJogadores,
+            jogadoresExibir,
+            showActions,
+            toggleActions,
+            showRodadaInfo,
+            setShowRodadaInfo,
+            rodadaDropdownRef,
+            handleVerMinhaFicha,
+            onAbrirGrimorio: () => setGrimorioAberto(true),
+            temMagias: (magiasPersonagem?.length ?? 0) > 0,
+            onSair,
+            mobileDrawer,
+            setMobileDrawer,
+            prologo: (historia as { prologo?: string } | undefined)?.prologo,
+            tts,
+            voiceId: effectiveVoiceId,
+            voiceProvider: effectiveVoiceProvider,
+            combateAtivo,
+            combateRodada,
+            combateMonstros,
+          } as unknown as Parameters<typeof SessionHeader>[0])}
+        />
+
+        <div className="flex-1 flex overflow-hidden">
+          <PainelJogadores
+            {...({
+              participantes: jogadoresExibir,
+              ordemJogadores,
+              resultadosDados,
+              turnoAtual,
+              faseJogo,
+              onVerFichaJogador: handleVerFichaJogador,
+              compactMode: jogadoresExibir.length <= 2,
+              combateAtivo,
+              combateOrdemIniciativa,
+            } as unknown as Parameters<typeof PainelJogadores>[0])}
+          />
+
+          <div className="flex-1 flex flex-col min-w-0">
+            <BarraStatusCompacta
+              {...({
+                personagem: personagemSelecionado,
+                combateAtivo,
+                combateJogadores,
+                userId: user?.id,
+              } as unknown as Parameters<typeof BarraStatusCompacta>[0])}
+            />
+
+            {faseJogo === 'rolagem_inicial' && (
+              <div className="p-6">
+                <RolagemDadosInicial
+                  {...({
+                    jogadores: Object.values(participantes || {}),
+                    resultados: resultadosDados,
+                    ordemDefinida,
+                    ordemJogadores,
+                    usuarioAtual: user,
+                    onRolarDado: handleRolarDadoInicial,
+                  } as unknown as Parameters<typeof RolagemDadosInicial>[0])}
+                />
+              </div>
+            )}
+
+            {(combateAtivo || combateResultado) && (
+              <div className="px-4 pt-4">
+                <BatalhaUI
+                  {...({
+                    monstros: combateMonstros,
+                    jogadores: combateJogadores,
+                    rodada: combateRodada,
+                    log: combateLog,
+                    resultado: combateResultado,
+                    xpGanho: combateXpGanho,
+                    userId: String(user?.id),
+                    fase: combateFase,
+                    iniciativaPendente: combateIniciativaPendente,
+                    iniciativaModificador: combateIniciativaModificador,
+                    ordemIniciativa: combateOrdemIniciativa,
+                    turnoAtual: combateTurnoAtual,
+                    onRolarIniciativa: () => useSocketStore.getState().rolarIniciativaCombate(),
+                    sistema: (personagemSelecionado as { sistema?: string } | undefined)?.sistema,
+                  } as unknown as Parameters<typeof BatalhaUI>[0])}
+                />
+              </div>
+            )}
+
+            <ChatArea
+              {...({
+                mensagens,
+                usuariosDigitando: [],
+                mensagensRef: null,
+                voiceId: effectiveVoiceId,
+                voiceProvider: effectiveVoiceProvider,
+                entidadesComImagem,
+                contextoImagemCena,
+                onSceneImageGenerated: handleSceneImageGenerated,
+                estiloImagem: (historia as { estilo_imagem?: string } | undefined)?.estilo_imagem,
+                prologo: (historia as { prologo?: string } | undefined)?.prologo,
+                imagemCapa: (historia as { imagem?: string } | undefined)?.imagem,
+              } as unknown as Parameters<typeof ChatArea>[0])}
+            />
+
+            <MestrePensandoBanner
+              {...({
+                ativo: mestrePensando || aguardandoMestre,
+                timedOut: mestreTimedOut,
+                stale: mestreStale,
+                status: activeMestreRequestStatus,
+                onAction: mestreRequestIsMine ? handleMestreBannerAction : null,
+              } as unknown as Parameters<typeof MestrePensandoBanner>[0])}
+            />
+
+            <ActionDock
+              {...({
+                mensagemAtual,
+                onMensagemChange: handleMensagemChange,
+                onKeyPress: handleKeyPress,
+                onEnviarMensagem: handleEnviarMensagem,
+                onRolarDados: handleRolarDados,
+                onExecutarAcao: handleExecutarAcao,
+                faseJogo,
+                ehMeuTurno,
+                turnoIniciado,
+                turnoStatus,
+                cooldownRoleplay: cooldownLocal,
+                onIniciarTurno: handleIniciarTurno,
+                dadosSolicitados,
+                dadoSolicitadoInfo,
+                aguardandoMestre,
+                combateAtivo,
+                combateMonstros,
+                rolando,
+                habilidadesPersonagem,
+                magiasPersonagem,
+                manaAtual,
+                manaMax,
+                cooldownsHabilidades,
+                concentracaoAtiva,
+                onUsarMagia: handleUsarMagia,
+                combatIntentAtual,
+                onClearCombatIntent: clearCombatIntent,
+                sistema: (personagemSelecionado as { sistema?: string } | undefined)?.sistema,
+                personagemAtributos: (personagemSelecionado as { atributos?: unknown } | undefined)?.atributos,
+              } as unknown as Parameters<typeof ActionDock>[0])}
+            />
+          </div>
+
+          {showActions && (
+            <div
+              className={`transition-all duration-300 game-glass-subtle border-l border-white/[0.06] p-4 overflow-y-auto overflow-x-hidden hidden md:block ${
+                rightPanelExpanded ? 'w-80' : 'w-16'
+              }`}
+              aria-label={panelTitle}
+            >
+              <div className={`flex items-center mb-3 ${rightPanelExpanded ? 'justify-between' : 'justify-center'}`}>
+                {rightPanelExpanded && (
+                  <h3 className="text-base font-fantasy font-bold text-purple-200/80 uppercase tracking-wider">
+                    Acoes RPG
+                  </h3>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setRightPanelExpanded(!rightPanelExpanded)}
+                  className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 transition-all transform hover:scale-105 flex-shrink-0"
+                  title={rightPanelExpanded ? 'Retrair painel' : 'Expandir painel'}
+                  aria-label={rightPanelExpanded ? 'Retrair painel' : 'Expandir painel'}
+                >
+                  {rightPanelExpanded ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                </button>
+              </div>
+
+              {rightPanelExpanded ? (
+                <div className="space-y-4">
+                  <RPGActions
+                    {...({
+                      onRollDice: handleRolarDados,
+                      onUsarHabilidade: handleUsarHabilidade,
+                      onUsarEquipamento: handleUsarEquipamento,
+                      personagem: personagemSelecionado,
+                      rolando,
+                    } as unknown as Parameters<typeof RPGActions>[0])}
+                  />
+                  <div className="border-t border-purple-500/20 pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-purple-300/60 font-fantasy text-xs uppercase tracking-widest">Status</span>
+                      <div className="flex-1 h-px bg-gradient-to-r from-purple-500/20 to-transparent" />
+                    </div>
+                    <StatusPersonagem
+                      {...({
+                        personagemSelecionado: infoPersonagem,
+                        onRolarDados: handleRolarDados,
+                        onToggleInventario: () => setInventarioAberto(!inventarioAberto),
+                        compact: true,
+                        combateAtivo,
+                        combateJogadores,
+                        userId: String(user.id ?? ''),
+                      } as unknown as Parameters<typeof StatusPersonagem>[0])}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center space-y-3 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setRightPanelExpanded(true)}
+                    className="w-10 h-10 rounded-full game-glass-subtle flex items-center justify-center border border-purple-500/20 hover:border-purple-400/40 transition-all"
+                    title="Expandir painel de acoes"
+                    aria-label="Expandir painel de acoes"
+                  >
+                    <Swords size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRightPanelExpanded(true)}
+                    className="w-10 h-10 rounded-full game-glass-subtle flex items-center justify-center border border-cyan-500/20 hover:border-cyan-400/40 transition-all"
+                    title="Expandir painel de status"
+                    aria-label="Expandir painel de status"
+                  >
+                    <BarChart3 size={18} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {mobileDrawer && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md" onClick={() => setMobileDrawer(null)} />
+          <div className="absolute top-0 right-0 h-full w-80 max-w-[85vw] game-glass-solid border-l border-white/[0.08] overflow-y-auto animate-fade-in shadow-[0_10px_40px_rgba(0,0,0,0.45)]">
+            <div className="flex items-center justify-between p-4 border-b border-white/[0.08]">
+              <div className="flex items-center gap-2">
+                {mobileDrawer === 'jogadores' ? <Users size={18} className="text-purple-200" /> : <Swords size={18} className="text-cyan-200" />}
+                <h3 className="text-white font-fantasy font-bold">
+                  {mobileDrawer === 'jogadores' ? 'Aventureiros' : 'Acoes RPG'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileDrawer(null)}
+                className="p-2 rounded-lg game-glass-subtle border border-white/[0.08] hover:border-white/[0.16] text-white transition-all"
+                aria-label="Fechar painel lateral"
+                title="Fechar painel lateral"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-4">
+              {mobileDrawer === 'jogadores' && (
+                <div className="space-y-3">
+                  {(ordemJogadores.length > 0 ? ordemJogadores : jogadoresExibir).map((jogador: Record<string, unknown>, i: number) => {
+                    const uid = (jogador.userId || jogador.id) as number | string | undefined;
+                    const nome = (jogador.username || jogador.nome) as string | undefined;
+                    const pNome = (jogador.personagemNome || jogador.personagem) as string | undefined;
+                    const ehTurno = turnoAtual === i;
+                    return (
+                      <div
+                        key={uid || i}
+                        className={`p-3 rounded-xl border game-glass-subtle ${
+                          ehTurno
+                            ? 'border-cyan-400/50 shadow-[0_0_18px_rgba(34,211,238,0.16)]'
+                            : 'border-white/[0.08]'
+                        }`}
+                      >
+                        <div className="text-white font-medium text-sm">{nome}</div>
+                        <div className="text-purple-300 text-xs">{pNome}</div>
+                        {Boolean(jogador.valorDado) && (
+                          <div className="text-yellow-300 text-xs mt-1">Dado {String(jogador.valorDado)}</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {mobileDrawer === 'acoes' && (
+                <div className="space-y-4">
+                  <RPGActions
+                    {...({
+                      onRollDice: handleRolarDados,
+                      onUsarHabilidade: handleUsarHabilidade,
+                      onUsarEquipamento: handleUsarEquipamento,
+                      personagem: personagemSelecionado,
+                      rolando,
+                    } as unknown as Parameters<typeof RPGActions>[0])}
+                  />
+                  <div className="border-t border-purple-500/20 pt-4">
+                    <StatusPersonagem
+                      {...({
+                        personagemSelecionado: infoPersonagem,
+                        onRolarDados: handleRolarDados,
+                        onToggleInventario: () => {
+                          setInventarioAberto(!inventarioAberto);
+                          setMobileDrawer(null);
+                        },
+                        compact: true,
+                        combateAtivo,
+                        combateJogadores,
+                        userId: String(user.id ?? ''),
+                      } as unknown as Parameters<typeof StatusPersonagem>[0])}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <FichaPersonagemModal
+        {...({
+          isOpen: fichaModalAberta,
+          onClose: fecharFichaModal,
+          personagem: fichaSelecionada,
+          loading: fichaCarregando,
+          error: fichaErro,
+          titulo: tituloFicha,
+          combateAtivo,
+          combateJogadores,
+          userId: user?.id,
+        } as unknown as Parameters<typeof FichaPersonagemModal>[0])}
+      />
+
+      <GrimorioModal
+        {...({
+          isOpen: grimorioAberto,
+          onClose: () => setGrimorioAberto(false),
+          magias: magiasPersonagem,
+          manaAtual,
+          manaMax,
+          combateAtivo,
+          onUsarMagia: (magia: unknown) => {
+            handleUsarMagia(magia as Parameters<typeof handleUsarMagia>[0]);
+            setGrimorioAberto(false);
+          },
+          sistema: (personagemSelecionado as { sistema?: string } | undefined)?.sistema,
+        } as unknown as Parameters<typeof GrimorioModal>[0])}
+      />
+
+      <InventarioPanel
+        {...({
+          isOpen: inventarioAberto,
+          onClose: () => setInventarioAberto(false),
+          equipamentos: (personagemSelecionado as { equipamentos?: unknown[] } | undefined)?.equipamentos || [],
+          personagemNome: (personagemSelecionado as { nome?: string } | undefined)?.nome || 'Aventureiro',
+          personagemId: (personagemSelecionado as { id?: number | string } | undefined)?.id,
+          sistema: (personagemSelecionado as { sistema?: string } | undefined)?.sistema,
+          onUsarItem: handleUsarEquipamento,
+        } as unknown as Parameters<typeof InventarioPanel>[0])}
+      />
+
+      <LevelUpCelebration
+        {...({
+          isVisible: !!levelUpData,
+          novoNivel: (levelUpData as { novoNivel?: number } | null | undefined)?.novoNivel,
+          ganhos: (levelUpData as { ganhos?: unknown } | null | undefined)?.ganhos,
+          onClose: () => setLevelUpData(null),
+        } as unknown as Parameters<typeof LevelUpCelebration>[0])}
+      />
+
+      <SessionRecap
+        isVisible={!!sessionRecap}
+        recapData={sessionRecap}
+        onClose={clearSessionRecap}
+      />
+    </div>
+  );
+};
+
+export default EtapaJogoRPGView;

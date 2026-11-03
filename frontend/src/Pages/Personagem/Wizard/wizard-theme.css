@@ -1,0 +1,531 @@
+/* ============================================================
+   Lunaria Forge — Design System v2.0
+   Navy/Purple/Teal. Ouro apenas como detalhe contextual da Forja.
+   ============================================================ */
+
+.wizard-atelier {
+  /* ── Backgrounds ── */
+  --wa-bg: radial-gradient(circle at top, rgba(139,92,246,0.08), transparent 40%),
+           linear-gradient(180deg, #0d0b1a 0%, #13111f 38%, #0d0b1a 100%);
+  --wa-bg-accent: radial-gradient(circle at 15% 20%, rgba(139,92,246,0.06), transparent 24%),
+                  radial-gradient(circle at 85% 10%, rgba(45,212,191,0.04), transparent 22%);
+
+  /* ── Surfaces ── */
+  --wa-panel: rgba(26, 23, 48, 0.78);
+  --wa-panel-strong: rgba(19, 17, 31, 0.92);
+  --wa-panel-soft: rgba(34, 31, 58, 0.46);
+
+  /* ── Text ── */
+  --wa-ink: #f0eef8;
+  --wa-muted: #9590b0;
+
+  /* ── Borders (finas) ── */
+  --wa-border: rgba(139, 92, 246, 0.10);
+
+  /* ── Accents ── */
+  --wa-accent: #8b5cf6;
+  --wa-accent-bright: #a855f7;
+  --wa-teal: #2dd4bf;
+  --wa-ember: #f59e0b;
+  --wa-forge-gold: #e8b448;
+  --wa-forge-gold-muted: rgba(232,180,72,0.15);
+  --wa-info: #60a5fa;
+  --wa-success: #34d399;
+  --wa-danger: #f43f5e;
+
+  /* ── Backward compat aliases ── */
+  --wa-brass: var(--wa-forge-gold);
+  --wa-violet: var(--wa-accent);
+  --wa-emerald: var(--wa-teal);
+
+  /* ── Shadows ── */
+  --wa-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --wa-glow: 0 0 16px rgba(139, 92, 246, 0.3);
+
+  position: relative;
+  background: var(--wa-bg);
+  color: var(--wa-ink);
+}
+
+/* ── Light mode (v2.1 — base tokens only) ── */
+.wizard-atelier.light {
+  --wa-bg: radial-gradient(circle at top, rgba(139,92,246,0.05), transparent 32%),
+           linear-gradient(180deg, #f8f6ff 0%, #f0eef8 52%, #e8e4f5 100%);
+  --wa-bg-accent: radial-gradient(circle at 18% 18%, rgba(139,92,246,0.04), transparent 24%),
+                  radial-gradient(circle at 82% 12%, rgba(45,212,191,0.03), transparent 20%);
+  --wa-panel: rgba(255, 253, 255, 0.88);
+  --wa-panel-strong: rgba(255, 255, 255, 0.95);
+  --wa-panel-soft: rgba(232, 228, 245, 0.60);
+  --wa-ink: #1a1730;
+  --wa-muted: #6a6580;
+  --wa-border: rgba(139, 92, 246, 0.10);
+  --wa-accent: #7c3aed;
+  --wa-accent-bright: #8b5cf6;
+  --wa-teal: #0d9488;
+  --wa-ember: #d97706;
+  --wa-forge-gold: #b8860b;
+  --wa-info: #3b82f6;
+  --wa-success: #059669;
+  --wa-danger: #e11d48;
+  --wa-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --wa-glow: 0 0 12px rgba(139, 92, 246, 0.15);
+}
+
+/* ── Gothic mode — carmesim/gold ── */
+.wizard-atelier.gothic {
+  --wa-bg: radial-gradient(circle at top, rgba(220,38,38,0.1), transparent 40%),
+           linear-gradient(180deg, #1a0e12 0%, #241418 38%, #1a0e12 100%);
+  --wa-bg-accent: radial-gradient(circle at 15% 20%, rgba(220,38,38,0.08), transparent 24%),
+                  radial-gradient(circle at 85% 10%, rgba(184,134,11,0.05), transparent 22%);
+  --wa-panel: rgba(30, 14, 18, 0.85);
+  --wa-panel-strong: rgba(20, 10, 14, 0.95);
+  --wa-panel-soft: rgba(40, 20, 26, 0.5);
+  --wa-ink: #f5e6d3;
+  --wa-muted: #c0a8a8;
+  --wa-border: rgba(220, 38, 38, 0.12);
+  --wa-accent: #dc2626;
+  --wa-accent-bright: #ef4444;
+  --wa-teal: #b8860b;
+  --wa-ember: #ef4444;
+  --wa-forge-gold: #daa520;
+  --wa-forge-gold-muted: rgba(218,165,32,0.15);
+  --wa-info: #f87171;
+  --wa-success: #b8860b;
+  --wa-danger: #ef4444;
+  --wa-violet: var(--wa-accent);
+  --wa-emerald: var(--wa-teal);
+  --wa-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --wa-glow: 0 0 16px rgba(220, 38, 38, 0.25);
+}
+
+/* Gothic scan lines — carmesim */
+.wizard-atelier.gothic::after {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(220,38,38,0.015) 0px, transparent 1px, transparent 3px) !important;
+}
+
+/* Gothic etched overlay */
+.wizard-atelier.gothic .wa-etched::before,
+.wizard-atelier.gothic .wa-etched::after {
+  background: linear-gradient(120deg, rgba(255,255,255,0.02), transparent 26%, transparent 74%, rgba(220,38,38,0.04)) !important;
+}
+
+/* Gothic main shell glow */
+.wizard-atelier.gothic .wa-main-shell {
+  background:
+    radial-gradient(circle at top left, rgba(220, 38, 38, 0.08), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(184, 134, 11, 0.05), transparent 24%),
+    var(--wa-panel-strong) !important;
+}
+
+.wizard-atelier.gothic .wa-main-shell::after {
+  background: repeating-linear-gradient(0deg, rgba(220,38,38,0.01) 0px, transparent 1px, transparent 4px) !important;
+}
+
+/* Gothic choice card selected */
+.wizard-atelier.gothic .wa-choice-card--selected {
+  border-color: color-mix(in srgb, #dc2626 55%, var(--wa-border)) !important;
+  box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.18), 0 0 20px rgba(220, 38, 38, 0.12) !important;
+}
+
+/* Gothic violet chip → carmesim */
+.wizard-atelier.gothic .wa-violet-chip {
+  background: linear-gradient(180deg, rgba(220, 38, 38, 0.15), rgba(220, 38, 38, 0.06)) !important;
+  border-color: rgba(220, 38, 38, 0.18) !important;
+  color: #dc2626 !important;
+}
+
+/* Gothic master glyph */
+.wizard-atelier.gothic .wa-master-glyph {
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.12), transparent 35%), linear-gradient(180deg, rgba(220,38,38,0.18), rgba(220,38,38,0.06)) !important;
+  border-color: rgba(220, 38, 38, 0.25) !important;
+}
+
+.wizard-atelier.gothic .wa-glyph-glow {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 0 1px rgba(220,38,38,0.15), 0 0 18px rgba(220, 38, 38, 0.2) !important;
+}
+
+/* Gothic readiness shaping */
+.wizard-atelier.gothic .wa-readiness-shaping {
+  background: linear-gradient(180deg, rgba(220, 38, 38, 0.15), rgba(220, 38, 38, 0.06)) !important;
+}
+
+/* Gothic chat shell */
+.wizard-atelier.gothic .wa-chat-shell {
+  border-color: color-mix(in srgb, #dc2626 50%, var(--wa-border)) !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 16px rgba(220, 38, 38, 0.1) !important;
+}
+
+/* Gothic player card */
+.wizard-atelier.gothic .wa-player-card {
+  border-color: color-mix(in srgb, #dc2626 45%, var(--wa-border)) !important;
+  box-shadow: 0 0 0 1px rgba(220,38,38,0.12), 0 12px 28px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Gothic pulse glow */
+.wizard-atelier.gothic .wa-choice-card--selected {
+  animation: wa-gothicPulseGlow 2s ease infinite;
+}
+
+@keyframes wa-gothicPulseGlow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(220,38,38,0.18), 0 0 16px rgba(220,38,38,0.15); }
+  50% { box-shadow: 0 0 0 1px rgba(220,38,38,0.25), 0 0 28px rgba(220,38,38,0.25); }
+}
+
+/* Gothic input focus ring */
+.wizard-atelier.gothic input:focus,
+.wizard-atelier.gothic textarea:focus {
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
+}
+
+/* ── Ambient overlays ── */
+
+.wizard-atelier::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: var(--wa-bg-accent);
+  opacity: 1;
+}
+
+/* Scan lines — purple sutil */
+.wizard-atelier::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(139,92,246,0.015) 0px, transparent 1px, transparent 3px);
+  background-size: 100% 3px;
+  mask-image: radial-gradient(circle at center, black 42%, transparent 100%);
+  opacity: 0.3;
+}
+
+/* ── Containers com glassmorphism ── */
+
+.wizard-atelier .wa-shell,
+.wizard-atelier .wa-main-shell,
+.wizard-atelier .wa-panel,
+.wizard-atelier .wa-panel-soft,
+.wizard-atelier .wa-panel-strong,
+.wizard-atelier .wa-dock,
+.wizard-atelier .wa-hero,
+.wizard-atelier .wa-choice-card,
+.wizard-atelier .wa-master-card,
+.wizard-atelier .wa-player-card,
+.wizard-atelier .wa-system-card,
+.wizard-atelier .wa-progress-rail,
+.wizard-atelier .wa-sidebar-panel {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(18px);
+}
+
+.wizard-atelier .wa-main-shell,
+.wizard-atelier .wa-panel,
+.wizard-atelier .wa-sidebar-panel,
+.wizard-atelier .wa-progress-rail,
+.wizard-atelier .wa-choice-card,
+.wizard-atelier .wa-system-card,
+.wizard-atelier .wa-player-card,
+.wizard-atelier .wa-dock,
+.wizard-atelier .wa-chat-shell {
+  background: var(--wa-panel);
+  border: 1px solid var(--wa-border);
+  box-shadow: var(--wa-shadow);
+}
+
+.wizard-atelier .wa-main-shell,
+.wizard-atelier .wa-panel-strong,
+.wizard-atelier .wa-hero,
+.wizard-atelier .wa-master-card,
+.wizard-atelier .wa-readiness-panel {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--wa-panel-strong) 88%, transparent), color-mix(in srgb, var(--wa-panel) 90%, transparent));
+  border: 1px solid color-mix(in srgb, var(--wa-border) 150%, transparent);
+  box-shadow: var(--wa-glow);
+}
+
+.wizard-atelier .wa-panel-soft {
+  background: var(--wa-panel-soft);
+  border: 1px solid color-mix(in srgb, var(--wa-border) 80%, transparent);
+}
+
+/* Etched overlay — purple tint */
+.wizard-atelier .wa-etched::before,
+.wizard-atelier .wa-main-shell::before,
+.wizard-atelier .wa-panel::before,
+.wizard-atelier .wa-panel-strong::before,
+.wizard-atelier .wa-choice-card::before,
+.wizard-atelier .wa-master-card::before,
+.wizard-atelier .wa-progress-rail::before,
+.wizard-atelier .wa-dock::before,
+.wizard-atelier .wa-sidebar-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255,255,255,0.03), transparent 26%, transparent 74%, rgba(139,92,246,0.04));
+}
+
+/* Main shell — radial purple glow */
+.wizard-atelier .wa-main-shell {
+  background:
+    radial-gradient(circle at top left, rgba(139, 92, 246, 0.06), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(45, 212, 191, 0.04), transparent 24%),
+    linear-gradient(180deg, color-mix(in srgb, var(--wa-panel-strong) 92%, transparent), color-mix(in srgb, var(--wa-panel) 92%, transparent));
+}
+
+.wizard-atelier .wa-main-shell > .wa-dock {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+/* Chat shell scan lines */
+.wizard-atelier .wa-chat-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(139,92,246,0.01) 0px, transparent 1px, transparent 4px);
+  opacity: 0.5;
+}
+
+/* ── Rune steps (progress) ── */
+
+.wizard-atelier .wa-rune-step {
+  border: 1px solid color-mix(in srgb, var(--wa-border) 120%, transparent);
+  background: color-mix(in srgb, var(--wa-panel-soft) 80%, transparent);
+  color: var(--wa-muted);
+  transition: all 0.2s ease;
+}
+
+.wizard-atelier .wa-rune-step.is-active {
+  color: var(--wa-ink);
+  border-color: color-mix(in srgb, var(--wa-accent) 55%, var(--wa-border));
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.18), 0 0 20px rgba(139, 92, 246, 0.12);
+  animation: wa-pulseGlow 2s ease infinite;
+}
+
+.wizard-atelier .wa-rune-step.is-complete {
+  color: var(--wa-teal);
+  border-color: color-mix(in srgb, var(--wa-teal) 40%, var(--wa-border));
+  background: color-mix(in srgb, var(--wa-panel) 88%, rgba(45,212,191,0.06));
+}
+
+.wizard-atelier .wa-rune-step.is-visited {
+  color: color-mix(in srgb, var(--wa-muted) 75%, white);
+}
+
+.wizard-atelier .wa-rune-step.is-future {
+  opacity: 0.48;
+}
+
+/* ── Chips (badges) ── */
+
+/* Forge gold — detalhe contextual da forja */
+.wizard-atelier .wa-forge-chip,
+.wizard-atelier .wa-brass-chip {
+  background: linear-gradient(180deg, rgba(232, 180, 72, 0.15), rgba(232, 180, 72, 0.06));
+  border: 1px solid rgba(232, 180, 72, 0.18);
+  color: var(--wa-forge-gold);
+}
+
+/* Purple accent — primario */
+.wizard-atelier .wa-accent-chip,
+.wizard-atelier .wa-violet-chip {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.06));
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  color: var(--wa-accent);
+}
+
+/* Teal — secundario / success */
+.wizard-atelier .wa-teal-chip,
+.wizard-atelier .wa-emerald-chip {
+  background: linear-gradient(180deg, rgba(45, 212, 191, 0.15), rgba(45, 212, 191, 0.06));
+  border: 1px solid rgba(45, 212, 191, 0.18);
+  color: var(--wa-teal);
+}
+
+/* Warning / ember */
+.wizard-atelier .wa-warning-chip,
+.wizard-atelier .wa-ember-chip {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.06));
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  color: var(--wa-ember);
+}
+
+/* ── Master avatar ── */
+
+.wizard-atelier .wa-master-glyph {
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.12), transparent 35%), linear-gradient(180deg, rgba(139,92,246,0.18), rgba(139,92,246,0.06));
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.wizard-atelier .wa-glyph-glow {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 0 1px rgba(139,92,246,0.15), 0 0 18px rgba(139, 92, 246, 0.2);
+}
+
+/* ── Readiness states ── */
+
+.wizard-atelier .wa-readiness-seal {
+  border: 1px solid var(--wa-border);
+  color: var(--wa-ink);
+}
+
+.wizard-atelier .wa-readiness-core {
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.04);
+}
+
+.wizard-atelier .wa-readiness-open {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.06));
+  color: var(--wa-ember);
+}
+
+.wizard-atelier .wa-readiness-shaping {
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.06));
+  color: var(--wa-accent);
+}
+
+.wizard-atelier .wa-readiness-sealed {
+  background: linear-gradient(180deg, rgba(45, 212, 191, 0.15), rgba(45, 212, 191, 0.06));
+  color: var(--wa-teal);
+  box-shadow: 0 0 18px rgba(45, 212, 191, 0.1);
+}
+
+/* ── Choice cards ── */
+
+.wizard-atelier .wa-choice-card {
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.wizard-atelier .wa-choice-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--wa-accent) 50%, var(--wa-border));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 16px rgba(139, 92, 246, 0.1);
+}
+
+.wizard-atelier .wa-choice-card--selected {
+  border-color: color-mix(in srgb, var(--wa-accent) 45%, var(--wa-border));
+  box-shadow: 0 0 0 1px rgba(139,92,246,0.12), 0 12px 28px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Heritage ornament (fleur-de-lis — forge gold detail) ── */
+
+.wizard-atelier .wa-hero::after {
+  content: '\269C';
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: 18px;
+  opacity: 0.06;
+  color: var(--wa-forge-gold);
+  pointer-events: none;
+}
+
+/* ── Keyframe Animations ── */
+
+@keyframes wa-fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wa-pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(139,92,246,0.18), 0 0 16px rgba(139,92,246,0.15); }
+  50% { box-shadow: 0 0 0 1px rgba(139,92,246,0.25), 0 0 28px rgba(139,92,246,0.25); }
+}
+
+@keyframes wa-barShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Stage entrance ── */
+
+.wizard-atelier .wa-stage-enter {
+  animation: wa-fadeInUp 0.5s ease both;
+}
+
+/* Stagger delays */
+.wizard-atelier .wa-stagger-1 { animation-delay: 0.08s; }
+.wizard-atelier .wa-stagger-2 { animation-delay: 0.16s; }
+.wizard-atelier .wa-stagger-3 { animation-delay: 0.24s; }
+.wizard-atelier .wa-stagger-4 { animation-delay: 0.32s; }
+.wizard-atelier .wa-stagger-5 { animation-delay: 0.40s; }
+.wizard-atelier .wa-stagger-6 { animation-delay: 0.48s; }
+
+/* ── Global transitions ── */
+
+.wizard-atelier button,
+.wizard-atelier input,
+.wizard-atelier .wa-panel,
+.wizard-atelier .wa-panel-soft {
+  transition: all 0.2s ease;
+}
+
+/* Input focus ring — purple */
+.wizard-atelier input:focus,
+.wizard-atelier textarea:focus {
+  outline: none;
+  border-color: var(--wa-accent) !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+
+/* ── Progress bar shimmer overlay ── */
+
+.wizard-atelier .wa-progress-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.wizard-atelier .wa-progress-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  background-size: 200% 100%;
+  animation: wa-barShimmer 2s linear infinite;
+}
+
+/* ── Combo block (finalizacao — equipamentos destaque) ── */
+
+.wizard-atelier .wa-combo-block {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(18px);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--wa-panel-strong) 95%, transparent),
+    color-mix(in srgb, var(--wa-panel) 92%, transparent));
+  border: 1px solid color-mix(in srgb, var(--wa-accent) 30%, var(--wa-border));
+  box-shadow: var(--wa-glow), var(--wa-shadow);
+}
+
+.wizard-atelier .wa-combo-block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(120deg, rgba(255,255,255,0.03), transparent 26%, transparent 74%, rgba(139,92,246,0.04));
+}
+
+/* ── Reduced motion ── */
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-atelier .wa-stage-enter,
+  .wizard-atelier .wa-choice-card,
+  .wizard-atelier .wa-rune-step,
+  .wizard-atelier .wa-readiness-sealed,
+  .wizard-atelier .wa-progress-shimmer::after,
+  .wizard-atelier button,
+  .wizard-atelier input {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .wizard-atelier .wa-choice-card:hover {
+    transform: none;
+  }
+}

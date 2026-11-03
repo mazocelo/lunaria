@@ -1,0 +1,4361 @@
+{
+  "dungeon-rico": {
+    "seed": 2970635102,
+    "nome": "Catacumbas de Aethelburg",
+    "tipo": "dungeon",
+    "arquetipo": "interior",
+    "salas": [
+      {
+        "id": "sala-0",
+        "x": 0,
+        "z": 0,
+        "largura": 11,
+        "profundidade": 10,
+        "altura": 5.4,
+        "papel": "entrada"
+      },
+      {
+        "id": "sala-1",
+        "x": 1,
+        "z": -17,
+        "largura": 8,
+        "profundidade": 11,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-2",
+        "x": -15,
+        "z": -19,
+        "largura": 9,
+        "profundidade": 8,
+        "altura": 4,
+        "papel": "segredo",
+        "rotulo": "Portal menor ainda ativo para plano demoniaco"
+      },
+      {
+        "id": "sala-3",
+        "x": -18,
+        "z": -5,
+        "largura": 12,
+        "profundidade": 9,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-4",
+        "x": -15,
+        "z": 10,
+        "largura": 8,
+        "profundidade": 6,
+        "altura": 4,
+        "papel": "segredo",
+        "rotulo": "Diario de Elara detalhando sua corrupcao inicial"
+      },
+      {
+        "id": "sala-5",
+        "x": -30,
+        "z": 8,
+        "largura": 8,
+        "profundidade": 8,
+        "altura": 4,
+        "papel": "encontro",
+        "rotulo": "Manes, Esqueleto"
+      },
+      {
+        "id": "sala-6",
+        "x": -27,
+        "z": 22,
+        "largura": 6,
+        "profundidade": 11,
+        "altura": 4,
+        "papel": "segredo",
+        "rotulo": "Mapa astral mostrando localizacao dos Fragmentos"
+      },
+      {
+        "id": "sala-7",
+        "x": -45,
+        "z": 22,
+        "largura": 12,
+        "profundidade": 8,
+        "altura": 4,
+        "papel": "encontro",
+        "rotulo": "Dretch, Lemure"
+      },
+      {
+        "id": "sala-8",
+        "x": -46,
+        "z": 6,
+        "largura": 8,
+        "profundidade": 11,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-9",
+        "x": -45,
+        "z": -9,
+        "largura": 8,
+        "profundidade": 11,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-10",
+        "x": -62,
+        "z": -9,
+        "largura": 10,
+        "profundidade": 10,
+        "altura": 4,
+        "papel": "encontro",
+        "rotulo": "Ghoul, Imp"
+      },
+      {
+        "id": "sala-11",
+        "x": -61,
+        "z": -27,
+        "largura": 10,
+        "profundidade": 12,
+        "altura": 5.4,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "sala-0",
+        "paraSalaId": "sala-1",
+        "pontos": [
+          {
+            "x": 5.5,
+            "z": 5
+          },
+          {
+            "x": 5,
+            "z": 5
+          },
+          {
+            "x": 5,
+            "z": -11.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-1",
+        "paraSalaId": "sala-2",
+        "pontos": [
+          {
+            "x": 5,
+            "z": -11.5
+          },
+          {
+            "x": 5,
+            "z": -15
+          },
+          {
+            "x": -10.5,
+            "z": -15
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-2",
+        "paraSalaId": "sala-3",
+        "pontos": [
+          {
+            "x": -10.5,
+            "z": -15
+          },
+          {
+            "x": -12,
+            "z": -15
+          },
+          {
+            "x": -12,
+            "z": -0.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-3",
+        "paraSalaId": "sala-4",
+        "pontos": [
+          {
+            "x": -12,
+            "z": -0.5
+          },
+          {
+            "x": -12,
+            "z": 13
+          },
+          {
+            "x": -11,
+            "z": 13
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-4",
+        "paraSalaId": "sala-5",
+        "pontos": [
+          {
+            "x": -11,
+            "z": 13
+          },
+          {
+            "x": -11,
+            "z": 12
+          },
+          {
+            "x": -26,
+            "z": 12
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-5",
+        "paraSalaId": "sala-6",
+        "pontos": [
+          {
+            "x": -26,
+            "z": 12
+          },
+          {
+            "x": -24,
+            "z": 12
+          },
+          {
+            "x": -24,
+            "z": 27.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-6",
+        "paraSalaId": "sala-7",
+        "pontos": [
+          {
+            "x": -24,
+            "z": 27.5
+          },
+          {
+            "x": -24,
+            "z": 26
+          },
+          {
+            "x": -39,
+            "z": 26
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-7",
+        "paraSalaId": "sala-8",
+        "pontos": [
+          {
+            "x": -39,
+            "z": 26
+          },
+          {
+            "x": -42,
+            "z": 26
+          },
+          {
+            "x": -42,
+            "z": 11.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-8",
+        "paraSalaId": "sala-9",
+        "pontos": [
+          {
+            "x": -42,
+            "z": 11.5
+          },
+          {
+            "x": -41,
+            "z": 11.5
+          },
+          {
+            "x": -41,
+            "z": -3.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-9",
+        "paraSalaId": "sala-10",
+        "pontos": [
+          {
+            "x": -41,
+            "z": -3.5
+          },
+          {
+            "x": -57,
+            "z": -3.5
+          },
+          {
+            "x": -57,
+            "z": -4
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-10",
+        "paraSalaId": "sala-11",
+        "pontos": [
+          {
+            "x": -57,
+            "z": -4
+          },
+          {
+            "x": -56,
+            "z": -4
+          },
+          {
+            "x": -56,
+            "z": -21
+          }
+        ],
+        "largura": 3
+      }
+    ],
+    "limites": {
+      "minX": -62,
+      "maxX": 11,
+      "minZ": -27,
+      "maxZ": 33
+    }
+  },
+  "dungeon-vazio": {
+    "seed": 2970635102,
+    "nome": "Catacumbas de Aethelburg",
+    "tipo": "dungeon",
+    "arquetipo": "interior",
+    "salas": [
+      {
+        "id": "sala-0",
+        "x": 0,
+        "z": 0,
+        "largura": 11,
+        "profundidade": 10,
+        "altura": 5.4,
+        "papel": "entrada"
+      },
+      {
+        "id": "sala-1",
+        "x": 1,
+        "z": -17,
+        "largura": 8,
+        "profundidade": 11,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-2",
+        "x": -15,
+        "z": -19,
+        "largura": 9,
+        "profundidade": 8,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-3",
+        "x": -18,
+        "z": -5,
+        "largura": 12,
+        "profundidade": 9,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-4",
+        "x": -15,
+        "z": 10,
+        "largura": 8,
+        "profundidade": 6,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-5",
+        "x": -30,
+        "z": 8,
+        "largura": 8,
+        "profundidade": 8,
+        "altura": 5.4,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "sala-0",
+        "paraSalaId": "sala-1",
+        "pontos": [
+          {
+            "x": 5.5,
+            "z": 5
+          },
+          {
+            "x": 5,
+            "z": 5
+          },
+          {
+            "x": 5,
+            "z": -11.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-1",
+        "paraSalaId": "sala-2",
+        "pontos": [
+          {
+            "x": 5,
+            "z": -11.5
+          },
+          {
+            "x": 5,
+            "z": -15
+          },
+          {
+            "x": -10.5,
+            "z": -15
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-2",
+        "paraSalaId": "sala-3",
+        "pontos": [
+          {
+            "x": -10.5,
+            "z": -15
+          },
+          {
+            "x": -12,
+            "z": -15
+          },
+          {
+            "x": -12,
+            "z": -0.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-3",
+        "paraSalaId": "sala-4",
+        "pontos": [
+          {
+            "x": -12,
+            "z": -0.5
+          },
+          {
+            "x": -12,
+            "z": 13
+          },
+          {
+            "x": -11,
+            "z": 13
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-4",
+        "paraSalaId": "sala-5",
+        "pontos": [
+          {
+            "x": -11,
+            "z": 13
+          },
+          {
+            "x": -11,
+            "z": 12
+          },
+          {
+            "x": -26,
+            "z": 12
+          }
+        ],
+        "largura": 3
+      }
+    ],
+    "limites": {
+      "minX": -30,
+      "maxX": 11,
+      "minZ": -19,
+      "maxZ": 16
+    }
+  },
+  "templo": {
+    "seed": 2699152887,
+    "nome": "Catacumbas de Aethelburg",
+    "tipo": "templo",
+    "arquetipo": "interior",
+    "salas": [
+      {
+        "id": "sala-0",
+        "x": 0,
+        "z": 0,
+        "largura": 16,
+        "profundidade": 9,
+        "altura": 12.15,
+        "papel": "entrada"
+      },
+      {
+        "id": "sala-1",
+        "x": -15,
+        "z": -2,
+        "largura": 9,
+        "profundidade": 16,
+        "altura": 9,
+        "papel": "segredo",
+        "rotulo": "Mapa astral mostrando localizacao dos Fragmentos"
+      },
+      {
+        "id": "sala-2",
+        "x": -16,
+        "z": -22,
+        "largura": 17,
+        "profundidade": 15,
+        "altura": 9,
+        "papel": "segredo",
+        "rotulo": "Diario de Elara detalhando sua corrupcao inicial"
+      },
+      {
+        "id": "sala-3",
+        "x": 6,
+        "z": -24,
+        "largura": 16,
+        "profundidade": 17,
+        "altura": 9,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-4",
+        "x": 27,
+        "z": -25,
+        "largura": 12,
+        "profundidade": 10,
+        "altura": 9,
+        "papel": "encontro",
+        "rotulo": "Manes, Esqueleto"
+      },
+      {
+        "id": "sala-5",
+        "x": 26,
+        "z": -10,
+        "largura": 16,
+        "profundidade": 14,
+        "altura": 9,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-6",
+        "x": 26,
+        "z": 11,
+        "largura": 9,
+        "profundidade": 16,
+        "altura": 9,
+        "papel": "encontro",
+        "rotulo": "Ghoul, Imp"
+      },
+      {
+        "id": "sala-7",
+        "x": 27,
+        "z": 33,
+        "largura": 17,
+        "profundidade": 12,
+        "altura": 9,
+        "papel": "encontro",
+        "rotulo": "Dretch, Lemure"
+      },
+      {
+        "id": "sala-8",
+        "x": 27,
+        "z": 50,
+        "largura": 15,
+        "profundidade": 14,
+        "altura": 9,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-9",
+        "x": 25,
+        "z": 70,
+        "largura": 15,
+        "profundidade": 17,
+        "altura": 9,
+        "papel": "segredo",
+        "rotulo": "Portal menor ainda ativo para plano demoniaco"
+      },
+      {
+        "id": "sala-10",
+        "x": 45,
+        "z": 68,
+        "largura": 12,
+        "profundidade": 10,
+        "altura": 12.15,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "sala-0",
+        "paraSalaId": "sala-1",
+        "pontos": [
+          {
+            "x": 8,
+            "z": 4.5
+          },
+          {
+            "x": 8,
+            "z": 6
+          },
+          {
+            "x": -10.5,
+            "z": 6
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "sala-1",
+        "paraSalaId": "sala-2",
+        "pontos": [
+          {
+            "x": -10.5,
+            "z": 6
+          },
+          {
+            "x": -7.5,
+            "z": 6
+          },
+          {
+            "x": -7.5,
+            "z": -14.5
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "sala-2",
+        "paraSalaId": "sala-3",
+        "pontos": [
+          {
+            "x": -7.5,
+            "z": -14.5
+          },
+          {
+            "x": 14,
+            "z": -14.5
+          },
+          {
+            "x": 14,
+            "z": -15.5
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "sala-3",
+        "paraSalaId": "sala-4",
+        "pontos": [
+          {
+            "x": 14,
+            "z": -15.5
+          },
+          {
+            "x": 14,
+            "z": -20
+          },
+          {
+            "x": 33,
+            "z": -20
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "sala-4",
+        "paraSalaId": "sala-5",
+        "pontos": [
+          {
+            "x": 33,
+            "z": -20
+          },
+          {
+            "x": 34,
+            "z": -20
+          },
+          {
+            "x": 34,
+            "z": -3
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "sala-5",
+        "paraSalaId": "sala-6",
+        "pontos": [
+          {
+            "x": 34,
+            "z": -3
+          },
+          {
+            "x": 30.5,
+            "z": -3
+          },
+          {
+            "x": 30.5,
+            "z": 19
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "sala-6",
+        "paraSalaId": "sala-7",
+        "pontos": [
+          {
+            "x": 30.5,
+            "z": 19
+          },
+          {
+            "x": 30.5,
+            "z": 39
+          },
+          {
+            "x": 35.5,
+            "z": 39
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "sala-7",
+        "paraSalaId": "sala-8",
+        "pontos": [
+          {
+            "x": 35.5,
+            "z": 39
+          },
+          {
+            "x": 35.5,
+            "z": 57
+          },
+          {
+            "x": 34.5,
+            "z": 57
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "sala-8",
+        "paraSalaId": "sala-9",
+        "pontos": [
+          {
+            "x": 34.5,
+            "z": 57
+          },
+          {
+            "x": 32.5,
+            "z": 57
+          },
+          {
+            "x": 32.5,
+            "z": 78.5
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "sala-9",
+        "paraSalaId": "sala-10",
+        "pontos": [
+          {
+            "x": 32.5,
+            "z": 78.5
+          },
+          {
+            "x": 51,
+            "z": 78.5
+          },
+          {
+            "x": 51,
+            "z": 73
+          }
+        ],
+        "largura": 5
+      }
+    ],
+    "limites": {
+      "minX": -16,
+      "maxX": 57,
+      "minZ": -25,
+      "maxZ": 87
+    }
+  },
+  "caverna": {
+    "seed": 1409561988,
+    "nome": "Catacumbas de Aethelburg",
+    "tipo": "caverna",
+    "arquetipo": "interior",
+    "salas": [
+      {
+        "id": "sala-0",
+        "x": 0,
+        "z": 0,
+        "largura": 6,
+        "profundidade": 8,
+        "altura": 6.075,
+        "papel": "entrada"
+      },
+      {
+        "id": "sala-1",
+        "x": -12,
+        "z": 0,
+        "largura": 9,
+        "profundidade": 5,
+        "altura": 4.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-2",
+        "x": -9,
+        "z": 8,
+        "largura": 6,
+        "profundidade": 8,
+        "altura": 4.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-3",
+        "x": -22,
+        "z": 8,
+        "largura": 7,
+        "profundidade": 6,
+        "altura": 4.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-4",
+        "x": -30,
+        "z": 11,
+        "largura": 5,
+        "profundidade": 8,
+        "altura": 4.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-5",
+        "x": -44,
+        "z": 12,
+        "largura": 9,
+        "profundidade": 10,
+        "altura": 4.5,
+        "papel": "segredo",
+        "rotulo": "Diario de Elara detalhando sua corrupcao inicial"
+      },
+      {
+        "id": "sala-6",
+        "x": -45,
+        "z": 28,
+        "largura": 7,
+        "profundidade": 10,
+        "altura": 4.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-7",
+        "x": -60,
+        "z": 30,
+        "largura": 10,
+        "profundidade": 6,
+        "altura": 4.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-8",
+        "x": -59,
+        "z": 39,
+        "largura": 10,
+        "profundidade": 7,
+        "altura": 4.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-9",
+        "x": -75,
+        "z": 40,
+        "largura": 10,
+        "profundidade": 5,
+        "altura": 4.5,
+        "papel": "segredo",
+        "rotulo": "Portal menor ainda ativo para plano demoniaco"
+      },
+      {
+        "id": "sala-10",
+        "x": -76,
+        "z": 26,
+        "largura": 8,
+        "profundidade": 11,
+        "altura": 4.5,
+        "papel": "segredo",
+        "rotulo": "Mapa astral mostrando localizacao dos Fragmentos"
+      },
+      {
+        "id": "sala-11",
+        "x": -86,
+        "z": 29,
+        "largura": 7,
+        "profundidade": 10,
+        "altura": 4.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-12",
+        "x": -88,
+        "z": 43,
+        "largura": 11,
+        "profundidade": 11,
+        "altura": 4.5,
+        "papel": "encontro",
+        "rotulo": "Dretch, Lemure"
+      },
+      {
+        "id": "sala-13",
+        "x": -90,
+        "z": 60,
+        "largura": 5,
+        "profundidade": 9,
+        "altura": 4.5,
+        "papel": "encontro",
+        "rotulo": "Ghoul, Imp"
+      },
+      {
+        "id": "sala-14",
+        "x": -88,
+        "z": 72,
+        "largura": 8,
+        "profundidade": 8,
+        "altura": 4.5,
+        "papel": "encontro",
+        "rotulo": "Manes, Esqueleto"
+      },
+      {
+        "id": "sala-15",
+        "x": -86,
+        "z": 86,
+        "largura": 9,
+        "profundidade": 10,
+        "altura": 6.075,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "sala-0",
+        "paraSalaId": "sala-1",
+        "pontos": [
+          {
+            "x": 3,
+            "z": 4
+          },
+          {
+            "x": -7.5,
+            "z": 4
+          },
+          {
+            "x": -7.5,
+            "z": 2.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-1",
+        "paraSalaId": "sala-2",
+        "pontos": [
+          {
+            "x": -7.5,
+            "z": 2.5
+          },
+          {
+            "x": -7.5,
+            "z": 12
+          },
+          {
+            "x": -6,
+            "z": 12
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-2",
+        "paraSalaId": "sala-3",
+        "pontos": [
+          {
+            "x": -6,
+            "z": 12
+          },
+          {
+            "x": -18.5,
+            "z": 12
+          },
+          {
+            "x": -18.5,
+            "z": 11
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-3",
+        "paraSalaId": "sala-4",
+        "pontos": [
+          {
+            "x": -18.5,
+            "z": 11
+          },
+          {
+            "x": -18.5,
+            "z": 15
+          },
+          {
+            "x": -27.5,
+            "z": 15
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-4",
+        "paraSalaId": "sala-5",
+        "pontos": [
+          {
+            "x": -27.5,
+            "z": 15
+          },
+          {
+            "x": -39.5,
+            "z": 15
+          },
+          {
+            "x": -39.5,
+            "z": 17
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-5",
+        "paraSalaId": "sala-6",
+        "pontos": [
+          {
+            "x": -39.5,
+            "z": 17
+          },
+          {
+            "x": -39.5,
+            "z": 33
+          },
+          {
+            "x": -41.5,
+            "z": 33
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-6",
+        "paraSalaId": "sala-7",
+        "pontos": [
+          {
+            "x": -41.5,
+            "z": 33
+          },
+          {
+            "x": -55,
+            "z": 33
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-7",
+        "paraSalaId": "sala-8",
+        "pontos": [
+          {
+            "x": -55,
+            "z": 33
+          },
+          {
+            "x": -54,
+            "z": 33
+          },
+          {
+            "x": -54,
+            "z": 42.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-8",
+        "paraSalaId": "sala-9",
+        "pontos": [
+          {
+            "x": -54,
+            "z": 42.5
+          },
+          {
+            "x": -70,
+            "z": 42.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-9",
+        "paraSalaId": "sala-10",
+        "pontos": [
+          {
+            "x": -70,
+            "z": 42.5
+          },
+          {
+            "x": -72,
+            "z": 42.5
+          },
+          {
+            "x": -72,
+            "z": 31.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-10",
+        "paraSalaId": "sala-11",
+        "pontos": [
+          {
+            "x": -72,
+            "z": 31.5
+          },
+          {
+            "x": -72,
+            "z": 34
+          },
+          {
+            "x": -82.5,
+            "z": 34
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-11",
+        "paraSalaId": "sala-12",
+        "pontos": [
+          {
+            "x": -82.5,
+            "z": 34
+          },
+          {
+            "x": -82.5,
+            "z": 48.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-12",
+        "paraSalaId": "sala-13",
+        "pontos": [
+          {
+            "x": -82.5,
+            "z": 48.5
+          },
+          {
+            "x": -82.5,
+            "z": 64.5
+          },
+          {
+            "x": -87.5,
+            "z": 64.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-13",
+        "paraSalaId": "sala-14",
+        "pontos": [
+          {
+            "x": -87.5,
+            "z": 64.5
+          },
+          {
+            "x": -84,
+            "z": 64.5
+          },
+          {
+            "x": -84,
+            "z": 76
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-14",
+        "paraSalaId": "sala-15",
+        "pontos": [
+          {
+            "x": -84,
+            "z": 76
+          },
+          {
+            "x": -84,
+            "z": 91
+          },
+          {
+            "x": -81.5,
+            "z": 91
+          }
+        ],
+        "largura": 3
+      }
+    ],
+    "limites": {
+      "minX": -90,
+      "maxX": 6,
+      "minZ": 0,
+      "maxZ": 96
+    }
+  },
+  "ruina": {
+    "seed": 2937560981,
+    "nome": "Catacumbas de Aethelburg",
+    "tipo": "ruina",
+    "arquetipo": "interior",
+    "salas": [
+      {
+        "id": "sala-0",
+        "x": 0,
+        "z": 0,
+        "largura": 9,
+        "profundidade": 6,
+        "altura": 4.7250000000000005,
+        "papel": "entrada"
+      },
+      {
+        "id": "sala-1",
+        "x": -21,
+        "z": -3,
+        "largura": 14,
+        "profundidade": 12,
+        "altura": 3.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-2",
+        "x": -20,
+        "z": -19,
+        "largura": 9,
+        "profundidade": 6,
+        "altura": 3.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-3",
+        "x": -2,
+        "z": -19,
+        "largura": 12,
+        "profundidade": 7,
+        "altura": 3.5,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-4",
+        "x": -4,
+        "z": -35,
+        "largura": 5,
+        "profundidade": 9,
+        "altura": 3.5,
+        "papel": "encontro",
+        "rotulo": "Manes, Esqueleto"
+      },
+      {
+        "id": "sala-5",
+        "x": -6,
+        "z": -48,
+        "largura": 14,
+        "profundidade": 6,
+        "altura": 3.5,
+        "papel": "segredo",
+        "rotulo": "Diario de Elara detalhando sua corrupcao inicial"
+      },
+      {
+        "id": "sala-6",
+        "x": 15,
+        "z": -45,
+        "largura": 14,
+        "profundidade": 7,
+        "altura": 3.5,
+        "papel": "encontro",
+        "rotulo": "Dretch, Lemure"
+      },
+      {
+        "id": "sala-7",
+        "x": 38,
+        "z": -48,
+        "largura": 14,
+        "profundidade": 11,
+        "altura": 3.5,
+        "papel": "segredo",
+        "rotulo": "Mapa astral mostrando localizacao dos Fragmentos"
+      },
+      {
+        "id": "sala-8",
+        "x": 35,
+        "z": -72,
+        "largura": 7,
+        "profundidade": 14,
+        "altura": 3.5,
+        "papel": "segredo",
+        "rotulo": "Portal menor ainda ativo para plano demoniaco"
+      },
+      {
+        "id": "sala-9",
+        "x": 52,
+        "z": -75,
+        "largura": 14,
+        "profundidade": 11,
+        "altura": 3.5,
+        "papel": "encontro",
+        "rotulo": "Ghoul, Imp"
+      },
+      {
+        "id": "sala-10",
+        "x": 73,
+        "z": -76,
+        "largura": 11,
+        "profundidade": 9,
+        "altura": 4.7250000000000005,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "sala-0",
+        "paraSalaId": "sala-1",
+        "pontos": [
+          {
+            "x": 4.5,
+            "z": 3
+          },
+          {
+            "x": -14,
+            "z": 3
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-1",
+        "paraSalaId": "sala-2",
+        "pontos": [
+          {
+            "x": -14,
+            "z": 3
+          },
+          {
+            "x": -15.5,
+            "z": 3
+          },
+          {
+            "x": -15.5,
+            "z": -16
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-2",
+        "paraSalaId": "sala-3",
+        "pontos": [
+          {
+            "x": -15.5,
+            "z": -16
+          },
+          {
+            "x": 4,
+            "z": -16
+          },
+          {
+            "x": 4,
+            "z": -15.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-3",
+        "paraSalaId": "sala-4",
+        "pontos": [
+          {
+            "x": 4,
+            "z": -15.5
+          },
+          {
+            "x": 4,
+            "z": -30.5
+          },
+          {
+            "x": -1.5,
+            "z": -30.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-4",
+        "paraSalaId": "sala-5",
+        "pontos": [
+          {
+            "x": -1.5,
+            "z": -30.5
+          },
+          {
+            "x": 1,
+            "z": -30.5
+          },
+          {
+            "x": 1,
+            "z": -45
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-5",
+        "paraSalaId": "sala-6",
+        "pontos": [
+          {
+            "x": 1,
+            "z": -45
+          },
+          {
+            "x": 1,
+            "z": -41.5
+          },
+          {
+            "x": 22,
+            "z": -41.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-6",
+        "paraSalaId": "sala-7",
+        "pontos": [
+          {
+            "x": 22,
+            "z": -41.5
+          },
+          {
+            "x": 22,
+            "z": -42.5
+          },
+          {
+            "x": 45,
+            "z": -42.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-7",
+        "paraSalaId": "sala-8",
+        "pontos": [
+          {
+            "x": 45,
+            "z": -42.5
+          },
+          {
+            "x": 38.5,
+            "z": -42.5
+          },
+          {
+            "x": 38.5,
+            "z": -65
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-8",
+        "paraSalaId": "sala-9",
+        "pontos": [
+          {
+            "x": 38.5,
+            "z": -65
+          },
+          {
+            "x": 38.5,
+            "z": -69.5
+          },
+          {
+            "x": 59,
+            "z": -69.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-9",
+        "paraSalaId": "sala-10",
+        "pontos": [
+          {
+            "x": 59,
+            "z": -69.5
+          },
+          {
+            "x": 59,
+            "z": -71.5
+          },
+          {
+            "x": 78.5,
+            "z": -71.5
+          }
+        ],
+        "largura": 4
+      }
+    ],
+    "limites": {
+      "minX": -21,
+      "maxX": 84,
+      "minZ": -76,
+      "maxZ": 9
+    }
+  },
+  "fortaleza": {
+    "seed": 3395396202,
+    "nome": "Catacumbas de Aethelburg",
+    "tipo": "fortaleza",
+    "arquetipo": "interior",
+    "salas": [
+      {
+        "id": "sala-0",
+        "x": 0,
+        "z": 0,
+        "largura": 13,
+        "profundidade": 8,
+        "altura": 8.100000000000001,
+        "papel": "entrada"
+      },
+      {
+        "id": "sala-1",
+        "x": -2,
+        "z": -13,
+        "largura": 8,
+        "profundidade": 8,
+        "altura": 6,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-2",
+        "x": 10,
+        "z": -14,
+        "largura": 9,
+        "profundidade": 11,
+        "altura": 6,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-3",
+        "x": 23,
+        "z": -16,
+        "largura": 11,
+        "profundidade": 13,
+        "altura": 6,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-4",
+        "x": 20,
+        "z": 2,
+        "largura": 8,
+        "profundidade": 12,
+        "altura": 6,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-5",
+        "x": 17,
+        "z": 19,
+        "largura": 8,
+        "profundidade": 8,
+        "altura": 6,
+        "papel": "segredo",
+        "rotulo": "Mapa astral mostrando localizacao dos Fragmentos"
+      },
+      {
+        "id": "sala-6",
+        "x": 0,
+        "z": 22,
+        "largura": 13,
+        "profundidade": 11,
+        "altura": 6,
+        "papel": "encontro",
+        "rotulo": "Dretch, Lemure"
+      },
+      {
+        "id": "sala-7",
+        "x": 3,
+        "z": 10,
+        "largura": 10,
+        "profundidade": 7,
+        "altura": 6,
+        "papel": "encontro",
+        "rotulo": "Ghoul, Imp"
+      },
+      {
+        "id": "sala-8",
+        "x": -15,
+        "z": 7,
+        "largura": 13,
+        "profundidade": 12,
+        "altura": 6,
+        "papel": "segredo",
+        "rotulo": "Diario de Elara detalhando sua corrupcao inicial"
+      },
+      {
+        "id": "sala-9",
+        "x": -33,
+        "z": 5,
+        "largura": 13,
+        "profundidade": 8,
+        "altura": 6,
+        "papel": "encontro",
+        "rotulo": "Manes, Esqueleto"
+      },
+      {
+        "id": "sala-10",
+        "x": -30,
+        "z": 17,
+        "largura": 7,
+        "profundidade": 10,
+        "altura": 6,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-11",
+        "x": -46,
+        "z": 19,
+        "largura": 12,
+        "profundidade": 11,
+        "altura": 6,
+        "papel": "segredo",
+        "rotulo": "Portal menor ainda ativo para plano demoniaco"
+      },
+      {
+        "id": "sala-12",
+        "x": -57,
+        "z": 21,
+        "largura": 7,
+        "profundidade": 8,
+        "altura": 6,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-13",
+        "x": -59,
+        "z": 3,
+        "largura": 11,
+        "profundidade": 13,
+        "altura": 8.100000000000001,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "sala-0",
+        "paraSalaId": "sala-1",
+        "pontos": [
+          {
+            "x": 6.5,
+            "z": 4
+          },
+          {
+            "x": 6.5,
+            "z": -9
+          },
+          {
+            "x": 2,
+            "z": -9
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-1",
+        "paraSalaId": "sala-2",
+        "pontos": [
+          {
+            "x": 2,
+            "z": -9
+          },
+          {
+            "x": 14.5,
+            "z": -9
+          },
+          {
+            "x": 14.5,
+            "z": -8.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-2",
+        "paraSalaId": "sala-3",
+        "pontos": [
+          {
+            "x": 14.5,
+            "z": -8.5
+          },
+          {
+            "x": 14.5,
+            "z": -9.5
+          },
+          {
+            "x": 28.5,
+            "z": -9.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-3",
+        "paraSalaId": "sala-4",
+        "pontos": [
+          {
+            "x": 28.5,
+            "z": -9.5
+          },
+          {
+            "x": 28.5,
+            "z": 8
+          },
+          {
+            "x": 24,
+            "z": 8
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-4",
+        "paraSalaId": "sala-5",
+        "pontos": [
+          {
+            "x": 24,
+            "z": 8
+          },
+          {
+            "x": 21,
+            "z": 8
+          },
+          {
+            "x": 21,
+            "z": 23
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-5",
+        "paraSalaId": "sala-6",
+        "pontos": [
+          {
+            "x": 21,
+            "z": 23
+          },
+          {
+            "x": 6.5,
+            "z": 23
+          },
+          {
+            "x": 6.5,
+            "z": 27.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-6",
+        "paraSalaId": "sala-7",
+        "pontos": [
+          {
+            "x": 6.5,
+            "z": 27.5
+          },
+          {
+            "x": 8,
+            "z": 27.5
+          },
+          {
+            "x": 8,
+            "z": 13.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-7",
+        "paraSalaId": "sala-8",
+        "pontos": [
+          {
+            "x": 8,
+            "z": 13.5
+          },
+          {
+            "x": -8.5,
+            "z": 13.5
+          },
+          {
+            "x": -8.5,
+            "z": 13
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-8",
+        "paraSalaId": "sala-9",
+        "pontos": [
+          {
+            "x": -8.5,
+            "z": 13
+          },
+          {
+            "x": -8.5,
+            "z": 9
+          },
+          {
+            "x": -26.5,
+            "z": 9
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-9",
+        "paraSalaId": "sala-10",
+        "pontos": [
+          {
+            "x": -26.5,
+            "z": 9
+          },
+          {
+            "x": -26.5,
+            "z": 22
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-10",
+        "paraSalaId": "sala-11",
+        "pontos": [
+          {
+            "x": -26.5,
+            "z": 22
+          },
+          {
+            "x": -26.5,
+            "z": 24.5
+          },
+          {
+            "x": -40,
+            "z": 24.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-11",
+        "paraSalaId": "sala-12",
+        "pontos": [
+          {
+            "x": -40,
+            "z": 24.5
+          },
+          {
+            "x": -53.5,
+            "z": 24.5
+          },
+          {
+            "x": -53.5,
+            "z": 25
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "sala-12",
+        "paraSalaId": "sala-13",
+        "pontos": [
+          {
+            "x": -53.5,
+            "z": 25
+          },
+          {
+            "x": -53.5,
+            "z": 9.5
+          }
+        ],
+        "largura": 4
+      }
+    ],
+    "limites": {
+      "minX": -59,
+      "maxX": 34,
+      "minZ": -16,
+      "maxZ": 33
+    }
+  },
+  "outro": {
+    "seed": 1770389515,
+    "nome": "Catacumbas de Aethelburg",
+    "tipo": "outro",
+    "arquetipo": "interior",
+    "salas": [
+      {
+        "id": "sala-0",
+        "x": 0,
+        "z": 0,
+        "largura": 9,
+        "profundidade": 8,
+        "altura": 5.4,
+        "papel": "entrada"
+      },
+      {
+        "id": "sala-1",
+        "x": -16,
+        "z": 2,
+        "largura": 10,
+        "profundidade": 9,
+        "altura": 4,
+        "papel": "encontro",
+        "rotulo": "Manes, Esqueleto"
+      },
+      {
+        "id": "sala-2",
+        "x": -32,
+        "z": 0,
+        "largura": 12,
+        "profundidade": 9,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-3",
+        "x": -29,
+        "z": -15,
+        "largura": 8,
+        "profundidade": 8,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-4",
+        "x": -32,
+        "z": -28,
+        "largura": 11,
+        "profundidade": 6,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-5",
+        "x": -14,
+        "z": -26,
+        "largura": 12,
+        "profundidade": 11,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-6",
+        "x": 4,
+        "z": -24,
+        "largura": 6,
+        "profundidade": 6,
+        "altura": 4,
+        "papel": "segredo",
+        "rotulo": "Mapa astral mostrando localizacao dos Fragmentos"
+      },
+      {
+        "id": "sala-7",
+        "x": 4,
+        "z": -38,
+        "largura": 7,
+        "profundidade": 8,
+        "altura": 4,
+        "papel": "encontro",
+        "rotulo": "Ghoul, Imp"
+      },
+      {
+        "id": "sala-8",
+        "x": 5,
+        "z": -55,
+        "largura": 9,
+        "profundidade": 12,
+        "altura": 4,
+        "papel": "segredo",
+        "rotulo": "Portal menor ainda ativo para plano demoniaco"
+      },
+      {
+        "id": "sala-9",
+        "x": -11,
+        "z": -53,
+        "largura": 11,
+        "profundidade": 12,
+        "altura": 4,
+        "papel": "encontro",
+        "rotulo": "Dretch, Lemure"
+      },
+      {
+        "id": "sala-10",
+        "x": -28,
+        "z": -53,
+        "largura": 11,
+        "profundidade": 7,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-11",
+        "x": -28,
+        "z": -63,
+        "largura": 10,
+        "profundidade": 6,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-12",
+        "x": -12,
+        "z": -66,
+        "largura": 9,
+        "profundidade": 10,
+        "altura": 4,
+        "papel": "segredo",
+        "rotulo": "Diario de Elara detalhando sua corrupcao inicial"
+      },
+      {
+        "id": "sala-13",
+        "x": 1,
+        "z": -69,
+        "largura": 6,
+        "profundidade": 11,
+        "altura": 5.4,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "sala-0",
+        "paraSalaId": "sala-1",
+        "pontos": [
+          {
+            "x": 4.5,
+            "z": 4
+          },
+          {
+            "x": -11,
+            "z": 4
+          },
+          {
+            "x": -11,
+            "z": 6.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-1",
+        "paraSalaId": "sala-2",
+        "pontos": [
+          {
+            "x": -11,
+            "z": 6.5
+          },
+          {
+            "x": -26,
+            "z": 6.5
+          },
+          {
+            "x": -26,
+            "z": 4.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-2",
+        "paraSalaId": "sala-3",
+        "pontos": [
+          {
+            "x": -26,
+            "z": 4.5
+          },
+          {
+            "x": -26,
+            "z": -11
+          },
+          {
+            "x": -25,
+            "z": -11
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-3",
+        "paraSalaId": "sala-4",
+        "pontos": [
+          {
+            "x": -25,
+            "z": -11
+          },
+          {
+            "x": -25,
+            "z": -25
+          },
+          {
+            "x": -26.5,
+            "z": -25
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-4",
+        "paraSalaId": "sala-5",
+        "pontos": [
+          {
+            "x": -26.5,
+            "z": -25
+          },
+          {
+            "x": -26.5,
+            "z": -20.5
+          },
+          {
+            "x": -8,
+            "z": -20.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-5",
+        "paraSalaId": "sala-6",
+        "pontos": [
+          {
+            "x": -8,
+            "z": -20.5
+          },
+          {
+            "x": 7,
+            "z": -20.5
+          },
+          {
+            "x": 7,
+            "z": -21
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-6",
+        "paraSalaId": "sala-7",
+        "pontos": [
+          {
+            "x": 7,
+            "z": -21
+          },
+          {
+            "x": 7.5,
+            "z": -21
+          },
+          {
+            "x": 7.5,
+            "z": -34
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-7",
+        "paraSalaId": "sala-8",
+        "pontos": [
+          {
+            "x": 7.5,
+            "z": -34
+          },
+          {
+            "x": 9.5,
+            "z": -34
+          },
+          {
+            "x": 9.5,
+            "z": -49
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-8",
+        "paraSalaId": "sala-9",
+        "pontos": [
+          {
+            "x": 9.5,
+            "z": -49
+          },
+          {
+            "x": -5.5,
+            "z": -49
+          },
+          {
+            "x": -5.5,
+            "z": -47
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-9",
+        "paraSalaId": "sala-10",
+        "pontos": [
+          {
+            "x": -5.5,
+            "z": -47
+          },
+          {
+            "x": -22.5,
+            "z": -47
+          },
+          {
+            "x": -22.5,
+            "z": -49.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-10",
+        "paraSalaId": "sala-11",
+        "pontos": [
+          {
+            "x": -22.5,
+            "z": -49.5
+          },
+          {
+            "x": -22.5,
+            "z": -60
+          },
+          {
+            "x": -23,
+            "z": -60
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-11",
+        "paraSalaId": "sala-12",
+        "pontos": [
+          {
+            "x": -23,
+            "z": -60
+          },
+          {
+            "x": -23,
+            "z": -61
+          },
+          {
+            "x": -7.5,
+            "z": -61
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-12",
+        "paraSalaId": "sala-13",
+        "pontos": [
+          {
+            "x": -7.5,
+            "z": -61
+          },
+          {
+            "x": -7.5,
+            "z": -63.5
+          },
+          {
+            "x": 4,
+            "z": -63.5
+          }
+        ],
+        "largura": 3
+      }
+    ],
+    "limites": {
+      "minX": -32,
+      "maxX": 14,
+      "minZ": -69,
+      "maxZ": 11
+    }
+  },
+  "cidade": {
+    "seed": 316855918,
+    "nome": "Porto de Mare Negra",
+    "tipo": "cidade",
+    "arquetipo": "urbano",
+    "salas": [
+      {
+        "id": "quarteirao-0",
+        "x": 0,
+        "z": 0,
+        "largura": 15,
+        "profundidade": 12,
+        "altura": 10,
+        "papel": "entrada"
+      },
+      {
+        "id": "quarteirao-1",
+        "x": 23,
+        "z": 0,
+        "largura": 15,
+        "profundidade": 12,
+        "altura": 6,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-2",
+        "x": 46,
+        "z": 0,
+        "largura": 12,
+        "profundidade": 12,
+        "altura": 10,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-3",
+        "x": 0,
+        "z": 20,
+        "largura": 15,
+        "profundidade": 12,
+        "altura": 10,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-4",
+        "x": 23,
+        "z": 20,
+        "largura": 15,
+        "profundidade": 12,
+        "altura": 12,
+        "papel": "encontro",
+        "rotulo": "Bandido, Espiao"
+      },
+      {
+        "id": "quarteirao-5",
+        "x": 46,
+        "z": 20,
+        "largura": 12,
+        "profundidade": 12,
+        "altura": 7,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-6",
+        "x": 0,
+        "z": 40,
+        "largura": 15,
+        "profundidade": 10,
+        "altura": 14,
+        "papel": "segredo",
+        "rotulo": "Contrabando"
+      },
+      {
+        "id": "quarteirao-7",
+        "x": 23,
+        "z": 40,
+        "largura": 15,
+        "profundidade": 10,
+        "altura": 6,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-8",
+        "x": 46,
+        "z": 40,
+        "largura": 12,
+        "profundidade": 10,
+        "altura": 11,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "quarteirao-0",
+        "paraSalaId": "quarteirao-1",
+        "pontos": [
+          {
+            "x": 7.5,
+            "z": 6
+          },
+          {
+            "x": 30.5,
+            "z": 6
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-1",
+        "paraSalaId": "quarteirao-2",
+        "pontos": [
+          {
+            "x": 30.5,
+            "z": 6
+          },
+          {
+            "x": 52,
+            "z": 6
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-3",
+        "paraSalaId": "quarteirao-4",
+        "pontos": [
+          {
+            "x": 7.5,
+            "z": 26
+          },
+          {
+            "x": 30.5,
+            "z": 26
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-4",
+        "paraSalaId": "quarteirao-5",
+        "pontos": [
+          {
+            "x": 30.5,
+            "z": 26
+          },
+          {
+            "x": 52,
+            "z": 26
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-6",
+        "paraSalaId": "quarteirao-7",
+        "pontos": [
+          {
+            "x": 7.5,
+            "z": 45
+          },
+          {
+            "x": 30.5,
+            "z": 45
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-7",
+        "paraSalaId": "quarteirao-8",
+        "pontos": [
+          {
+            "x": 30.5,
+            "z": 45
+          },
+          {
+            "x": 52,
+            "z": 45
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-0",
+        "paraSalaId": "quarteirao-3",
+        "pontos": [
+          {
+            "x": 7.5,
+            "z": 6
+          },
+          {
+            "x": 7.5,
+            "z": 26
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-3",
+        "paraSalaId": "quarteirao-6",
+        "pontos": [
+          {
+            "x": 7.5,
+            "z": 26
+          },
+          {
+            "x": 7.5,
+            "z": 45
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-1",
+        "paraSalaId": "quarteirao-4",
+        "pontos": [
+          {
+            "x": 30.5,
+            "z": 6
+          },
+          {
+            "x": 30.5,
+            "z": 26
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-4",
+        "paraSalaId": "quarteirao-7",
+        "pontos": [
+          {
+            "x": 30.5,
+            "z": 26
+          },
+          {
+            "x": 30.5,
+            "z": 45
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-2",
+        "paraSalaId": "quarteirao-5",
+        "pontos": [
+          {
+            "x": 52,
+            "z": 6
+          },
+          {
+            "x": 52,
+            "z": 26
+          }
+        ],
+        "largura": 8
+      },
+      {
+        "deSalaId": "quarteirao-5",
+        "paraSalaId": "quarteirao-8",
+        "pontos": [
+          {
+            "x": 52,
+            "z": 26
+          },
+          {
+            "x": 52,
+            "z": 45
+          }
+        ],
+        "largura": 8
+      }
+    ],
+    "limites": {
+      "minX": 0,
+      "maxX": 58,
+      "minZ": 0,
+      "maxZ": 50
+    }
+  },
+  "floresta": {
+    "seed": 945444223,
+    "nome": "Mata dos Lamentos",
+    "tipo": "floresta",
+    "arquetipo": "natural",
+    "salas": [
+      {
+        "id": "clareira-0",
+        "x": 1,
+        "z": 14,
+        "largura": 12,
+        "profundidade": 9,
+        "altura": 0,
+        "papel": "entrada"
+      },
+      {
+        "id": "clareira-1",
+        "x": -18,
+        "z": -11,
+        "largura": 15,
+        "profundidade": 16,
+        "altura": 0,
+        "papel": "encontro",
+        "rotulo": "Lobo, Aranha"
+      },
+      {
+        "id": "clareira-2",
+        "x": 28,
+        "z": -19,
+        "largura": 16,
+        "profundidade": 15,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-3",
+        "x": 3,
+        "z": 47,
+        "largura": 11,
+        "profundidade": 15,
+        "altura": 0,
+        "papel": "segredo",
+        "rotulo": "Circulo de pedras"
+      },
+      {
+        "id": "clareira-4",
+        "x": 38,
+        "z": -54,
+        "largura": 16,
+        "profundidade": 13,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-5",
+        "x": 43,
+        "z": 48,
+        "largura": 13,
+        "profundidade": 11,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-6",
+        "x": -37,
+        "z": 34,
+        "largura": 8,
+        "profundidade": 16,
+        "altura": 0,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "clareira-0",
+        "paraSalaId": "clareira-1",
+        "pontos": [
+          {
+            "x": 7,
+            "z": 18.5
+          },
+          {
+            "x": 7,
+            "z": -3
+          },
+          {
+            "x": -10.5,
+            "z": -3
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "clareira-0",
+        "paraSalaId": "clareira-3",
+        "pontos": [
+          {
+            "x": 7,
+            "z": 18.5
+          },
+          {
+            "x": 7,
+            "z": 54.5
+          },
+          {
+            "x": 8.5,
+            "z": 54.5
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "clareira-3",
+        "paraSalaId": "clareira-5",
+        "pontos": [
+          {
+            "x": 8.5,
+            "z": 54.5
+          },
+          {
+            "x": 8.5,
+            "z": 53.5
+          },
+          {
+            "x": 49.5,
+            "z": 53.5
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "clareira-0",
+        "paraSalaId": "clareira-2",
+        "pontos": [
+          {
+            "x": 7,
+            "z": 18.5
+          },
+          {
+            "x": 7,
+            "z": -11.5
+          },
+          {
+            "x": 36,
+            "z": -11.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "clareira-2",
+        "paraSalaId": "clareira-4",
+        "pontos": [
+          {
+            "x": 36,
+            "z": -11.5
+          },
+          {
+            "x": 36,
+            "z": -47.5
+          },
+          {
+            "x": 46,
+            "z": -47.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "clareira-3",
+        "paraSalaId": "clareira-6",
+        "pontos": [
+          {
+            "x": 8.5,
+            "z": 54.5
+          },
+          {
+            "x": -33,
+            "z": 54.5
+          },
+          {
+            "x": -33,
+            "z": 42
+          }
+        ],
+        "largura": 3
+      }
+    ],
+    "limites": {
+      "minX": -37,
+      "maxX": 56,
+      "minZ": -54,
+      "maxZ": 62
+    }
+  },
+  "degenerado": {
+    "seed": 3744819663,
+    "nome": "Local Central",
+    "tipo": "outro",
+    "arquetipo": "interior",
+    "salas": [
+      {
+        "id": "sala-0",
+        "x": 0,
+        "z": 0,
+        "largura": 9,
+        "profundidade": 6,
+        "altura": 5.4,
+        "papel": "entrada"
+      },
+      {
+        "id": "sala-1",
+        "x": -11,
+        "z": -2,
+        "largura": 6,
+        "profundidade": 7,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-2",
+        "x": -26,
+        "z": 0,
+        "largura": 10,
+        "profundidade": 11,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-3",
+        "x": -24,
+        "z": -10,
+        "largura": 11,
+        "profundidade": 6,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-4",
+        "x": -27,
+        "z": -24,
+        "largura": 7,
+        "profundidade": 8,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-5",
+        "x": -41,
+        "z": -26,
+        "largura": 8,
+        "profundidade": 10,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-6",
+        "x": -39,
+        "z": -12,
+        "largura": 10,
+        "profundidade": 11,
+        "altura": 5.4,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "sala-0",
+        "paraSalaId": "sala-1",
+        "pontos": [
+          {
+            "x": 4.5,
+            "z": 3
+          },
+          {
+            "x": 4.5,
+            "z": 1.5
+          },
+          {
+            "x": -8,
+            "z": 1.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-1",
+        "paraSalaId": "sala-2",
+        "pontos": [
+          {
+            "x": -8,
+            "z": 1.5
+          },
+          {
+            "x": -21,
+            "z": 1.5
+          },
+          {
+            "x": -21,
+            "z": 5.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-2",
+        "paraSalaId": "sala-3",
+        "pontos": [
+          {
+            "x": -21,
+            "z": 5.5
+          },
+          {
+            "x": -21,
+            "z": -7
+          },
+          {
+            "x": -18.5,
+            "z": -7
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-3",
+        "paraSalaId": "sala-4",
+        "pontos": [
+          {
+            "x": -18.5,
+            "z": -7
+          },
+          {
+            "x": -18.5,
+            "z": -20
+          },
+          {
+            "x": -23.5,
+            "z": -20
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-4",
+        "paraSalaId": "sala-5",
+        "pontos": [
+          {
+            "x": -23.5,
+            "z": -20
+          },
+          {
+            "x": -23.5,
+            "z": -21
+          },
+          {
+            "x": -37,
+            "z": -21
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-5",
+        "paraSalaId": "sala-6",
+        "pontos": [
+          {
+            "x": -37,
+            "z": -21
+          },
+          {
+            "x": -34,
+            "z": -21
+          },
+          {
+            "x": -34,
+            "z": -6.5
+          }
+        ],
+        "largura": 3
+      }
+    ],
+    "limites": {
+      "minX": -41,
+      "maxX": 9,
+      "minZ": -26,
+      "maxZ": 11
+    }
+  },
+  "minimo": {
+    "seed": 2369937056,
+    "nome": "X",
+    "tipo": "outro",
+    "arquetipo": "interior",
+    "salas": [
+      {
+        "id": "sala-0",
+        "x": 0,
+        "z": 0,
+        "largura": 11,
+        "profundidade": 7,
+        "altura": 5.4,
+        "papel": "entrada"
+      },
+      {
+        "id": "sala-1",
+        "x": -14,
+        "z": -3,
+        "largura": 10,
+        "profundidade": 8,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-2",
+        "x": -24,
+        "z": -4,
+        "largura": 6,
+        "profundidade": 10,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-3",
+        "x": -37,
+        "z": -6,
+        "largura": 6,
+        "profundidade": 7,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-4",
+        "x": -39,
+        "z": 5,
+        "largura": 10,
+        "profundidade": 6,
+        "altura": 5.4,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "sala-0",
+        "paraSalaId": "sala-1",
+        "pontos": [
+          {
+            "x": 5.5,
+            "z": 3.5
+          },
+          {
+            "x": -9,
+            "z": 3.5
+          },
+          {
+            "x": -9,
+            "z": 1
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-1",
+        "paraSalaId": "sala-2",
+        "pontos": [
+          {
+            "x": -9,
+            "z": 1
+          },
+          {
+            "x": -21,
+            "z": 1
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-2",
+        "paraSalaId": "sala-3",
+        "pontos": [
+          {
+            "x": -21,
+            "z": 1
+          },
+          {
+            "x": -34,
+            "z": 1
+          },
+          {
+            "x": -34,
+            "z": -2.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-3",
+        "paraSalaId": "sala-4",
+        "pontos": [
+          {
+            "x": -34,
+            "z": -2.5
+          },
+          {
+            "x": -34,
+            "z": 8
+          }
+        ],
+        "largura": 3
+      }
+    ],
+    "limites": {
+      "minX": -39,
+      "maxX": 11,
+      "minZ": -6,
+      "maxZ": 11
+    }
+  },
+  "montanha": {
+    "seed": 1000550252,
+    "nome": "Pico Cinzento",
+    "tipo": "montanha",
+    "arquetipo": "natural",
+    "salas": [
+      {
+        "id": "clareira-0",
+        "x": 7,
+        "z": 12,
+        "largura": 8,
+        "profundidade": 16,
+        "altura": 0,
+        "papel": "entrada"
+      },
+      {
+        "id": "clareira-1",
+        "x": -20,
+        "z": 11,
+        "largura": 11,
+        "profundidade": 11,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-2",
+        "x": 14,
+        "z": -24,
+        "largura": 15,
+        "profundidade": 15,
+        "altura": 0,
+        "papel": "segredo",
+        "rotulo": "Ninho de grifos"
+      },
+      {
+        "id": "clareira-3",
+        "x": -23,
+        "z": 37,
+        "largura": 8,
+        "profundidade": 12,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-4",
+        "x": 51,
+        "z": -17,
+        "largura": 13,
+        "profundidade": 16,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-5",
+        "x": -56,
+        "z": -49,
+        "largura": 15,
+        "profundidade": 10,
+        "altura": 0,
+        "papel": "encontro",
+        "rotulo": "Grifo"
+      },
+      {
+        "id": "clareira-6",
+        "x": -86,
+        "z": -7,
+        "largura": 11,
+        "profundidade": 10,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-7",
+        "x": 13,
+        "z": -104,
+        "largura": 15,
+        "profundidade": 15,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-8",
+        "x": 98,
+        "z": -65,
+        "largura": 11,
+        "profundidade": 9,
+        "altura": 0,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "clareira-0",
+        "paraSalaId": "clareira-1",
+        "pontos": [
+          {
+            "x": 11,
+            "z": 20
+          },
+          {
+            "x": -14.5,
+            "z": 20
+          },
+          {
+            "x": -14.5,
+            "z": 16.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "clareira-1",
+        "paraSalaId": "clareira-3",
+        "pontos": [
+          {
+            "x": -14.5,
+            "z": 16.5
+          },
+          {
+            "x": -19,
+            "z": 16.5
+          },
+          {
+            "x": -19,
+            "z": 43
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "clareira-0",
+        "paraSalaId": "clareira-2",
+        "pontos": [
+          {
+            "x": 11,
+            "z": 20
+          },
+          {
+            "x": 21.5,
+            "z": 20
+          },
+          {
+            "x": 21.5,
+            "z": -16.5
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "clareira-2",
+        "paraSalaId": "clareira-4",
+        "pontos": [
+          {
+            "x": 21.5,
+            "z": -16.5
+          },
+          {
+            "x": 57.5,
+            "z": -16.5
+          },
+          {
+            "x": 57.5,
+            "z": -9
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "clareira-1",
+        "paraSalaId": "clareira-6",
+        "pontos": [
+          {
+            "x": -14.5,
+            "z": 16.5
+          },
+          {
+            "x": -80.5,
+            "z": 16.5
+          },
+          {
+            "x": -80.5,
+            "z": -2
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "clareira-6",
+        "paraSalaId": "clareira-5",
+        "pontos": [
+          {
+            "x": -80.5,
+            "z": -2
+          },
+          {
+            "x": -48.5,
+            "z": -2
+          },
+          {
+            "x": -48.5,
+            "z": -44
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "clareira-4",
+        "paraSalaId": "clareira-8",
+        "pontos": [
+          {
+            "x": 57.5,
+            "z": -9
+          },
+          {
+            "x": 103.5,
+            "z": -9
+          },
+          {
+            "x": 103.5,
+            "z": -60.5
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "clareira-2",
+        "paraSalaId": "clareira-7",
+        "pontos": [
+          {
+            "x": 21.5,
+            "z": -16.5
+          },
+          {
+            "x": 20.5,
+            "z": -16.5
+          },
+          {
+            "x": 20.5,
+            "z": -96.5
+          }
+        ],
+        "largura": 3
+      }
+    ],
+    "limites": {
+      "minX": -86,
+      "maxX": 109,
+      "minZ": -104,
+      "maxZ": 49
+    }
+  },
+  "sinonimo-vila": {
+    "seed": 1428039066,
+    "nome": "Vilarejo do Vau",
+    "tipo": "cidade",
+    "arquetipo": "urbano",
+    "salas": [
+      {
+        "id": "quarteirao-0",
+        "x": 0,
+        "z": 0,
+        "largura": 11,
+        "profundidade": 13,
+        "altura": 5,
+        "papel": "entrada"
+      },
+      {
+        "id": "quarteirao-1",
+        "x": 18,
+        "z": 0,
+        "largura": 10,
+        "profundidade": 13,
+        "altura": 14,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-2",
+        "x": 35,
+        "z": 0,
+        "largura": 10,
+        "profundidade": 13,
+        "altura": 5,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-3",
+        "x": 52,
+        "z": 0,
+        "largura": 18,
+        "profundidade": 13,
+        "altura": 6,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-4",
+        "x": 18,
+        "z": 20,
+        "largura": 10,
+        "profundidade": 16,
+        "altura": 9,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-5",
+        "x": 35,
+        "z": 20,
+        "largura": 10,
+        "profundidade": 16,
+        "altura": 13,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-6",
+        "x": 52,
+        "z": 20,
+        "largura": 18,
+        "profundidade": 16,
+        "altura": 10,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-7",
+        "x": 0,
+        "z": 43,
+        "largura": 11,
+        "profundidade": 10,
+        "altura": 6,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-8",
+        "x": 18,
+        "z": 43,
+        "largura": 10,
+        "profundidade": 10,
+        "altura": 12,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-9",
+        "x": 35,
+        "z": 43,
+        "largura": 10,
+        "profundidade": 10,
+        "altura": 14,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-10",
+        "x": 52,
+        "z": 43,
+        "largura": 18,
+        "profundidade": 10,
+        "altura": 13,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-11",
+        "x": 0,
+        "z": 60,
+        "largura": 11,
+        "profundidade": 10,
+        "altura": 12,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-12",
+        "x": 35,
+        "z": 60,
+        "largura": 10,
+        "profundidade": 10,
+        "altura": 5,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-13",
+        "x": 52,
+        "z": 60,
+        "largura": 18,
+        "profundidade": 10,
+        "altura": 11,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-14",
+        "x": 0,
+        "z": 77,
+        "largura": 11,
+        "profundidade": 13,
+        "altura": 14,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-15",
+        "x": 18,
+        "z": 77,
+        "largura": 10,
+        "profundidade": 13,
+        "altura": 11,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-16",
+        "x": 35,
+        "z": 77,
+        "largura": 10,
+        "profundidade": 13,
+        "altura": 7,
+        "papel": "comum"
+      },
+      {
+        "id": "quarteirao-17",
+        "x": 52,
+        "z": 77,
+        "largura": 18,
+        "profundidade": 13,
+        "altura": 9,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "quarteirao-0",
+        "paraSalaId": "quarteirao-1",
+        "pontos": [
+          {
+            "x": 5.5,
+            "z": 6.5
+          },
+          {
+            "x": 23,
+            "z": 6.5
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-1",
+        "paraSalaId": "quarteirao-2",
+        "pontos": [
+          {
+            "x": 23,
+            "z": 6.5
+          },
+          {
+            "x": 40,
+            "z": 6.5
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-2",
+        "paraSalaId": "quarteirao-3",
+        "pontos": [
+          {
+            "x": 40,
+            "z": 6.5
+          },
+          {
+            "x": 61,
+            "z": 6.5
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-4",
+        "paraSalaId": "quarteirao-5",
+        "pontos": [
+          {
+            "x": 23,
+            "z": 28
+          },
+          {
+            "x": 40,
+            "z": 28
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-5",
+        "paraSalaId": "quarteirao-6",
+        "pontos": [
+          {
+            "x": 40,
+            "z": 28
+          },
+          {
+            "x": 61,
+            "z": 28
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-7",
+        "paraSalaId": "quarteirao-8",
+        "pontos": [
+          {
+            "x": 5.5,
+            "z": 48
+          },
+          {
+            "x": 23,
+            "z": 48
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-8",
+        "paraSalaId": "quarteirao-9",
+        "pontos": [
+          {
+            "x": 23,
+            "z": 48
+          },
+          {
+            "x": 40,
+            "z": 48
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-9",
+        "paraSalaId": "quarteirao-10",
+        "pontos": [
+          {
+            "x": 40,
+            "z": 48
+          },
+          {
+            "x": 61,
+            "z": 48
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-11",
+        "paraSalaId": "quarteirao-12",
+        "pontos": [
+          {
+            "x": 5.5,
+            "z": 65
+          },
+          {
+            "x": 40,
+            "z": 65
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-12",
+        "paraSalaId": "quarteirao-13",
+        "pontos": [
+          {
+            "x": 40,
+            "z": 65
+          },
+          {
+            "x": 61,
+            "z": 65
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-14",
+        "paraSalaId": "quarteirao-15",
+        "pontos": [
+          {
+            "x": 5.5,
+            "z": 83.5
+          },
+          {
+            "x": 23,
+            "z": 83.5
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-15",
+        "paraSalaId": "quarteirao-16",
+        "pontos": [
+          {
+            "x": 23,
+            "z": 83.5
+          },
+          {
+            "x": 40,
+            "z": 83.5
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-16",
+        "paraSalaId": "quarteirao-17",
+        "pontos": [
+          {
+            "x": 40,
+            "z": 83.5
+          },
+          {
+            "x": 61,
+            "z": 83.5
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-0",
+        "paraSalaId": "quarteirao-7",
+        "pontos": [
+          {
+            "x": 5.5,
+            "z": 6.5
+          },
+          {
+            "x": 5.5,
+            "z": 48
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-7",
+        "paraSalaId": "quarteirao-11",
+        "pontos": [
+          {
+            "x": 5.5,
+            "z": 48
+          },
+          {
+            "x": 5.5,
+            "z": 65
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-11",
+        "paraSalaId": "quarteirao-14",
+        "pontos": [
+          {
+            "x": 5.5,
+            "z": 65
+          },
+          {
+            "x": 5.5,
+            "z": 83.5
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-1",
+        "paraSalaId": "quarteirao-4",
+        "pontos": [
+          {
+            "x": 23,
+            "z": 6.5
+          },
+          {
+            "x": 23,
+            "z": 28
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-4",
+        "paraSalaId": "quarteirao-8",
+        "pontos": [
+          {
+            "x": 23,
+            "z": 28
+          },
+          {
+            "x": 23,
+            "z": 48
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-8",
+        "paraSalaId": "quarteirao-15",
+        "pontos": [
+          {
+            "x": 23,
+            "z": 48
+          },
+          {
+            "x": 23,
+            "z": 83.5
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-2",
+        "paraSalaId": "quarteirao-5",
+        "pontos": [
+          {
+            "x": 40,
+            "z": 6.5
+          },
+          {
+            "x": 40,
+            "z": 28
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-5",
+        "paraSalaId": "quarteirao-9",
+        "pontos": [
+          {
+            "x": 40,
+            "z": 28
+          },
+          {
+            "x": 40,
+            "z": 48
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-9",
+        "paraSalaId": "quarteirao-12",
+        "pontos": [
+          {
+            "x": 40,
+            "z": 48
+          },
+          {
+            "x": 40,
+            "z": 65
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-12",
+        "paraSalaId": "quarteirao-16",
+        "pontos": [
+          {
+            "x": 40,
+            "z": 65
+          },
+          {
+            "x": 40,
+            "z": 83.5
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-3",
+        "paraSalaId": "quarteirao-6",
+        "pontos": [
+          {
+            "x": 61,
+            "z": 6.5
+          },
+          {
+            "x": 61,
+            "z": 28
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-6",
+        "paraSalaId": "quarteirao-10",
+        "pontos": [
+          {
+            "x": 61,
+            "z": 28
+          },
+          {
+            "x": 61,
+            "z": 48
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-10",
+        "paraSalaId": "quarteirao-13",
+        "pontos": [
+          {
+            "x": 61,
+            "z": 48
+          },
+          {
+            "x": 61,
+            "z": 65
+          }
+        ],
+        "largura": 7
+      },
+      {
+        "deSalaId": "quarteirao-13",
+        "paraSalaId": "quarteirao-17",
+        "pontos": [
+          {
+            "x": 61,
+            "z": 65
+          },
+          {
+            "x": 61,
+            "z": 83.5
+          }
+        ],
+        "largura": 7
+      }
+    ],
+    "limites": {
+      "minX": 0,
+      "maxX": 70,
+      "minZ": 0,
+      "maxZ": 90
+    }
+  },
+  "sinonimo-masmorra": {
+    "seed": 2640176736,
+    "nome": "Poco Fundo",
+    "tipo": "dungeon",
+    "arquetipo": "interior",
+    "salas": [
+      {
+        "id": "sala-0",
+        "x": 0,
+        "z": 0,
+        "largura": 7,
+        "profundidade": 12,
+        "altura": 5.4,
+        "papel": "entrada"
+      },
+      {
+        "id": "sala-1",
+        "x": -1,
+        "z": 19,
+        "largura": 8,
+        "profundidade": 6,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-2",
+        "x": 0,
+        "z": 31,
+        "largura": 12,
+        "profundidade": 6,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-3",
+        "x": -12,
+        "z": 31,
+        "largura": 7,
+        "profundidade": 7,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-4",
+        "x": -12,
+        "z": 44,
+        "largura": 9,
+        "profundidade": 6,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-5",
+        "x": 3,
+        "z": 45,
+        "largura": 9,
+        "profundidade": 6,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-6",
+        "x": 19,
+        "z": 42,
+        "largura": 12,
+        "profundidade": 10,
+        "altura": 4,
+        "papel": "comum"
+      },
+      {
+        "id": "sala-7",
+        "x": 35,
+        "z": 45,
+        "largura": 11,
+        "profundidade": 11,
+        "altura": 5.4,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "sala-0",
+        "paraSalaId": "sala-1",
+        "pontos": [
+          {
+            "x": 3.5,
+            "z": 6
+          },
+          {
+            "x": 3,
+            "z": 6
+          },
+          {
+            "x": 3,
+            "z": 22
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-1",
+        "paraSalaId": "sala-2",
+        "pontos": [
+          {
+            "x": 3,
+            "z": 22
+          },
+          {
+            "x": 6,
+            "z": 22
+          },
+          {
+            "x": 6,
+            "z": 34
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-2",
+        "paraSalaId": "sala-3",
+        "pontos": [
+          {
+            "x": 6,
+            "z": 34
+          },
+          {
+            "x": 6,
+            "z": 34.5
+          },
+          {
+            "x": -8.5,
+            "z": 34.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-3",
+        "paraSalaId": "sala-4",
+        "pontos": [
+          {
+            "x": -8.5,
+            "z": 34.5
+          },
+          {
+            "x": -8.5,
+            "z": 47
+          },
+          {
+            "x": -7.5,
+            "z": 47
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-4",
+        "paraSalaId": "sala-5",
+        "pontos": [
+          {
+            "x": -7.5,
+            "z": 47
+          },
+          {
+            "x": 7.5,
+            "z": 47
+          },
+          {
+            "x": 7.5,
+            "z": 48
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-5",
+        "paraSalaId": "sala-6",
+        "pontos": [
+          {
+            "x": 7.5,
+            "z": 48
+          },
+          {
+            "x": 25,
+            "z": 48
+          },
+          {
+            "x": 25,
+            "z": 47
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "sala-6",
+        "paraSalaId": "sala-7",
+        "pontos": [
+          {
+            "x": 25,
+            "z": 47
+          },
+          {
+            "x": 25,
+            "z": 50.5
+          },
+          {
+            "x": 40.5,
+            "z": 50.5
+          }
+        ],
+        "largura": 3
+      }
+    ],
+    "limites": {
+      "minX": -12,
+      "maxX": 46,
+      "minZ": 0,
+      "maxZ": 56
+    }
+  },
+  "sinonimo-colina": {
+    "seed": 693701068,
+    "nome": "Colina Rasa",
+    "tipo": "montanha",
+    "arquetipo": "natural",
+    "salas": [
+      {
+        "id": "clareira-0",
+        "x": 14,
+        "z": -4,
+        "largura": 11,
+        "profundidade": 16,
+        "altura": 0,
+        "papel": "entrada"
+      },
+      {
+        "id": "clareira-1",
+        "x": 10,
+        "z": 21,
+        "largura": 15,
+        "profundidade": 12,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-2",
+        "x": 38,
+        "z": -12,
+        "largura": 10,
+        "profundidade": 9,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-3",
+        "x": 47,
+        "z": 24,
+        "largura": 11,
+        "profundidade": 8,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-4",
+        "x": -5,
+        "z": -62,
+        "largura": 13,
+        "profundidade": 16,
+        "altura": 0,
+        "papel": "comum"
+      },
+      {
+        "id": "clareira-5",
+        "x": 1,
+        "z": 49,
+        "largura": 16,
+        "profundidade": 9,
+        "altura": 0,
+        "papel": "final"
+      }
+    ],
+    "corredores": [
+      {
+        "deSalaId": "clareira-0",
+        "paraSalaId": "clareira-1",
+        "pontos": [
+          {
+            "x": 19.5,
+            "z": 4
+          },
+          {
+            "x": 17.5,
+            "z": 4
+          },
+          {
+            "x": 17.5,
+            "z": 27
+          }
+        ],
+        "largura": 4
+      },
+      {
+        "deSalaId": "clareira-0",
+        "paraSalaId": "clareira-2",
+        "pontos": [
+          {
+            "x": 19.5,
+            "z": 4
+          },
+          {
+            "x": 43,
+            "z": 4
+          },
+          {
+            "x": 43,
+            "z": -7.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "clareira-1",
+        "paraSalaId": "clareira-5",
+        "pontos": [
+          {
+            "x": 17.5,
+            "z": 27
+          },
+          {
+            "x": 17.5,
+            "z": 53.5
+          },
+          {
+            "x": 9,
+            "z": 53.5
+          }
+        ],
+        "largura": 3
+      },
+      {
+        "deSalaId": "clareira-1",
+        "paraSalaId": "clareira-3",
+        "pontos": [
+          {
+            "x": 17.5,
+            "z": 27
+          },
+          {
+            "x": 17.5,
+            "z": 28
+          },
+          {
+            "x": 52.5,
+            "z": 28
+          }
+        ],
+        "largura": 5
+      },
+      {
+        "deSalaId": "clareira-0",
+        "paraSalaId": "clareira-4",
+        "pontos": [
+          {
+            "x": 19.5,
+            "z": 4
+          },
+          {
+            "x": 19.5,
+            "z": -54
+          },
+          {
+            "x": 1.5,
+            "z": -54
+          }
+        ],
+        "largura": 4
+      }
+    ],
+    "limites": {
+      "minX": -5,
+      "maxX": 58,
+      "minZ": -62,
+      "maxZ": 58
+    }
+  }
+}

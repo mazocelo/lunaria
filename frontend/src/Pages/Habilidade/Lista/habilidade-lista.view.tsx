@@ -1,0 +1,223 @@
+import { useState, useEffect, useCallback } from 'react';
+import StatCard from '../../../components/StatCard';
+import { PageHeader, Badge, SearchBar, CatalogCard, CatalogCardSkeleton, CatalogPagination } from '../../../components/shared';
+import ImageLightbox from '../../../components/ImageLightbox';
+import Notification from '../../../components/Notification';
+import { useTheme } from '../../../contexts/theme';
+import { Wand2, Swords, Heart, Flame } from 'lucide-react';
+import type { HabilidadeWithRel } from './habilidade-lista.model';
+
+type BadgeVariant = 'purple' | 'blue' | 'green' | 'amber' | 'red' | 'slate' | 'indigo' | 'cyan' | 'pink';
+
+const categoriaLabels: Record<string, string> = {
+  combate_fisico: 'Combate Físico',
+  magia_ofensiva: 'Magia Ofensiva',
+  magia_defensiva: 'Magia Defensiva',
+  cura: 'Cura',
+  suporte: 'Suporte',
+  controle: 'Controle',
+  utilidade: 'Utilidade',
+  social: 'Social',
+  crafting: 'Crafting',
+};
+
+const categoriaVariant: Record<string, BadgeVariant> = {
+  combate_fisico: 'red',
+  magia_ofensiva: 'purple',
+  magia_defensiva: 'blue',
+  cura: 'green',
+  suporte: 'cyan',
+  controle: 'amber',
+  utilidade: 'slate',
+  social: 'pink',
+  crafting: 'amber',
+};
+
+const tipoVariant: Record<string, BadgeVariant> = { dano: 'red', cura: 'green', buff: 'cyan', debuff: 'amber', controle: 'purple' };
+
+interface HabilidadeListStats {
+  categorias: Record<string, number>;
+  elementos: Record<string, number>;
+}
+
+interface HabilidadeListaViewProps {
+  habilidades: HabilidadeWithRel[];
+  filteredHabilidades: HabilidadeWithRel[];
+  loading: boolean;
+  error: string | null;
+  total: number;
+  stats: HabilidadeListStats;
+  buscarHabilidades: (term: string) => void;
+  filtroCategoria: string;
+  setFiltroCategoria: (cat: string) => void;
+  clearError: () => void;
+  onVerHabilidade: (id: number | string) => void;
+}
+
+const HabilidadeListaView = ({
+  habilidades,
+  filteredHabilidades,
+  loading,
+  error,
+  total,
+  stats,
+  buscarHabilidades,
+  filtroCategoria,
+  setFiltroCategoria,
+  clearError,
+  onVerHabilidade,
+}: HabilidadeListaViewProps) => {
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  if (loading && habilidades.length === 0) {
+    return (
+      <div className="animate-fade-in space-y-6">
+        <PageHeader title="Habilidades" subtitle={`${total} habilidades no sistema de RPG`} icon={Wand2} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => <CatalogCardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
+
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(12);
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
+
+  const displayData = filteredHabilidades?.length > 0 || filteredHabilidades?.length === 0
+    ? filteredHabilidades
+    : habilidades;
+
+  useEffect(() => { setPage(1); }, [displayData]);
+
+  const paginatedData = displayData.slice((page - 1) * perPage, page * perPage);
+
+  const itemsWithImages = displayData
+    .map((m, i) => ({ index: i, src: m.imagem, title: m.nome }))
+    .filter(item => item.src);
+
+  const currentGalleryPos = galleryIndex !== null
+    ? itemsWithImages.findIndex(item => item.index === galleryIndex)
+    : -1;
+
+  const handlePrev = useCallback(() => {
+    if (currentGalleryPos > 0) {
+      setGalleryIndex(itemsWithImages[currentGalleryPos - 1].index);
+    }
+  }, [currentGalleryPos, itemsWithImages]);
+
+  const handleNext = useCallback(() => {
+    if (currentGalleryPos < itemsWithImages.length - 1) {
+      setGalleryIndex(itemsWithImages[currentGalleryPos + 1].index);
+    }
+  }, [currentGalleryPos, itemsWithImages]);
+
+  const categoriaOptions = Object.entries(categoriaLabels);
+
+  return (
+    <div className="animate-fade-in space-y-6">
+      {error && <Notification message={error} type="error" onClose={clearError} />}
+
+      <PageHeader
+        title="Habilidades"
+        subtitle={`${total} habilidades no sistema de RPG`}
+        icon={Wand2}
+      />
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard title="Total" value={total} icon={Wand2} variant="primary" />
+        <StatCard title="Combate" value={(stats.categorias?.combate_fisico || 0) + (stats.categorias?.magia_ofensiva || 0)} icon={Swords} variant="accent" />
+        <StatCard title="Cura/Suporte" value={(stats.categorias?.cura || 0) + (stats.categorias?.suporte || 0)} icon={Heart} variant="secondary" />
+        <StatCard title="Crafting" value={stats.categorias?.crafting || 0} icon={Flame} variant="warning" />
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <SearchBar
+            placeholder="Buscar habilidades por nome ou descricao..."
+            onChange={(texto) => buscarHabilidades(texto)}
+          />
+        </div>
+        <select
+          value={filtroCategoria}
+          onChange={(e) => setFiltroCategoria(e.target.value)}
+          className={`px-4 py-2 rounded-lg font-modern text-sm ${
+            isLight
+              ? 'bg-white border border-slate-300 text-slate-800'
+              : 'bg-slate-800 border border-slate-600 text-white'
+          }`}
+        >
+          <option value="">Todas as categorias</option>
+          {categoriaOptions.map(([key, label]) => (
+            <option key={key} value={key}>{label}</option>
+          ))}
+        </select>
+      </div>
+
+      {displayData.length === 0 ? (
+        <div className="text-center py-16">
+          <Wand2 size={48} className={`mx-auto mb-4 ${isLight ? 'text-slate-300' : 'text-slate-600'}`} />
+          <p className={`font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>Nenhuma habilidade encontrada</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {paginatedData.map((row, i) => (
+            <CatalogCard
+              key={row.id}
+              image={row.imagem}
+              icon={Wand2}
+              title={row.nome}
+              delay={i}
+              onClick={() => onVerHabilidade(row.id)}
+              onImageClick={row.imagem ? () => setGalleryIndex(displayData.findIndex(item => item.id === row.id)) : undefined}
+              headerBadge={
+                <Badge variant={categoriaVariant[row.categoria] || 'slate'} className="shadow-sm backdrop-blur-sm">
+                  {categoriaLabels[row.categoria] || row.categoria}
+                </Badge>
+              }
+            >
+              <div className="flex flex-wrap gap-1 mt-1">
+                {row.tipo && <Badge variant={tipoVariant[row.tipo] || 'slate'}>{row.tipo}</Badge>}
+                {row.elemento && <Badge variant="purple">{row.elemento}</Badge>}
+              </div>
+              <div className={`flex items-center gap-3 mt-1.5 text-xs font-modern ${isLight ? 'text-slate-500' : 'text-slate-400'}`}>
+                <span className="text-cyan-500 font-semibold">Nv {row.nivel_requerido}</span>
+                <span className={`px-1.5 py-0.5 rounded-full font-semibold ${
+                  isLight ? 'bg-blue-100 text-blue-700' : 'bg-blue-500/20 text-blue-400'
+                }`}>
+                  {row.custo_mana} MP
+                </span>
+                {row.classe?.nome && (
+                  <span className={isLight ? 'text-slate-400' : 'text-slate-500'}>{row.classe.nome}</span>
+                )}
+              </div>
+            </CatalogCard>
+          ))}
+        </div>
+      )}
+
+      <CatalogPagination
+        currentPage={page}
+        pageSize={perPage}
+        totalCount={displayData.length}
+        onPageChange={setPage}
+        onPageSizeChange={(size) => { setPerPage(size); setPage(1); }}
+        pageSizeOptions={[12, 24, 48]}
+      />
+
+      {galleryIndex !== null && displayData[galleryIndex] && (
+        <ImageLightbox
+          src={displayData[galleryIndex].imagem ?? ''}
+          alt={displayData[galleryIndex].nome ?? ''}
+          title={displayData[galleryIndex].nome ?? undefined}
+          isOpen={true}
+          onClose={() => setGalleryIndex(null)}
+          onPrev={currentGalleryPos > 0 ? handlePrev : undefined}
+          onNext={currentGalleryPos < itemsWithImages.length - 1 ? handleNext : undefined}
+        />
+      )}
+    </div>
+  );
+};
+
+export default HabilidadeListaView;

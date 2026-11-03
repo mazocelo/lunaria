@@ -1,0 +1,22 @@
+node_modules
+.env
+.env.local
+.env.development
+.env.production
+.env*.local
+dist
+public/docs-html/
+
+# Auditoria — screenshots de inspeção visual gerados na raiz do repo
+/*.png
+.playwright-mcp/
+public/screenshot-3det-*.png
+public/mockup-3det.html
+
+# Playwright — artefatos de execução da suite E2E.
+# A suite em si (e2e/) É versionada; apenas os artefatos de run são ignorados.
+playwright-report/
+test-results/
+playwright/.cache/
+e2e/.auth/
+e2e/**/*-snapshots/

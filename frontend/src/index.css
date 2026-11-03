@@ -1,0 +1,1140 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.75rem;
+  /* Modo Light - Cores claras e elegantes e mais nítidas */
+  --background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+  --foreground: #111827; /* Mais escuro para nitidez */
+  --card: rgba(255, 255, 255, 0.97); /* Menos transparente */
+  --card-foreground: #1e293b;
+  --popover: rgba(255, 255, 255, 0.98);
+  --popover-foreground: #1e293b;
+  --primary: #7c3aed; /* Um pouco mais escuro */
+  --primary-foreground: #ffffff;
+  --secondary: #2563eb; /* Azul mais forte */
+  --secondary-foreground: #ffffff;
+  --muted: rgba(148, 163, 184, 0.18);
+  --muted-foreground: #334155;
+  --accent: #22c55e; /* Verde para natureza */
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: rgba(100, 116, 139, 0.35); /* Mais visível */
+  --input: rgba(255, 255, 255, 0.95);
+  --ring: #7c3aed;
+  --chart-1: #7c3aed;
+  --chart-2: #22c55e;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  --sidebar: rgba(255, 255, 255, 0.98);
+  --sidebar-foreground: #1e293b;
+  --sidebar-primary: #7c3aed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #22c55e;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(100, 116, 139, 0.25);
+  --sidebar-ring: #7c3aed;
+}
+
+.dark {
+  --background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 50%, #16213e 100%);
+  --foreground: #f8fafc;
+  --card: rgba(30, 41, 59, 0.8);
+  --card-foreground: #f8fafc;
+  --popover: rgba(30, 41, 59, 0.95);
+  --popover-foreground: #f8fafc;
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --secondary: #6366f1;
+  --secondary-foreground: #ffffff;
+  --muted: rgba(51, 65, 85, 0.6);
+  --muted-foreground: #94a3b8;
+  --accent: #06b6d4;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: rgba(148, 163, 184, 0.2);
+  --input: rgba(51, 65, 85, 0.6);
+  --ring: #8b5cf6;
+  --chart-1: #8b5cf6;
+  --chart-2: #06b6d4;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  --sidebar: rgba(15, 23, 42, 0.95);
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #8b5cf6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #06b6d4;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(148, 163, 184, 0.2);
+  --sidebar-ring: #8b5cf6;
+}
+
+.gothic {
+  --background: linear-gradient(135deg, #1a0e12 0%, #241418 50%, #1c1014 100%);
+  --foreground: #f5e6d3;
+  --card: rgba(30, 14, 18, 0.9);
+  --card-foreground: #f5e6d3;
+  --popover: rgba(30, 14, 18, 0.95);
+  --popover-foreground: #f5e6d3;
+  --primary: #dc2626;
+  --primary-foreground: #ffffff;
+  --secondary: #b8860b;
+  --secondary-foreground: #ffffff;
+  --muted: rgba(120, 90, 90, 0.6);
+  --muted-foreground: #c0a8a8;
+  --accent: #ef4444;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --border: rgba(220, 38, 38, 0.18);
+  --input: rgba(30, 14, 18, 0.85);
+  --ring: #dc2626;
+  --chart-1: #dc2626;
+  --chart-2: #b8860b;
+  --chart-3: #ef4444;
+  --chart-4: #8b0000;
+  --chart-5: #cd853f;
+  --sidebar: rgba(18, 10, 12, 0.97);
+  --sidebar-foreground: #f5e6d3;
+  --sidebar-primary: #dc2626;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #b8860b;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(220, 38, 38, 0.15);
+  --sidebar-ring: #dc2626;
+}
+
+/* Gothic header override */
+.gothic header,
+.gothic [role="banner"] {
+  background: rgba(30, 16, 20, 0.98) !important;
+  border-color: rgba(220, 38, 38, 0.2) !important;
+  color: #f5e6d3 !important;
+}
+
+.gothic header *,
+.gothic [role="banner"] * {
+  color: inherit;
+}
+
+/* Gothic gradient-primary override (buttons, accents) */
+.gothic .gradient-primary {
+  background: linear-gradient(to right, #b91c1c, #92400e) !important;
+}
+
+.gothic .gradient-primary:hover {
+  background: linear-gradient(to right, #dc2626, #b45309) !important;
+}
+
+/* Gothic sidebar override */
+.gothic aside {
+  background: rgba(18, 10, 12, 0.97) !important;
+  border-color: rgba(220, 38, 38, 0.18) !important;
+}
+
+/* Gothic glass/card overrides */
+.gothic .card-rpg {
+  background: rgba(30, 16, 20, 0.88);
+  border: 1.5px solid rgba(220, 38, 38, 0.18);
+  box-shadow: 0 2px 16px 0 rgba(139, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+.gothic .card-rpg:hover {
+  box-shadow: 0 8px 30px rgba(220, 38, 38, 0.25);
+  border-color: rgba(220, 38, 38, 0.35);
+}
+
+.gothic .glass, .gothic .glass-subtle, .gothic .glass-solid {
+  background: rgba(30, 16, 20, 0.75);
+  border-color: rgba(220, 38, 38, 0.12);
+}
+
+.gothic .game-glass, .gothic .game-glass-subtle, .gothic .game-glass-solid {
+  background: rgba(24, 12, 16, 0.75);
+  border-color: rgba(220, 38, 38, 0.1);
+}
+
+/* Gothic buttons */
+.gothic .btn-rpg {
+  @apply bg-gradient-to-r from-red-800 to-amber-700 hover:from-red-700 hover:to-amber-600 shadow-red-900/25 hover:shadow-red-800/30;
+}
+
+/* Gothic scrollbar */
+.gothic ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #dc2626, #8b0000);
+}
+
+.gothic ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #ef4444, #b91c1c);
+}
+
+.gothic ::-webkit-scrollbar-track {
+  background: rgba(20, 10, 12, 0.5);
+}
+
+/* Tema claro: o .btn-rpg-secondary base (purple-300 sobre purple-900/30) some no fundo
+   claro (1,01:1). O gótico também leva .dark, então só o claro cai aqui. */
+:root:not(.dark) .btn-rpg-secondary {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, white);
+  border-color: color-mix(in srgb, var(--primary) 60%, white);
+}
+
+:root:not(.dark) .btn-rpg-secondary:hover {
+  background: color-mix(in srgb, var(--primary) 14%, white);
+  border-color: var(--primary);
+}
+
+/* Gothic btn overrides — kill purple */
+.gothic .btn-rpg-secondary {
+  color: #f87171;
+  background: rgba(139, 0, 0, 0.3);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+
+.gothic .btn-rpg-secondary:hover {
+  background: rgba(139, 0, 0, 0.4);
+  border-color: rgba(220, 38, 38, 0.5);
+}
+
+/* Gothic scroll-top button */
+.gothic .scroll-top-btn {
+  background: #b91c1c !important;
+}
+
+.gothic .scroll-top-btn:hover {
+  background: #dc2626 !important;
+}
+
+/* Gothic StatCard gradient */
+.gothic .gradient-secondary {
+  background: linear-gradient(135deg, #8b0000, #b91c1c) !important;
+}
+
+.gothic .gradient-accent {
+  background: linear-gradient(135deg, #92400e, #b8860b) !important;
+}
+
+/* Gothic PageHeader icon bg */
+.gothic [class*="bg-purple-900"],
+.gothic [class*="bg-purple-100"] {
+  background-color: rgba(139, 0, 0, 0.4) !important;
+}
+
+.gothic [class*="text-purple-400"],
+.gothic [class*="text-purple-600"],
+.gothic [class*="text-purple-300"] {
+  color: #f87171 !important;
+}
+
+/* Gothic fallback gradients — kill purple in card/layout backgrounds */
+.gothic [class*="via-purple-900"],
+.gothic [class*="via-purple-50"] {
+  --tw-gradient-via: rgba(42, 16, 24, 0.4) !important;
+}
+
+.gothic [class*="from-purple-"],
+.gothic [class*="to-purple-"] {
+  --tw-gradient-from: rgba(30, 14, 18, 1) !important;
+  --tw-gradient-to: rgba(30, 14, 18, 1) !important;
+}
+
+/* Gothic fallback icon color — carmesim instead of purple */
+.gothic [class*="text-purple-600\\/30"],
+.gothic [class*="text-purple-300\\/60"] {
+  color: rgba(220, 38, 38, 0.3) !important;
+}
+
+/* Gothic tabs/panels — kill white/indigo backgrounds */
+.gothic [class*="bg-white"] {
+  background-color: rgba(30, 14, 18, 0.9) !important;
+}
+
+.gothic [class*="bg-indigo-"] {
+  background-color: rgba(139, 0, 0, 0.7) !important;
+}
+
+.gothic [class*="border-gray-"] {
+  border-color: rgba(220, 38, 38, 0.2) !important;
+}
+
+.gothic [class*="text-indigo-"] {
+  color: #f87171 !important;
+}
+
+.gothic [class*="focus\\:border-indigo-"] {
+  border-color: #dc2626 !important;
+}
+
+.gothic [class*="bg-slate-50"],
+.gothic [class*="bg-slate-100"] {
+  background-color: rgba(30, 14, 18, 0.6) !important;
+}
+
+/* Gothic — replace ALL slate backgrounds with carmesim tones */
+.gothic [class*="bg-slate-800"] {
+  background-color: rgba(30, 14, 18, 0.85) !important;
+}
+
+.gothic [class*="bg-slate-900"] {
+  background-color: rgba(20, 10, 14, 0.9) !important;
+}
+
+.gothic [class*="bg-slate-700"] {
+  background-color: rgba(36, 18, 22, 0.7) !important;
+}
+
+.gothic [class*="border-slate-700"],
+.gothic [class*="border-slate-600"] {
+  border-color: rgba(220, 38, 38, 0.15) !important;
+}
+
+.gothic [class*="hover\\:bg-slate-700"]:hover,
+.gothic [class*="hover\\:bg-slate-800"]:hover {
+  background-color: rgba(40, 20, 26, 0.8) !important;
+}
+
+/* Gothic — softer borders, more rounded corners */
+.gothic .card-rpg,
+.gothic [class*="rounded-lg"],
+.gothic [class*="rounded-xl"] {
+  border-radius: 1rem;
+}
+
+.gothic select,
+.gothic input[type="text"],
+.gothic textarea {
+  border-radius: 0.75rem !important;
+  border-color: rgba(220, 38, 38, 0.18) !important;
+  background-color: rgba(30, 14, 18, 0.85) !important;
+}
+
+.gothic [role="region"],
+.gothic [role="status"] {
+  border-radius: 1rem !important;
+  border-color: rgba(220, 38, 38, 0.12) !important;
+}
+
+/* Gothic StatCard — softer borders */
+.gothic .hover-lift {
+  border-radius: 1rem !important;
+  border-color: rgba(220, 38, 38, 0.12) !important;
+}
+
+/* Gothic TabelaList container — rounded */
+.gothic table {
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.gothic th {
+  background-color: rgba(30, 14, 18, 0.7) !important;
+  border-color: rgba(220, 38, 38, 0.1) !important;
+  color: #c0a8a8 !important;
+}
+
+.gothic td {
+  border-color: rgba(220, 38, 38, 0.08) !important;
+}
+
+.gothic tr:hover td {
+  background-color: rgba(40, 18, 24, 0.5) !important;
+}
+
+/* Gothic CatalogCard — carmesim bg, borders, glow, hover */
+.gothic .animate-card-reveal {
+  background-color: rgba(30, 14, 18, 0.9) !important;
+  border-color: rgba(220, 38, 38, 0.15) !important;
+}
+
+.gothic .animate-card-reveal:hover {
+  background-color: rgba(40, 18, 24, 0.95) !important;
+  border-color: rgba(220, 38, 38, 0.4) !important;
+  box-shadow: 0 12px 30px rgba(139, 0, 0, 0.3), 0 0 15px rgba(220, 38, 38, 0.15) !important;
+}
+
+/* Gothic bottom gradient on card images */
+.gothic .from-slate-800\/90 {
+  --tw-gradient-from: rgba(30, 14, 18, 0.9) !important;
+}
+
+/* Gothic CatalogCard hover glow — carmesim instead of purple */
+.gothic .hover\:shadow-purple-500\/20:hover {
+  --tw-shadow-color: rgba(220, 38, 38, 0.2) !important;
+}
+
+.gothic .hover\:border-purple-500\/40:hover,
+.gothic .hover\:border-purple-300\/60:hover {
+  border-color: rgba(220, 38, 38, 0.4) !important;
+}
+
+.gothic .hover\:shadow-purple-500\/10:hover {
+  --tw-shadow-color: rgba(220, 38, 38, 0.1) !important;
+}
+
+/* Gothic CatalogDetailLayout — vitral accent defaults to carmesim */
+.gothic .vitral-section::before {
+  background: linear-gradient(90deg, #dc2626, transparent 80%);
+}
+
+/* Gothic image glow in cards */
+.gothic .hover\:shadow-purple-500\/25:hover {
+  --tw-shadow-color: rgba(220, 38, 38, 0.25) !important;
+}
+
+/* Gothic nav active indicator */
+.gothic .nav-item-active::before {
+  background: linear-gradient(180deg, #dc2626, #b8860b);
+}
+
+/* Gothic vinheta - dark edges */
+.gothic main::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.6), inset 0 0 80px rgba(139, 0, 0, 0.15);
+}
+
+.glass-light {
+  background: rgba(255,255,255,0.85) !important;
+  border: 1.5px solid rgba(100,116,139,0.18) !important;
+  box-shadow: 0 2px 16px 0 rgba(34,197,94,0.06);
+}
+
+.glass-strong-light {
+  background: rgba(255,255,255,0.97) !important;
+  border: 2px solid rgba(100,116,139,0.22) !important;
+  box-shadow: 0 4px 24px 0 rgba(34,197,94,0.09);
+}
+
+
+
+.input-rpg-light {
+  background: rgba(255,255,255,0.98) !important;
+  border: 1.5px solid rgba(100,116,139,0.22) !important;
+  color: #1e293b;
+}
+
+.table-rpg-light th {
+  color: #111827;
+  font-weight: 700;
+}
+
+.table-rpg-light td {
+  color: #334155;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  img,
+  button,
+  [role='button'] {
+    -webkit-user-select: none;
+    user-select: none;
+    caret-color: transparent;
+  }
+
+  img {
+    -webkit-user-drag: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable='true'],
+  [contenteditable='plaintext-only'] {
+    -webkit-user-select: text;
+    user-select: text;
+    caret-color: auto;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--background);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+
+  /* Scrollbar personalizada */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.2);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #8b5cf6, #6366f1);
+    border-radius: 4px;
+  }
+
+  /* Classes RPG personalizadas */
+  .btn-rpg {
+    @apply px-6 py-3 rounded-lg font-bold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 transition-all duration-300 shadow-lg hover:shadow-purple-500/25 border-0 cursor-pointer;
+  }
+
+  .btn-rpg-light {
+    @apply px-6 py-3 rounded-lg font-bold text-purple-700 bg-gradient-to-r from-purple-100 to-blue-100 hover:from-purple-200 hover:to-blue-200 transition-all duration-300 shadow-md hover:shadow-purple-300/25 border border-purple-200 cursor-pointer;
+  }
+
+  .btn-rpg-secondary {
+    @apply px-4 py-2 rounded-lg font-medium text-purple-300 bg-purple-900/30 hover:bg-purple-800/40 transition-all duration-300 border border-purple-500/30 hover:border-purple-400/50 cursor-pointer;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #7c3aed, #5b21b6);
+  }
+
+  /* Modo light - scrollbar mais suave */
+  :root:not(.dark) ::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.1);
+  }
+}
+
+/* Animações globais */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(139, 92, 246, 0.6); }
+}
+
+@keyframes batFly {
+  0% { transform: translateX(-60px) translateY(0); }
+  25% { transform: translateX(25vw) translateY(-15px); }
+  50% { transform: translateX(50vw) translateY(5px); }
+  75% { transform: translateX(75vw) translateY(-10px); }
+  100% { transform: translateX(calc(100vw + 60px)) translateY(0); }
+}
+
+@keyframes bloodDrip {
+  0% { opacity: 0; transform: scaleY(0); transform-origin: top; }
+  15% { opacity: 0.5; transform: scaleY(0.2); }
+  50% { opacity: 0.6; transform: scaleY(1); }
+  80% { opacity: 0.3; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(1); }
+}
+
+@keyframes bloodDrop {
+  0%, 45% { opacity: 0; transform: translateY(0); }
+  50% { opacity: 0.5; transform: translateY(0); }
+  85% { opacity: 0.3; transform: translateY(20px); }
+  100% { opacity: 0; transform: translateY(30px); }
+}
+
+@keyframes batFlap {
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(0.7); }
+}
+
+@keyframes batFlyRight {
+  0% { transform: translateX(0) translateY(0) scaleX(-1); opacity: 0; }
+  10% { opacity: 0.4; }
+  30% { transform: translateX(-30vw) translateY(-20px) scaleX(-1.1); }
+  60% { transform: translateX(-60vw) translateY(10px) scaleX(-0.9); }
+  90% { opacity: 0.3; }
+  100% { transform: translateX(calc(-100vw - 80px)) translateY(-5px) scaleX(-1); opacity: 0; }
+}
+
+@keyframes batFlyFast {
+  0% { transform: translateX(0) translateY(0) scale(1); opacity: 0; }
+  10% { opacity: 0.4; }
+  30% { transform: translateX(30vw) translateY(-20px) scale(1.1); }
+  60% { transform: translateX(60vw) translateY(10px) scale(0.9); }
+  90% { opacity: 0.3; }
+  100% { transform: translateX(calc(100vw + 80px)) translateY(-5px) scale(1); opacity: 0; }
+}
+
+@keyframes cardReveal {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Classes utilitárias */
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.6s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.6s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.animate-card-reveal {
+  animation: cardReveal 0.4s ease-out both;
+}
+
+/* Glass effect para RPG — hierarquia de opacidade */
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.dark .glass {
+  background: rgba(15, 23, 42, 0.72);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.glass-subtle {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass-subtle {
+  background: rgba(15, 23, 42, 0.52);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+.glass-solid {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.dark .glass-solid {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+.game-glass {
+  background: rgba(10, 5, 25, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.game-glass-subtle {
+  background: rgba(10, 5, 25, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.game-glass-solid {
+  background: rgba(10, 5, 25, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* TTS Player Slider */
+input[type="range"].tts-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: linear-gradient(to right, rgb(139, 92, 246), rgb(34, 211, 238));
+  border-radius: 2px;
+  cursor: pointer;
+}
+input[type="range"].tts-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
+}
+input[type="range"].tts-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.4);
+}
+input[type="range"].tts-slider:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ============================================
+   SIDEBAR - Expanded/Collapsed States
+   ============================================ */
+.sidebar-expanded {
+  width: 260px;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-collapsed {
+  width: 72px;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Nav item active indicator */
+.nav-item-active {
+  position: relative;
+}
+
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, #8b5cf6, #06b6d4);
+}
+
+/* ============================================
+   ICON BUTTON - Compact clickable icon
+   ============================================ */
+.icon-btn {
+  @apply relative flex items-center justify-center rounded-lg transition-all duration-200 cursor-pointer;
+  width: 40px;
+  height: 40px;
+}
+
+.icon-btn:hover {
+  @apply bg-white/10;
+}
+
+:root:not(.dark) .icon-btn:hover {
+  @apply bg-slate-200/60;
+}
+
+/* ============================================
+   EMPTY STATE - Placeholder for empty lists
+   ============================================ */
+.empty-state {
+  @apply flex flex-col items-center justify-center py-16 px-6 text-center;
+}
+
+.empty-state svg {
+  @apply w-16 h-16 mb-4 opacity-40;
+}
+
+.empty-state h3 {
+  @apply text-lg font-semibold mb-2;
+}
+
+.empty-state p {
+  @apply text-sm opacity-60 max-w-sm;
+}
+
+/* ============================================
+   BREADCRUMB - Page navigation trail
+   ============================================ */
+.breadcrumb {
+  @apply flex items-center gap-2 text-sm;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.breadcrumb a {
+  @apply transition-colors duration-200 opacity-60 hover:opacity-100;
+}
+
+.breadcrumb span.separator {
+  @apply opacity-40;
+}
+
+.breadcrumb span.current {
+  @apply font-semibold opacity-100;
+}
+
+/* ============================================
+   USER DROPDOWN - Avatar menu
+   ============================================ */
+.user-dropdown {
+  @apply absolute right-0 top-full mt-2 w-56 rounded-xl border shadow-xl z-50;
+  animation: scaleIn 0.15s ease-out;
+}
+
+.dark .user-dropdown {
+  @apply bg-slate-800 border-slate-700;
+}
+
+:root:not(.dark) .user-dropdown {
+  @apply bg-white border-slate-200;
+}
+
+.user-dropdown-item {
+  @apply flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-150 cursor-pointer first:rounded-t-xl last:rounded-b-xl;
+}
+
+.dark .user-dropdown-item:hover {
+  @apply bg-slate-700/60;
+}
+
+:root:not(.dark) .user-dropdown-item:hover {
+  @apply bg-slate-100;
+}
+
+/* ============================================
+   SKELETON - Loading placeholder
+   ============================================ */
+.skeleton {
+  @apply rounded-lg animate-pulse;
+}
+
+.dark .skeleton {
+  @apply bg-slate-700/50;
+}
+
+:root:not(.dark) .skeleton {
+  @apply bg-slate-200/70;
+}
+
+/* ============================================
+   SCROLL TO TOP BUTTON
+   ============================================ */
+.scroll-top-btn {
+  @apply fixed bottom-6 right-6 z-40 w-10 h-10 rounded-full flex items-center justify-center shadow-lg cursor-pointer transition-all duration-300;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.dark .scroll-top-btn {
+  @apply bg-purple-600 text-white hover:bg-purple-500;
+}
+
+:root:not(.dark) .scroll-top-btn {
+  @apply bg-purple-500 text-white hover:bg-purple-400;
+}
+
+/* ============================================
+   STAGGER ANIMATIONS - Cascade entrance
+   ============================================ */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+.stagger-6 { animation-delay: 300ms; }
+.stagger-7 { animation-delay: 350ms; }
+.stagger-8 { animation-delay: 400ms; }
+
+/* ============================================
+   TOAST NOTIFICATIONS
+   ============================================ */
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(100%); }
+}
+
+.toast {
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl border min-w-[320px] max-w-md;
+  animation: toastSlideIn 0.3s ease-out;
+}
+
+.toast.toast-exit {
+  animation: toastSlideOut 0.3s ease-in forwards;
+}
+
+.dark .toast {
+  @apply bg-slate-800 border-slate-700;
+}
+
+:root:not(.dark) .toast {
+  @apply bg-white border-slate-200;
+}
+
+.toast-success { @apply border-l-4 border-l-emerald-500; }
+.toast-error { @apply border-l-4 border-l-red-500; }
+.toast-warning { @apply border-l-4 border-l-amber-500; }
+.toast-info { @apply border-l-4 border-l-blue-500; }
+
+/* ============================================
+   STAT BLOCK - Key/value stat display
+   ============================================ */
+.stat-block {
+  @apply rounded-xl p-4 transition-all duration-200;
+}
+
+.dark .stat-block {
+  @apply bg-slate-800/60 border border-slate-700/50;
+}
+
+:root:not(.dark) .stat-block {
+  @apply bg-white/80 border border-slate-200/80 shadow-sm;
+}
+
+.stat-block .stat-label {
+  @apply text-xs font-medium uppercase tracking-wider opacity-60 mb-1;
+}
+
+.stat-block .stat-value {
+  @apply text-2xl font-bold;
+  font-family: 'EB Garamond', serif;
+}
+
+/* ============================================
+   TABLE RPG - Enhanced data table
+   ============================================ */
+.table-rpg-enhanced {
+  @apply w-full text-sm;
+}
+
+.table-rpg-enhanced thead th {
+  @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider border-b;
+}
+
+.dark .table-rpg-enhanced thead th {
+  @apply text-slate-400 border-slate-700/50;
+}
+
+:root:not(.dark) .table-rpg-enhanced thead th {
+  @apply text-slate-600 border-slate-200;
+}
+
+.table-rpg-enhanced tbody tr {
+  @apply transition-colors duration-150;
+}
+
+.dark .table-rpg-enhanced tbody tr:hover {
+  @apply bg-slate-800/40;
+}
+
+:root:not(.dark) .table-rpg-enhanced tbody tr:hover {
+  @apply bg-slate-50;
+}
+
+.table-rpg-enhanced tbody td {
+  @apply px-4 py-3 border-b;
+}
+
+.dark .table-rpg-enhanced tbody td {
+  @apply border-slate-700/30;
+}
+
+:root:not(.dark) .table-rpg-enhanced tbody td {
+  @apply border-slate-100;
+}
+
+/* Card RPG - Light mode override */
+:root:not(.dark) .card-rpg {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid rgba(100, 116, 139, 0.2);
+  box-shadow: 0 2px 16px 0 rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(10px);
+}
+
+:root:not(.dark) .card-rpg:hover {
+  box-shadow: 0 8px 30px rgba(124, 58, 237, 0.1);
+  border-color: rgba(124, 58, 237, 0.25);
+}
+
+/* ============================================
+   CARD VARIANTS
+   ============================================ */
+.card-rpg-hero {
+  @apply relative overflow-hidden rounded-2xl;
+}
+
+.dark .card-rpg-hero {
+  @apply bg-slate-800/80 border border-slate-700/50;
+}
+
+:root:not(.dark) .card-rpg-hero {
+  @apply bg-white/95 border border-slate-200 shadow-lg;
+}
+
+.card-rpg-lore {
+  @apply rounded-xl p-5;
+}
+
+.dark .card-rpg-lore {
+  @apply bg-slate-800/50 border border-slate-700/40;
+}
+
+:root:not(.dark) .card-rpg-lore {
+  @apply bg-amber-50/50 border border-amber-200/50;
+}
+
+.card-rpg-magic {
+  @apply rounded-xl p-5 relative overflow-hidden;
+}
+
+.dark .card-rpg-magic {
+  @apply bg-purple-900/20 border border-purple-500/20;
+}
+
+:root:not(.dark) .card-rpg-magic {
+  @apply bg-purple-50/50 border border-purple-200/50;
+}
+
+/* ============================================
+   VITRAL ARCANO - Catalog Detail Sections
+   ============================================ */
+.vitral-section {
+  position: relative;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+.vitral-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--vitral-accent, #8b5cf6), transparent 80%);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .glass, .glass-subtle, .glass-solid, .game-glass, .game-glass-subtle, .game-glass-solid {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .card-rpg {
+    @apply p-4;
+  }
+
+  .sidebar-expanded {
+    width: 260px;
+    position: fixed;
+    z-index: 30;
+  }
+
+  .sidebar-collapsed {
+    width: 0;
+    overflow: hidden;
+  }
+}
+
+/* Documentation prose styles */
+.docs-content h1 {
+  @apply text-2xl font-bold mb-4 text-purple-300;
+  font-family: 'EB Garamond', serif;
+}
+.docs-content h2 {
+  @apply text-xl font-bold mt-8 mb-3 text-purple-400;
+  font-family: 'EB Garamond', serif;
+}
+.docs-content h3 { @apply text-lg font-semibold mt-6 mb-2; }
+.docs-content p { @apply mb-4 leading-relaxed; }
+.docs-content ul { @apply list-disc pl-6 mb-4 space-y-1; }
+.docs-content ol { @apply list-decimal pl-6 mb-4 space-y-1; }
+.docs-content code { @apply px-1.5 py-0.5 rounded bg-slate-800 text-purple-300 text-sm font-mono; }
+.docs-content pre { @apply p-4 rounded-lg bg-slate-800 overflow-x-auto mb-4; }
+.docs-content pre code { @apply p-0 bg-transparent; }
+.docs-content table { @apply w-full border-collapse mb-4; }
+.docs-content th { @apply text-left px-3 py-2 border-b border-slate-700 font-semibold; }
+.docs-content td { @apply px-3 py-2 border-b border-slate-800; }
+.docs-content a { @apply text-purple-400 hover:text-purple-300 underline; }
+.docs-content blockquote { @apply border-l-4 border-purple-500 pl-4 italic text-slate-400 mb-4; }

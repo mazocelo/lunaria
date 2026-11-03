@@ -2,6 +2,12 @@
 
 > A real-time multiplayer tabletop RPG where an LLM Game Master narrates every move: streamed text and character voices, held to the rules by a deterministic engine.
 
+<p align="center">
+  <a href="docs/media/lunaria-trailer.mp4"><img src="docs/media/lunaria-trailer.gif" width="720" alt="Lunaria trailer: AI Game Master, NPC voices, rules-first combat, multiplayer rooms, model tiers"></a>
+</p>
+
+<sub><b>How this video was made:</b> no screen recording and no video editor. One HTML page draws every frame from the real screenshots in <code>docs/screenshots/</code>; headless Chrome (Playwright) captures it at 30 fps, ffmpeg encodes it, and the soundtrack is synthesized in code, so there is no licensed music. Claude Code wrote the storyboard, the page and the render script; Marcelo reviewed and approved the cut. Click the GIF for the 36-second MP4 with sound.</sub>
+
 Players build characters with a conversational wizard, create a story, invite friends into a room and play turn by turn. The Game Master is a team of LLM agents: one narrates, others review, summarize and plan the story arc. The server resolves the game mechanics **before** the model speaks, and the model changes game state only through a validated JSON action protocol. Narration streams token by token to every player in the room, and each NPC line can be played with its own voice.
 
 The game is in Brazilian Portuguese, so code identifiers, prompts and commit messages are mostly in Portuguese. See the [glossary](#glossary).
@@ -92,7 +98,7 @@ Counted on this repository (`git`, `grep`, `wc`):
 
 | | |
 |---|---|
-| Commits | 1,339 non-merge commits, April 2025 to October 2026 (backend 569, frontend 759, root docs 11) |
+| Commits | 1,333 non-merge commits, April 2025 to November 2026 (backend 568, frontend 758, root docs 7) |
 | Test files | 109 (backend 55 Vitest, 4 of them scenario suites; frontend 49 Vitest + 5 Playwright e2e) |
 | Test cases | 2,517 `it`/`test` blocks (backend 1,921, frontend 596) |
 | LLM | 15 modules calling a chat model, 1 image model, 10 models in the catalog, 5 tiers |
@@ -102,7 +108,7 @@ Counted on this repository (`git`, `grep`, `wc`):
 
 ## How it was built
 
-Lunaria was built by Marcelo working with AI coding agents (Claude Code) under his specs and review. The specs and implementation plans the agents followed are in `docs/superpowers/`, `backend/docs/superpowers/` and `frontend/docs/superpowers/`; the standing instructions for the agents are in the `CLAUDE.md` files; 1,058 of the 1,339 commits carry a `Co-Authored-By: Claude` trailer.
+Lunaria was built by Marcelo working with AI coding agents (Claude Code) under his specs and review. The specs and implementation plans the agents followed are in `docs/superpowers/`, `backend/docs/superpowers/` and `frontend/docs/superpowers/`; the standing instructions for the agents are in the `CLAUDE.md` files; 1,054 of the 1,333 non-merge commits carry a `Co-Authored-By: Claude` trailer. The first 110 commits (April 2025 to February 2026) have none; Claude Code became the main implementer in March 2026.
 
 ## Running locally
 

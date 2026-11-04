@@ -6,7 +6,20 @@
   <a href="docs/media/lunaria-trailer.mp4"><img src="docs/media/lunaria-trailer.gif" width="720" alt="Lunaria trailer: AI Game Master, NPC voices, rules-first combat, multiplayer rooms, model tiers"></a>
 </p>
 
-<sub><b>How this video was made:</b> no screen recording and no video editor. One HTML page draws every frame from the real screenshots in <code>docs/screenshots/</code>; headless Chrome (Playwright) captures it at 30 fps, ffmpeg encodes it, and the soundtrack is synthesized in code, so there is no licensed music. Claude Code wrote the storyboard, the page and the render script; Marcelo reviewed and approved the cut. Click the GIF for the 36-second MP4 with sound.</sub>
+<details name="trailer">
+<summary><b>🔊 Watch with narration · English</b> (41 s)</summary>
+
+https://github.com/user-attachments/assets/205b584e-d949-45a4-a0e9-74d7623084ab
+
+</details>
+<details name="trailer">
+<summary><b>🔊 Assistir com narração · Português</b> (41 s)</summary>
+
+https://github.com/user-attachments/assets/ec9244c5-3c06-40e7-b415-4f4877fbce29
+
+</details>
+
+<sub><b>How this video was made:</b> no screen recording and no video editor. One HTML page draws every frame from the real screenshots in <code>docs/screenshots/</code>; headless Chrome (Playwright) captures it at 30 fps, ffmpeg encodes it, and the soundtrack is synthesized in code, so there is no licensed music. The narration is Kokoro-82M text-to-speech, one of Lunaria's own voice providers, run locally (voice af_heart in English, pm_santa in Portuguese). Claude Code wrote the storyboard, the narration, the page and the render script; Marcelo reviewed and approved the cut.</sub>
 
 Players build characters with a conversational wizard, create a story, invite friends into a room and play turn by turn. The Game Master is a team of LLM agents: one narrates, others review, summarize and plan the story arc. The server resolves the game mechanics **before** the model speaks, and the model changes game state only through a validated JSON action protocol. Narration streams token by token to every player in the room, and each NPC line can be played with its own voice.
 

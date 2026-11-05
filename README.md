@@ -2,11 +2,7 @@
 
 > A real-time multiplayer tabletop RPG where an LLM Game Master narrates every move: streamed text and character voices, held to the rules by a deterministic engine.
 
-<p align="center">
-  <a href="docs/media/lunaria-trailer.mp4"><img src="docs/media/lunaria-trailer.gif" width="720" alt="Lunaria trailer: AI Game Master, NPC voices, rules-first combat, multiplayer rooms, model tiers"></a>
-</p>
-
-<details name="trailer">
+<details name="trailer" open>
 <summary><b>🔊 Watch with narration · English</b> (41 s)</summary>
 
 https://github.com/user-attachments/assets/205b584e-d949-45a4-a0e9-74d7623084ab
